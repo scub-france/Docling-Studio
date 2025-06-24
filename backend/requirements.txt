@@ -1,0 +1,7 @@
+transformers
+accelerate
+torch
+torchvision
+pdf2image
+pillow
+requests

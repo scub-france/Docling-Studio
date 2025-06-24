@@ -1,0 +1,40 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+      - docker
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image name
+        id: image_name
+        run: |
+          IMAGE_NAME=ghcr.io/${{ github.repository }}:${{ github.sha }}
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ steps.image_name.outputs.IMAGE_NAME }} .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ steps.image_name.outputs.IMAGE_NAME }}

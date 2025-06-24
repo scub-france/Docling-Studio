@@ -1,0 +1,7 @@
+services:
+  analyser:
+    image: ddd
+    ports:
+      - "8080:5000"
+    volumes:
+      - ./input:/

@@ -2,36 +2,37 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "docling-core",
-#     "mlx-vlm",
+#     "transformers>=4.50",
+#     "torch",
 #     "pillow",
 #     "requests",
 #     "argparse",
 #     "pdf2image",
+#     "docling_core",
 # ]
 # ///
 
 import argparse
 import os
 import tempfile
-import re
 from pathlib import Path
 from urllib.parse import urlparse
 import requests
 from PIL import Image
 from pdf2image import convert_from_bytes
-from docling_core.types.doc import ImageRefMode
-from docling_core.types.doc.document import DocTagsDocument, DoclingDocument
+import torch
+from transformers import AutoProcessor, AutoModelForVision2Seq
+from docling_core.types.doc import DoclingDocument
+from docling_core.types.doc.document import DocTagsDocument
 
 # Add parent directory to path for imports
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from backend.utils import ensure_results_folder, load_pdf_page, get_project_root
+from backend.utils import ensure_results_folder, load_pdf_page
 from backend.config import MODEL_PATH, MAX_TOKENS, DEFAULT_DPI
 
 def parse_arguments():
-    """Parse command line arguments."""
     results_dir = ensure_results_folder()
 
     parser = argparse.ArgumentParser(description='Convert an image or PDF to docling format')
@@ -52,7 +53,6 @@ def parse_arguments():
     return parser.parse_args()
 
 def load_image(image_path, page_num=1, dpi=DEFAULT_DPI):
-    """Load image from URL, local image file, or PDF."""
     if urlparse(image_path).scheme in ['http', 'https']:
         response = requests.get(image_path, stream=True, timeout=10)
         response.raise_for_status()
@@ -62,104 +62,85 @@ def load_image(image_path, page_num=1, dpi=DEFAULT_DPI):
             pdf_images = convert_from_bytes(response.content, dpi=dpi, first_page=page_num, last_page=page_num)
             if not pdf_images:
                 raise Exception(f"Could not extract page {page_num} from PDF")
-            return pdf_images[0]
+            return pdf_images[0].convert("RGB")
         else:
-            return Image.open(response.raw)
+            return Image.open(response.raw).convert("RGB")
     else:
         image_path = Path(image_path)
         if not image_path.exists():
             raise FileNotFoundError(f"File not found: {image_path}")
 
         if image_path.suffix.lower() == '.pdf':
-            return load_pdf_page(str(image_path), page_num, dpi)
+            return load_pdf_page(str(image_path), page_num, dpi).convert("RGB")
         else:
-            return Image.open(image_path)
+            return Image.open(image_path).convert("RGB")
 
-def process_page(model, processor, config, args, pil_image, page_num=1):
-    """Process a single page from a PDF or image file."""
-    from mlx_vlm.prompt_utils import apply_chat_template
-    from mlx_vlm.utils import stream_generate
-
+def process_page(model, processor, args, pil_image, page_num=1):
     results_dir = ensure_results_folder()
 
-    # For web interface, always use output.doctags.txt
-    # For command line with specific pages, use page-specific names
     if args.start_page == args.end_page and args.start_page == page_num:
-        # Single page processing
-        output_path = results_dir / "output.html"
         doctags_path = results_dir / "output.doctags.txt"
+        output_path = results_dir / "output.html"
     else:
-        # Multi-page processing
-        output_path = results_dir / f"output_page{page_num}.html"
         doctags_path = results_dir / f"output_page{page_num}.doctags.txt"
+        output_path = results_dir / f"output_page{page_num}.html"
 
     print(f"Processing page {page_num}")
 
-    # Save image temporarily
-    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_img_file:
-        temp_img_path = temp_img_file.name
-        pil_image.save(temp_img_path, format='PNG')
+    # Préparer les messages
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "image"},
+                {"type": "text", "text": args.prompt}
+            ]
+        }
+    ]
 
-    try:
-        # Apply chat template and generate
-        formatted_prompt = apply_chat_template(processor, config, args.prompt, num_images=1)
+    prompt = processor.apply_chat_template(messages, add_generation_prompt=True)
 
-        print(f"Generating DocTags for page {page_num}: \n\n")
-        output = ""
-        for token in stream_generate(
-                model, processor, formatted_prompt, [temp_img_path], max_tokens=MAX_TOKENS, verbose=False
-        ):
-            output += token.text
-            print(token.text, end="")
-            if "</doctag>" in token.text:
-                break
-        print("\n\n")
+    device = next(model.parameters()).device
+    inputs = processor(text=prompt, images=[pil_image], return_tensors="pt").to(device)
 
-    finally:
-        # Clean up temporary file
-        if os.path.exists(temp_img_path):
-            os.unlink(temp_img_path)
+    # Génération
+    generated_ids = model.generate(**inputs, max_new_tokens=MAX_TOKENS)
+    prompt_length = inputs.input_ids.shape[1]
+    trimmed_generated_ids = generated_ids[:, prompt_length:]
 
-    # Save DocTags output
-    with open(doctags_path, 'w', encoding='utf-8') as f:
-        f.write(output)
-    print(f"Raw DocTags saved to: {doctags_path}")
+    doctags = processor.batch_decode(trimmed_generated_ids, skip_special_tokens=False)[0].lstrip()
+    with open(doctags_path, "w", encoding="utf-8") as f:
+        f.write(doctags)
+    print(f"DocTags saved to {doctags_path}")
+
+    doctags_doc = DocTagsDocument.from_doctags_and_image_pairs([doctags], [pil_image])
+    doc = DoclingDocument.load_from_doctags(doctags_doc, document_name=f"Page {page_num}")
+    html = doc.export_to_html()
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(html)
+    print(f"HTML exported to {output_path}")
 
     return output_path
 
 def main():
     args = parse_arguments()
+    print("Loading model and processor...")
 
-    # Load the model
-    print("Loading model...")
-    try:
-        from mlx_vlm import load
-        from mlx_vlm.utils import load_config
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = AutoModelForVision2Seq.from_pretrained(
+        MODEL_PATH,
+        torch_dtype=torch.bfloat16,
+        _attn_implementation="flash_attention_2" if device.type == "cuda" else "eager"
+    ).to(device)
+    processor = AutoProcessor.from_pretrained(MODEL_PATH)
 
-        model, processor = load(MODEL_PATH)
-        config = load_config(MODEL_PATH)
-    except Exception as e:
-        print(f"Error loading model: {e}")
-        return
+    start_page = args.start_page
+    end_page = args.end_page or args.page
 
-    # Process the image/PDF
-    try:
-        # Handle single page or range
-        start_page = args.start_page
-        end_page = args.end_page or args.page
-
-        for page_num in range(start_page, end_page + 1):
-            print(f"\nProcessing page {page_num}...")
-
-            pil_image = load_image(args.image, page_num=page_num, dpi=args.dpi)
-            print(f"Page {page_num} loaded: {pil_image.size}")
-
-            process_page(model, processor, config, args, pil_image, page_num)
-
-    except Exception as e:
-        print(f"Error processing: {e}")
-        import traceback
-        traceback.print_exc()
+    for page_num in range(start_page, end_page + 1):
+        pil_image = load_image(args.image, page_num=page_num, dpi=args.dpi)
+        process_page(model, processor, args, pil_image, page_num)
 
 if __name__ == "__main__":
     main()
