@@ -1,6 +1,7 @@
-FROM python:3
+FROM python:3.12
+WORKDIR /app
+COPY backend/requirements.txt ./backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY . .
-WORKDIR backend
-RUN pip install -r requirements.txt
-WORKDIR ..
-ENTRYPOINT run_app.sh
+RUN chmod +x run_app.sh
+ENTRYPOINT ["./run_app.sh"]

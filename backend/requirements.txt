@@ -5,3 +5,4 @@ torchvision
 pdf2image
 pillow
 requests
+flask

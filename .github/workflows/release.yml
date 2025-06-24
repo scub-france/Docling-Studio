@@ -38,3 +38,7 @@ jobs:
       - name: Push Docker image
         run: |
           docker push ${{ steps.image_name.outputs.IMAGE_NAME }}
+      - name: Tag image as latest
+        run: |
+          docker tag ${{ steps.image_name.outputs.IMAGE_NAME }} ghcr.io/${{ github.repository }}:latest
+          docker push ghcr.io/${{ github.repository }}:latest
