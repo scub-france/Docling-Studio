@@ -36,7 +36,7 @@ CLEANUP_AGE_HOURS = 24
 CLEANUP_INTERVAL = 3600  # 1 hour
 
 # Model settings
-MODEL_PATH = "ds4sd/SmolDocling-256M-preview-mlx-bf16"
+MODEL_PATH = "ds4sd/SmolDocling-256M-preview"
 MAX_TOKENS = 4096
 
 # Zone colors for visualization
