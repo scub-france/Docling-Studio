@@ -2,6 +2,9 @@
 
 AI-powered document analysis and visualization tool for extracting structured content from PDFs.
 
+<img width="800" height="685" alt="image" src="https://github.com/user-attachments/assets/ce301175-ea4b-42e8-8e3a-ff9c326b84cd" />
+
+
 ## 🚀 Quick Start with Docker
 
 ### Prerequisites
