@@ -17,7 +17,7 @@ AI-powered document analysis and visualization tool for extracting structured co
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd doc-analyzer
+   cd SmolDocling-visualizer
    ```
 
 2. **Place your PDF files in the project directory**
