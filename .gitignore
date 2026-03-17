@@ -4,11 +4,12 @@ frontend/node_modules/
 
 # Build outputs
 frontend/dist/
-backend/target/
 
-# IDE
+# IDE & local tooling
 .idea/
 .vscode/
+.run/
+.claude/
 *.iml
 
 # OS
@@ -20,9 +21,9 @@ Thumbs.db
 .env.local
 .env.production
 
-# Uploads
+# Uploads & data
 uploads/
-backend/uploads/
+data/
 
 # Python
 __pycache__/
@@ -30,9 +31,7 @@ __pycache__/
 .venv/
 *.egg-info/
 
-# Java
-*.class
-*.jar
+# Logs
 *.log
 hs_err_pid*
 
