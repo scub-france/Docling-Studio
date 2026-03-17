@@ -1,5 +1,10 @@
 # Docling Studio
 
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Python](https://img.shields.io/badge/python-3.12+-blue)
+![Docling](https://img.shields.io/badge/powered%20by-Docling-orange)
+
+
 A visual document analysis studio powered by [Docling](https://github.com/DS4SD/docling).
 Upload a PDF, configure the extraction pipeline, and visualize the results — text, tables, images, formulas, bounding boxes — all from your browser.
 
