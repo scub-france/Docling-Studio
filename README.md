@@ -3,7 +3,7 @@
 A visual document analysis studio powered by [Docling](https://github.com/DS4SD/docling).
 Upload a PDF, configure the extraction pipeline, and visualize the results — text, tables, images, formulas, bounding boxes — all from your browser.
 
-![Docling Studio — Visual Mode](docs/screenshots/visual-mode.png)
+![Docling Studio — Execution Result](docs/screenshots/DS-execution-result.png)
 
 ## Features
 
@@ -20,7 +20,7 @@ Upload a PDF, configure the extraction pipeline, and visualize the results — t
 
 | Import | Configure | Results |
 |--------|-----------|---------|
-| ![Import](docs/screenshots/import.png) | ![Configure](docs/screenshots/configure.png) | ![Results](docs/screenshots/results.png) |
+| ![Import](docs/screenshots/DS-load-document.png) | ![Configure](docs/screenshots/DS-configure-execution.png) | ![Results](docs/screenshots/DS-execution-result.png) |
 
 </details>
 
@@ -79,7 +79,7 @@ docker compose up --build
 
 Open [http://localhost:3000](http://localhost:3000)
 
-> **Note:** First analysis may take a few minutes as Docling downloads its ML models (~40 MB) on first run.
+> **Note:** The first analysis takes a bit longer as Docling downloads and caches its ML models (~400 MB). Subsequent runs are fast.
 
 ### Local Development
 
@@ -122,13 +122,13 @@ All configuration is done via environment variables. See [`.env.example`](.env.e
 
 ## Performance & System Requirements
 
-Docling runs ML models (layout analysis, OCR, table structure) on **CPU by default**. Processing time depends on document size and complexity.
+Docling leverages optimized ML models (layout analysis, OCR, table structure) that run efficiently on CPU. The first analysis takes slightly longer as models are downloaded and cached (~400 MB). Subsequent runs are fast, even on large documents.
 
 | Document type | Pages | Approx. time (CPU) |
 |---------------|-------|---------------------|
-| Simple report | 5-10  | 1-3 min |
-| Research paper | 15-30 | 5-10 min |
-| Dense PDF with tables | 30+  | 10-20 min |
+| Simple report | 5-10  | ~30s-1 min |
+| Research paper | 10-30 | ~1-2 min |
+| Large document | 100+  | ~2-5 min |
 
 ### Docker Desktop settings
 
@@ -144,17 +144,15 @@ The document parser needs **at least 4 GB of RAM**. Recommended Docker Desktop a
 
 ### Platform support
 
-All Docker images are **multi-arch** (linux/amd64 + linux/arm64). Works natively on:
+All Docker images are **multi-arch** (linux/amd64 + linux/arm64). All processing runs on **CPU** — no GPU required.
 
-| Platform | Architecture | GPU acceleration |
-|----------|-------------|-----------------|
-| **macOS Apple Silicon** (M1/M2/M3) | arm64 | Not in Docker (MPS unavailable). Run parser locally for GPU. |
-| **macOS Intel** | amd64 | N/A |
-| **Linux x86_64** | amd64 | NVIDIA GPU via `docker compose --profile gpu` (coming soon) |
-| **Linux ARM** (Raspberry Pi 5, Ampere) | arm64 | CPU only |
-| **Windows + WSL2** | amd64 | NVIDIA GPU passthrough supported |
-
-> **Tip for Mac users:** For faster processing, run the document parser **locally** (outside Docker) to leverage Apple Silicon's MPS acceleration when supported by PyTorch/Docling.
+| Platform | Architecture |
+|----------|-------------|
+| **macOS Apple Silicon** (M1/M2/M3/M4) | arm64 |
+| **macOS Intel** | amd64 |
+| **Linux x86_64** | amd64 |
+| **Linux ARM** (Raspberry Pi 5, Ampere) | arm64 |
+| **Windows + WSL2** | amd64 |
 
 ## Tech Stack
 

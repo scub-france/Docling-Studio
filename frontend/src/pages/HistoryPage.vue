@@ -1,7 +1,7 @@
 <template>
   <div class="history-page">
     <div class="page-header">
-      <h1 class="page-title">Analysis History</h1>
+      <h1 class="page-title">{{ t('history.title') }}</h1>
     </div>
     <div class="page-content">
       <HistoryList />
@@ -12,8 +12,10 @@
 <script setup>
 import { onMounted } from 'vue'
 import { HistoryList, useHistoryStore } from '../features/history/index.js'
+import { useI18n } from '../shared/i18n.js'
 
 const store = useHistoryStore()
+const { t } = useI18n()
 onMounted(() => store.load())
 </script>
 

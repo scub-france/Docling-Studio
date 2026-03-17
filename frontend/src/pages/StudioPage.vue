@@ -5,11 +5,11 @@
       <div class="import-logo">
         <span class="logo-icon">D</span>
       </div>
-      <h1 class="import-title">Intelligence des documents</h1>
-      <p class="import-subtitle">Importez un document PDF pour commencer l'analyse avec Docling</p>
+      <h1 class="import-title">{{ t('studio.title') }}</h1>
+      <p class="import-subtitle">{{ t('studio.subtitle') }}</p>
       <DocumentUpload />
       <div class="import-docs" v-if="documentStore.documents.length">
-        <label class="section-label">Documents r&eacute;cents</label>
+        <label class="section-label">{{ t('studio.recentDocs') }}</label>
         <DocumentList />
       </div>
     </div>
@@ -20,25 +20,25 @@
     <!-- Top bar -->
     <div class="studio-topbar">
       <div class="topbar-left">
-        <h1 class="topbar-title">Intelligence des documents</h1>
+        <h1 class="topbar-title">{{ t('studio.title') }}</h1>
         <div class="mode-toggle">
           <button
             class="toggle-btn"
             :class="{ active: mode === 'configurer' }"
             @click="mode = 'configurer'"
-          >Configurer</button>
+          >{{ t('studio.configure') }}</button>
           <button
             class="toggle-btn"
             :class="{ active: mode === 'verifier' }"
             @click="mode = 'verifier'"
             :disabled="!analysisStore.currentAnalysis"
-          >V&eacute;rifier</button>
+          >{{ t('studio.verify') }}</button>
         </div>
       </div>
       <div class="topbar-actions">
         <button class="topbar-btn" @click="addMore">
           <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon"><path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/></svg>
-          Ajouter des fichiers
+          {{ t('studio.addFiles') }}
         </button>
         <button
           class="topbar-btn primary"
@@ -48,7 +48,7 @@
         >
           <div v-if="analysisStore.running" class="spinner-sm" />
           <svg v-else viewBox="0 0 20 20" fill="currentColor" class="btn-icon"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
-          {{ analysisStore.running ? 'Analyse...' : 'Ex\u00e9cuter' }}
+          {{ analysisStore.running ? t('studio.analyzing') : t('studio.run') }}
         </button>
       </div>
     </div>
@@ -58,7 +58,7 @@
       <div class="doc-info-left">
         <svg class="doc-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
         <span class="doc-filename">{{ selectedDoc.filename }}</span>
-        <span class="doc-status-chip loaded">Charg&eacute;</span>
+        <span class="doc-status-chip loaded">{{ t('studio.loaded') }}</span>
       </div>
       <div class="doc-info-right" v-if="analysisStore.currentAnalysis">
         <span class="info-badge" v-if="analysisStore.currentAnalysis.status === 'COMPLETED'">
@@ -67,11 +67,11 @@
         </span>
         <span class="info-badge" v-if="analysisStore.currentAnalysis.status === 'RUNNING'">
           <div class="spinner-xs" />
-          Analyse en cours...
+          {{ t('studio.analysisRunning') }}
         </span>
         <span class="info-badge error" v-if="analysisStore.currentAnalysis.status === 'FAILED'">
           <span class="info-dot error" />
-          &Eacute;chec
+          {{ t('studio.failed') }}
         </span>
       </div>
     </div>
@@ -108,7 +108,7 @@
               @click="visualMode = !visualMode"
             >
               <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
-              Visuel
+              {{ t('studio.visual') }}
             </button>
           </template>
         </div>
@@ -138,7 +138,7 @@
         <div v-if="mode === 'configurer'" class="config-panel">
           <div class="config-section">
             <label class="config-label">
-              Mod&egrave;le
+              {{ t('config.model') }}
               <span class="config-hint">?</span>
             </label>
             <div class="config-select-display">
@@ -149,26 +149,26 @@
 
           <div class="config-section">
             <label class="config-label">
-              Pages
+              {{ t('config.pages') }}
               <span class="config-hint">?</span>
             </label>
-            <input type="text" class="config-input" placeholder='par ex. "1-4,8"' v-model="pageRange" />
+            <input type="text" class="config-input" :placeholder="t('config.pagesPlaceholder')" v-model="pageRange" />
           </div>
 
           <div class="config-section">
             <label class="config-label">
-              Extraire les tableaux
+              {{ t('config.extractTables') }}
               <span class="config-hint">?</span>
             </label>
             <select class="config-select" v-model="tableMode">
-              <option value="markdown">Markdown int&eacute;gr&eacute;</option>
+              <option value="markdown">{{ t('config.markdownIntegrated') }}</option>
               <option value="html">HTML</option>
               <option value="csv">CSV</option>
             </select>
           </div>
 
           <div class="config-section">
-            <label class="config-label">Extraire</label>
+            <label class="config-label">{{ t('config.extract') }}</label>
             <div class="extract-options">
               <button
                 v-for="opt in extractOptions"
@@ -187,15 +187,15 @@
 
           <div class="config-section">
             <label class="config-label">
-              Annoter les images
+              {{ t('config.annotateImages') }}
               <span class="config-hint">?</span>
             </label>
-            <button class="config-add-btn">Ajouter +</button>
+            <button class="config-add-btn">{{ t('config.add') }}</button>
           </div>
 
           <!-- Documents list at bottom -->
           <div class="config-section config-docs">
-            <label class="config-label">Documents</label>
+            <label class="config-label">{{ t('config.documents') }}</label>
             <DocumentList />
           </div>
         </div>
@@ -217,9 +217,11 @@ import { DocumentUpload, DocumentList } from '../features/document/index.js'
 import { ResultTabs } from '../features/analysis/index.js'
 import BboxOverlay from '../features/analysis/ui/BboxOverlay.vue'
 import { getPreviewUrl } from '../features/document/api.js'
+import { useI18n } from '../shared/i18n.js'
 
 const documentStore = useDocumentStore()
 const analysisStore = useAnalysisStore()
+const { t } = useI18n()
 
 const mode = ref('configurer')
 const currentPage = ref(1)
@@ -242,11 +244,11 @@ function onPdfImageLoad() {
   nextTick(() => bboxOverlayRef.value?.draw())
 }
 
-const extractOptions = [
-  { id: 'images', label: 'Images', icon: 'image' },
-  { id: 'header', label: 'En-t\u00eate', icon: 'header' },
-  { id: 'footer', label: 'Pied de page', icon: 'footer' }
-]
+const extractOptions = computed(() => [
+  { id: 'images', label: t('config.images'), icon: 'image' },
+  { id: 'header', label: t('config.header'), icon: 'header' },
+  { id: 'footer', label: t('config.footer'), icon: 'footer' }
+])
 const activeExtracts = reactive(new Set(['images']))
 
 function toggleExtract(id) {

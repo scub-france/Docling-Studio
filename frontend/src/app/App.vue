@@ -10,6 +10,9 @@
 <script setup>
 import { RouterView } from 'vue-router'
 import { AppSidebar } from '../shared/ui/index.js'
+import { useSettingsStore } from '../features/settings/store.js'
+
+useSettingsStore()
 </script>
 
 <style>
@@ -44,6 +47,29 @@ import { AppSidebar } from '../shared/ui/index.js'
 
   --sidebar-width: 240px;
   --transition: 150ms ease;
+}
+
+html.light {
+  --bg: #FAFAFA;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #F4F4F5;
+  --bg-hover: #E4E4E7;
+
+  --accent: #F97316;
+  --accent-hover: #EA580C;
+  --accent-muted: rgba(249, 115, 22, 0.10);
+
+  --text: #18181B;
+  --text-secondary: #52525B;
+  --text-muted: #A1A1AA;
+
+  --border: #E4E4E7;
+  --border-light: #D4D4D8;
+
+  --success: #16A34A;
+  --error: #DC2626;
+  --warning: #CA8A04;
+  --info: #2563EB;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }

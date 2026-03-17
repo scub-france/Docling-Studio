@@ -1,7 +1,7 @@
 <template>
   <div class="history-list">
     <div v-if="store.analyses.length === 0" class="history-empty">
-      No analyses yet. Go to Studio to analyze your first document.
+      {{ t('history.empty') }}
     </div>
     <div v-else class="history-items">
       <div
@@ -31,8 +31,10 @@
 
 <script setup>
 import { useHistoryStore } from '../store.js'
+import { useI18n } from '../../../shared/i18n.js'
 
 const store = useHistoryStore()
+const { t } = useI18n()
 
 function statusClass(status) {
   return {

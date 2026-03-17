@@ -14,7 +14,7 @@
 
     <!-- Page chip -->
     <div class="page-indicator" v-if="totalPages > 0">
-      <span class="page-chip">Page {{ currentPage }} sur {{ totalPages }}</span>
+      <span class="page-chip">{{ t('results.pageOf', { current: currentPage, total: totalPages }) }}</span>
     </div>
 
     <div class="tab-content">
@@ -27,17 +27,17 @@
   </div>
   <div v-else-if="store.currentAnalysis?.status === 'RUNNING'" class="result-placeholder">
     <div class="spinner-large" />
-    <span>Analyse en cours...</span>
+    <span>{{ t('studio.analysisRunning') }}</span>
   </div>
   <div v-else-if="store.currentAnalysis?.status === 'FAILED'" class="result-placeholder error">
     <svg viewBox="0 0 20 20" fill="currentColor" class="error-icon"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-    <span>{{ store.currentAnalysis.errorMessage || 'L\'analyse a échoué' }}</span>
+    <span>{{ store.currentAnalysis.errorMessage || t('results.analysisFailed') }}</span>
   </div>
   <div v-else class="result-placeholder">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
       <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
     </svg>
-    <span>Lancez une analyse pour voir les résultats</span>
+    <span>{{ t('results.runAnalysis') }}</span>
   </div>
 </template>
 
@@ -46,19 +46,21 @@ import { ref, computed } from 'vue'
 import { useAnalysisStore } from '../store.js'
 import MarkdownViewer from './MarkdownViewer.vue'
 import ImageGallery from './ImageGallery.vue'
+import { useI18n } from '../../../shared/i18n.js'
 
 const props = defineProps({
   currentPage: { type: Number, default: 1 }
 })
 
 const store = useAnalysisStore()
+const { t } = useI18n()
 const activeTab = ref('text')
 
-const tabs = [
-  { id: 'text', label: 'Résultat du texte' },
-  { id: 'markdown', label: 'Markdown' },
-  { id: 'images', label: 'Images' }
-]
+const tabs = computed(() => [
+  { id: 'text', label: t('results.textResult') },
+  { id: 'markdown', label: t('results.markdown') },
+  { id: 'images', label: t('results.images') }
+])
 
 const totalPages = computed(() => store.currentPages.length)
 

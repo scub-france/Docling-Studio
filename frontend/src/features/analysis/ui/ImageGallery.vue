@@ -1,7 +1,7 @@
 <template>
   <div class="image-gallery">
     <div v-if="images.length === 0" class="gallery-empty">
-      No images detected in this document
+      {{ t('results.noImages') }}
     </div>
     <div v-else class="gallery-grid">
       <div
@@ -11,7 +11,7 @@
       >
         <div class="card-header">
           <span class="card-type">Picture</span>
-          <span class="card-page">Page {{ img.page }}</span>
+          <span class="card-page">{{ t('results.page') }} {{ img.page }}</span>
         </div>
         <div class="card-content" v-if="img.content">
           {{ img.content.substring(0, 100) }}
@@ -27,6 +27,9 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useI18n } from '../../../shared/i18n.js'
+
+const { t } = useI18n()
 
 const props = defineProps({
   pages: { type: Array, default: () => [] }

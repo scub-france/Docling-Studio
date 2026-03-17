@@ -10,14 +10,14 @@
     <input ref="fileInput" type="file" accept=".pdf" hidden @change="onFileSelect" />
     <div v-if="store.uploading" class="upload-state">
       <div class="spinner" />
-      <span>Uploading...</span>
+      <span>{{ t('upload.uploading') }}</span>
     </div>
     <div v-else class="upload-state">
       <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M12 16V4m0 0L8 8m4-4l4 4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2" />
       </svg>
-      <span class="upload-text">Drop a PDF here or click to upload</span>
-      <span class="upload-hint">Max 50MB</span>
+      <span class="upload-text">{{ t('upload.drop') }}</span>
+      <span class="upload-hint">{{ t('upload.maxSize') }}</span>
     </div>
   </div>
 </template>
@@ -25,8 +25,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useDocumentStore } from '../store.js'
+import { useI18n } from '../../../shared/i18n.js'
 
 const store = useDocumentStore()
+const { t } = useI18n()
 const fileInput = ref(null)
 const dragging = ref(false)
 

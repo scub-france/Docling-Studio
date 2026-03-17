@@ -1,7 +1,7 @@
 <template>
   <div class="settings-page">
     <div class="page-header">
-      <h1 class="page-title">Settings</h1>
+      <h1 class="page-title">{{ t('settings.title') }}</h1>
     </div>
     <div class="page-content">
       <SettingsPanel />
@@ -11,6 +11,9 @@
 
 <script setup>
 import { SettingsPanel } from '../features/settings/index.js'
+import { useI18n } from '../shared/i18n.js'
+
+const { t } = useI18n()
 </script>
 
 <style scoped>
