@@ -3,15 +3,19 @@
  * to canvas pixel coordinates.
  *
  * Docling bbox format (after backend normalization): [l, t, r, b]
- * All values are in page coordinate space (points).
+ * All values are in page coordinate space (points, 1pt = 1/72 inch).
  * Origin: top-left (y=0 at top of page).
+ *
+ * The preview image is a faithful rasterization of the PDF page.
+ * CSS `max-width: 100%; height: auto` preserves the aspect ratio,
+ * so sx and sy are always equal. We compute both for completeness.
  */
 
 /**
- * Compute scale factors from page coordinates to displayed image pixels.
+ * Compute scale factors from page coordinates to displayed pixels.
  *
- * @param {number} displayWidth  - Rendered image width in CSS pixels
- * @param {number} displayHeight - Rendered image height in CSS pixels
+ * @param {number} displayWidth  - img.clientWidth (CSS pixels)
+ * @param {number} displayHeight - img.clientHeight (CSS pixels)
  * @param {number} pageWidth     - Page width in Docling points
  * @param {number} pageHeight    - Page height in Docling points
  * @returns {{ sx: number, sy: number }}
@@ -26,8 +30,8 @@ export function computeScale(displayWidth, displayHeight, pageWidth, pageHeight)
 /**
  * Convert a Docling bbox [l, t, r, b] to a canvas rect { x, y, w, h }.
  *
- * @param {number[]} bbox       - [left, top, right, bottom] in page points
- * @param {{ sx: number, sy: number }} scale - Scale factors from computeScale
+ * @param {number[]} bbox  - [left, top, right, bottom] in page points
+ * @param {{ sx: number, sy: number }} scale
  * @returns {{ x: number, y: number, w: number, h: number }}
  */
 export function bboxToRect(bbox, scale) {

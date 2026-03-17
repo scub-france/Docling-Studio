@@ -13,6 +13,15 @@ describe('computeScale', () => {
     expect(s.sx).toBeCloseTo(0.5)
     expect(s.sy).toBeCloseTo(0.5)
   })
+
+  it('sx equals sy when aspect ratio is preserved', () => {
+    // Image at 150 DPI displayed at 700px wide
+    const pageW = 612, pageH = 792
+    const displayW = 700
+    const displayH = displayW * pageH / pageW // preserves ratio
+    const s = computeScale(displayW, displayH, pageW, pageH)
+    expect(s.sx).toBeCloseTo(s.sy, 5)
+  })
 })
 
 describe('bboxToRect', () => {
@@ -35,6 +44,15 @@ describe('bboxToRect', () => {
     expect(rect.y).toBeCloseTo(100)
     expect(rect.w).toBeCloseTo(100)
     expect(rect.h).toBeCloseTo(100)
+  })
+
+  it('end-to-end: full page bbox fills display', () => {
+    const scale = computeScale(700, 907.84, 612, 792)
+    const rect = bboxToRect([0, 0, 612, 792], scale)
+    expect(rect.x).toBeCloseTo(0)
+    expect(rect.y).toBeCloseTo(0)
+    expect(rect.w).toBeCloseTo(700)
+    expect(rect.h).toBeCloseTo(907.84, 0)
   })
 })
 

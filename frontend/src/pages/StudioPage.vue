@@ -100,14 +100,35 @@
           </button>
           <span class="pdf-separator" />
           <span class="pdf-zoom">100%</span>
+          <template v-if="hasAnalysisResults">
+            <span class="pdf-separator" />
+            <button
+              class="visual-toggle"
+              :class="{ active: visualMode }"
+              @click="visualMode = !visualMode"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+              Visuel
+            </button>
+          </template>
         </div>
         <div class="pdf-image-area">
-          <img
-            v-if="previewUrl"
-            :src="previewUrl"
-            :alt="`Page ${currentPage}`"
-            class="pdf-image"
-          />
+          <div class="pdf-image-wrapper">
+            <img
+              v-if="previewUrl"
+              ref="pdfImageRef"
+              :src="previewUrl"
+              :alt="`Page ${currentPage}`"
+              class="pdf-image"
+              @load="onPdfImageLoad"
+            />
+            <BboxOverlay
+              v-if="visualMode && hasAnalysisResults"
+              ref="bboxOverlayRef"
+              :image-el="pdfImageRef"
+              :page-data="currentPageData"
+            />
+          </div>
         </div>
       </div>
 
@@ -189,11 +210,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, reactive } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, reactive } from 'vue'
 import { useDocumentStore } from '../features/document/store.js'
 import { useAnalysisStore } from '../features/analysis/store.js'
 import { DocumentUpload, DocumentList } from '../features/document/index.js'
 import { ResultTabs } from '../features/analysis/index.js'
+import BboxOverlay from '../features/analysis/ui/BboxOverlay.vue'
 import { getPreviewUrl } from '../features/document/api.js'
 
 const documentStore = useDocumentStore()
@@ -203,6 +225,22 @@ const mode = ref('configurer')
 const currentPage = ref(1)
 const pageRange = ref('')
 const tableMode = ref('markdown')
+const visualMode = ref(false)
+const pdfImageRef = ref(null)
+const bboxOverlayRef = ref(null)
+
+const hasAnalysisResults = computed(() => {
+  return analysisStore.currentAnalysis?.status === 'COMPLETED' && analysisStore.currentPages?.length > 0
+})
+
+const currentPageData = computed(() => {
+  if (!analysisStore.currentPages) return null
+  return analysisStore.currentPages.find(p => p.page_number === currentPage.value) || null
+})
+
+function onPdfImageLoad() {
+  nextTick(() => bboxOverlayRef.value?.draw())
+}
 
 const extractOptions = [
   { id: 'images', label: 'Images', icon: 'image' },
@@ -605,6 +643,37 @@ onMounted(() => {
   padding: 3px 10px;
 }
 
+.visual-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.visual-toggle .btn-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.visual-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.visual-toggle.active {
+  background: var(--accent-muted);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .pdf-image-area {
   flex: 1;
   overflow: auto;
@@ -614,9 +683,16 @@ onMounted(() => {
   padding: 20px;
 }
 
+.pdf-image-wrapper {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+
 .pdf-image {
   max-width: 100%;
   height: auto;
+  display: block;
   box-shadow: 0 2px 20px rgba(0,0,0,0.4);
   border-radius: 2px;
 }

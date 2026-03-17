@@ -53,6 +53,10 @@ public class DocumentService {
         }
     }
 
+    public Document save(Document document) {
+        return repository.save(document);
+    }
+
     public List<Document> findAll() {
         return repository.findAll();
     }

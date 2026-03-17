@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import tempfile
 from pathlib import Path
@@ -11,6 +12,8 @@ from pdf2image import convert_from_bytes
 from PIL import Image
 
 from bbox import to_topleft_list
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Docling Studio - Document Parser")
 
@@ -45,7 +48,11 @@ class ParseResponse(BaseModel):
 # --- Helpers ---
 
 def extract_pages_detail(doc_result) -> list[PageDetail]:
-    """Extract per-page element details with bounding boxes from Docling result."""
+    """Extract per-page element details with bounding boxes from Docling result.
+
+    Uses Docling's iterate_items() API (preferred) or falls back to document.texts.
+    Both provide a flat iteration over all content items, avoiding duplicates.
+    """
     pages: dict[int, PageDetail] = {}
     document = doc_result.document
 
@@ -62,12 +69,11 @@ def extract_pages_detail(doc_result) -> list[PageDetail]:
                 elements=[]
             )
 
-    # Iterate document items to extract elements with bounding boxes
-    if hasattr(document, 'body') and hasattr(document.body, 'children'):
-        _extract_elements_recursive(document, document.body.children, pages)
-
-    # Fallback: if we have content items
-    if hasattr(document, 'texts'):
+    # Use iterate_items() (Docling v2 API) — avoids duplicates
+    if hasattr(document, 'iterate_items'):
+        for item, _level in document.iterate_items():
+            _process_content_item(item, pages)
+    elif hasattr(document, 'texts'):
         for text_item in document.texts:
             _process_content_item(text_item, pages)
 
@@ -76,55 +82,46 @@ def extract_pages_detail(doc_result) -> list[PageDetail]:
 
 
 def _process_content_item(item, pages: dict[int, PageDetail]):
-    """Process a single content item and add it to the appropriate page."""
+    """Process a single content item and add it to the appropriate page.
+
+    Silently skips items that lack provenance or fail to process,
+    so one bad item doesn't break the whole extraction.
+    """
     if not hasattr(item, 'prov') or not item.prov:
         return
 
     for prov in item.prov:
-        page_no = prov.page_no if hasattr(prov, 'page_no') else 1
+        try:
+            page_no = prov.page_no if hasattr(prov, 'page_no') else 1
 
-        if page_no not in pages:
-            pages[page_no] = PageDetail(
-                page_number=page_no, width=612.0, height=792.0, elements=[]
-            )
+            if page_no not in pages:
+                pages[page_no] = PageDetail(
+                    page_number=page_no, width=612.0, height=792.0, elements=[]
+                )
 
-        page_height = pages[page_no].height
+            page_height = pages[page_no].height
 
-        bbox = [0, 0, 0, 0]
-        if hasattr(prov, 'bbox') and prov.bbox:
-            b = prov.bbox
-            if hasattr(b, 'l'):
-                bbox = to_topleft_list(b, page_height)
-            elif isinstance(b, (list, tuple)) and len(b) >= 4:
-                bbox = list(b[:4])
+            bbox = [0, 0, 0, 0]
+            if hasattr(prov, 'bbox') and prov.bbox:
+                b = prov.bbox
+                if hasattr(b, 'l'):
+                    bbox = to_topleft_list(b, page_height)
+                elif isinstance(b, (list, tuple)) and len(b) >= 4:
+                    bbox = list(b[:4])
 
-        element_type = _get_element_type(item)
-        content = ""
-        if hasattr(item, 'text'):
-            content = item.text or ""
-        elif hasattr(item, 'export_to_markdown'):
-            content = item.export_to_markdown()
+            element_type = _get_element_type(item)
+            content = ""
+            if hasattr(item, 'text'):
+                content = item.text or ""
 
-        pages[page_no].elements.append(PageElement(
-            type=element_type,
-            bbox=bbox,
-            content=content[:500]  # Truncate long content
-        ))
+            pages[page_no].elements.append(PageElement(
+                type=element_type,
+                bbox=bbox,
+                content=content[:500]
+            ))
+        except Exception:
+            logger.warning("Skipping item %s: failed to process", type(item).__name__, exc_info=True)
 
-
-def _extract_elements_recursive(document, children, pages: dict[int, PageDetail]):
-    """Recursively extract elements from document tree."""
-    if not children:
-        return
-    for child_ref in children:
-        # Resolve reference if needed
-        item = child_ref
-        if hasattr(child_ref, '__ref__'):
-            item = document.resolve_ref(child_ref)
-        if item:
-            _process_content_item(item, pages)
-            if hasattr(item, 'children') and item.children:
-                _extract_elements_recursive(document, item.children, pages)
 
 
 def _get_element_type(item) -> str:
@@ -201,6 +198,7 @@ async def parse(file: UploadFile):
         )
 
     except Exception as e:
+        logger.exception("Failed to parse document: %s", file.filename)
         raise HTTPException(status_code=422, detail=f"Failed to parse document: {str(e)}")
     finally:
         if tmp_path and os.path.exists(tmp_path):

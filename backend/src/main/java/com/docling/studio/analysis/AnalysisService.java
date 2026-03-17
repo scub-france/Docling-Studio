@@ -61,6 +61,7 @@ public class AnalysisService {
             if (pageCount instanceof Number n && n.intValue() > 0) {
                 Document doc = job.getDocument();
                 doc.setPageCount(n.intValue());
+                documentService.save(doc);
             }
 
             job.markCompleted(markdown, html, pagesJson);

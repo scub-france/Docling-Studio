@@ -13,11 +13,6 @@
     </div>
     <div class="tab-content">
       <MarkdownViewer v-if="activeTab === 'text'" :content="store.currentAnalysis.contentMarkdown" />
-      <StructureViewer
-        v-else-if="activeTab === 'visual'"
-        :pages="store.currentPages"
-        :document-id="store.currentAnalysis.documentId"
-      />
       <div v-else-if="activeTab === 'markdown'" class="raw-markdown">
         <pre class="raw-content">{{ store.currentAnalysis.contentMarkdown }}</pre>
       </div>
@@ -44,7 +39,6 @@
 import { ref } from 'vue'
 import { useAnalysisStore } from '../store.js'
 import MarkdownViewer from './MarkdownViewer.vue'
-import StructureViewer from './StructureViewer.vue'
 import ImageGallery from './ImageGallery.vue'
 
 const store = useAnalysisStore()
@@ -52,7 +46,6 @@ const activeTab = ref('text')
 
 const tabs = [
   { id: 'text', label: 'Résultat du texte' },
-  { id: 'visual', label: 'Visuel' },
   { id: 'markdown', label: 'Markdown' },
   { id: 'images', label: 'Images' }
 ]
