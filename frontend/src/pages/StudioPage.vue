@@ -202,7 +202,7 @@
 
         <!-- VERIFIER MODE -->
         <div v-if="mode === 'verifier'" class="verify-panel">
-          <ResultTabs />
+          <ResultTabs :current-page="currentPage" />
         </div>
       </div>
     </div>

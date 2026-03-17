@@ -11,12 +11,18 @@
         {{ tab.label }}
       </button>
     </div>
+
+    <!-- Page chip -->
+    <div class="page-indicator" v-if="totalPages > 0">
+      <span class="page-chip">Page {{ currentPage }} sur {{ totalPages }}</span>
+    </div>
+
     <div class="tab-content">
-      <MarkdownViewer v-if="activeTab === 'text'" :content="store.currentAnalysis.contentMarkdown" />
+      <MarkdownViewer v-if="activeTab === 'text'" :content="pageMarkdown" />
       <div v-else-if="activeTab === 'markdown'" class="raw-markdown">
-        <pre class="raw-content">{{ store.currentAnalysis.contentMarkdown }}</pre>
+        <pre class="raw-content">{{ pageMarkdown }}</pre>
       </div>
-      <ImageGallery v-else-if="activeTab === 'images'" :pages="store.currentPages" />
+      <ImageGallery v-else-if="activeTab === 'images'" :pages="currentPageAsArray" />
     </div>
   </div>
   <div v-else-if="store.currentAnalysis?.status === 'RUNNING'" class="result-placeholder">
@@ -36,10 +42,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAnalysisStore } from '../store.js'
 import MarkdownViewer from './MarkdownViewer.vue'
 import ImageGallery from './ImageGallery.vue'
+
+const props = defineProps({
+  currentPage: { type: Number, default: 1 }
+})
 
 const store = useAnalysisStore()
 const activeTab = ref('text')
@@ -49,6 +59,43 @@ const tabs = [
   { id: 'markdown', label: 'Markdown' },
   { id: 'images', label: 'Images' }
 ]
+
+const totalPages = computed(() => store.currentPages.length)
+
+const currentPageData = computed(() => {
+  return store.currentPages.find(p => p.page_number === props.currentPage) || null
+})
+
+const currentPageAsArray = computed(() => {
+  return currentPageData.value ? [currentPageData.value] : []
+})
+
+/** Build markdown content from page elements */
+const pageMarkdown = computed(() => {
+  const page = currentPageData.value
+  if (!page) return ''
+
+  return page.elements
+    .map(el => formatElement(el))
+    .filter(Boolean)
+    .join('\n\n')
+})
+
+function formatElement(el) {
+  if (!el.content) return ''
+  switch (el.type) {
+    case 'section_header':
+      return `## ${el.content}`
+    case 'caption':
+      return `*${el.content}*`
+    case 'table':
+      return el.content
+    case 'formula':
+      return `$$${el.content}$$`
+    default:
+      return el.content
+  }
+}
 </script>
 
 <style scoped>
@@ -85,6 +132,21 @@ const tabs = [
 .tab-btn.active {
   color: var(--accent);
   border-bottom-color: var(--accent);
+}
+
+.page-indicator {
+  padding: 8px 16px;
+  flex-shrink: 0;
+}
+
+.page-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-muted);
+  padding: 3px 10px;
+  border-radius: 10px;
 }
 
 .tab-content {
