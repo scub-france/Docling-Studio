@@ -18,10 +18,42 @@
     </div>
 
     <div class="tab-content">
-      <MarkdownViewer v-if="activeTab === 'text'" :content="pageMarkdown" />
+      <!-- ELEMENTS VIEW — each bbox as a separate card -->
+      <div v-if="activeTab === 'elements'" class="elements-list">
+        <div v-if="!currentElements.length" class="elements-empty">
+          {{ t('results.noElements') }}
+        </div>
+        <div
+          v-for="(el, idx) in currentElements"
+          :key="idx"
+          class="element-card"
+          :class="{ highlighted: highlightedIndex === idx }"
+          @mouseenter="$emit('highlight-element', idx)"
+          @mouseleave="$emit('highlight-element', -1)"
+        >
+          <div class="element-header">
+            <span class="element-type" :style="{ color: ELEMENT_COLORS[el.type] || ELEMENT_COLORS.text }">
+              {{ el.type }}
+            </span>
+            <span class="element-level" v-if="el.level">L{{ el.level }}</span>
+          </div>
+          <div class="element-content" v-if="el.content">
+            <MarkdownViewer v-if="el.type === 'table'" :content="el.content" />
+            <pre v-else-if="el.type === 'code'" class="element-code">{{ el.content }}</pre>
+            <span v-else>{{ el.content }}</span>
+          </div>
+          <div class="element-bbox">
+            {{ el.bbox.map(v => Math.round(v)).join(', ') }}
+          </div>
+        </div>
+      </div>
+
+      <!-- RAW MARKDOWN -->
       <div v-else-if="activeTab === 'markdown'" class="raw-markdown">
         <pre class="raw-content">{{ pageMarkdown }}</pre>
       </div>
+
+      <!-- IMAGES -->
       <ImageGallery v-else-if="activeTab === 'images'" :pages="currentPageAsArray" />
     </div>
   </div>
@@ -48,16 +80,31 @@ import MarkdownViewer from './MarkdownViewer.vue'
 import ImageGallery from './ImageGallery.vue'
 import { useI18n } from '../../../shared/i18n.js'
 
+const ELEMENT_COLORS = {
+  title: '#EF4444',
+  section_header: '#F97316',
+  text: '#3B82F6',
+  table: '#8B5CF6',
+  picture: '#22C55E',
+  list: '#06B6D4',
+  formula: '#EC4899',
+  code: '#14B8A6',
+  caption: '#EAB308'
+}
+
 const props = defineProps({
-  currentPage: { type: Number, default: 1 }
+  currentPage: { type: Number, default: 1 },
+  highlightedIndex: { type: Number, default: -1 }
 })
+
+defineEmits(['highlight-element'])
 
 const store = useAnalysisStore()
 const { t } = useI18n()
-const activeTab = ref('text')
+const activeTab = ref('elements')
 
 const tabs = computed(() => [
-  { id: 'text', label: t('results.textResult') },
+  { id: 'elements', label: t('results.elements') },
   { id: 'markdown', label: t('results.markdown') },
   { id: 'images', label: t('results.images') }
 ])
@@ -68,11 +115,15 @@ const currentPageData = computed(() => {
   return store.currentPages.find(p => p.page_number === props.currentPage) || null
 })
 
+const currentElements = computed(() => {
+  return (currentPageData.value?.elements || []).filter(el => el.content)
+})
+
 const currentPageAsArray = computed(() => {
   return currentPageData.value ? [currentPageData.value] : []
 })
 
-/** Build markdown content from page elements */
+/** Build raw markdown content from page elements */
 const pageMarkdown = computed(() => {
   const page = currentPageData.value
   if (!page) return ''
@@ -90,7 +141,6 @@ function formatElement(el) {
     case 'title':
       return `# ${el.content}`
     case 'section_header': {
-      // Use hierarchy level for heading depth (h2-h4)
       const depth = Math.min(Math.max(el.level || 2, 2), 4)
       return `${'#'.repeat(depth)} ${el.content}`
     }
@@ -164,9 +214,97 @@ function formatElement(el) {
 .tab-content {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 12px;
 }
 
+/* --- Elements list --- */
+.elements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.elements-empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px;
+  font-size: 14px;
+}
+
+.element-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all var(--transition);
+  cursor: default;
+}
+
+.element-card:hover {
+  border-color: var(--border-light);
+  background: var(--bg-elevated);
+}
+
+.element-card.highlighted {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.element-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.element-type {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.element-level {
+  font-size: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.element-content {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.5;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.element-code {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  margin: 0;
+  overflow-x: auto;
+}
+
+.element-bbox {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* --- Raw markdown --- */
 .raw-markdown {
   height: 100%;
 }
@@ -185,6 +323,7 @@ function formatElement(el) {
   margin: 0;
 }
 
+/* --- Placeholders --- */
 .result-placeholder {
   display: flex;
   flex-direction: column;

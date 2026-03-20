@@ -127,6 +127,8 @@
               ref="bboxOverlayRef"
               :image-el="pdfImageRef"
               :page-data="currentPageData"
+              :highlighted-index="highlightedElementIndex"
+              @highlight-element="highlightedElementIndex = $event"
             />
           </div>
         </div>
@@ -268,7 +270,11 @@
 
         <!-- VERIFIER MODE -->
         <div v-if="mode === 'verifier'" class="verify-panel">
-          <ResultTabs :current-page="currentPage" />
+          <ResultTabs
+            :current-page="currentPage"
+            :highlighted-index="highlightedElementIndex"
+            @highlight-element="highlightedElementIndex = $event"
+          />
         </div>
       </div>
     </div>
@@ -295,6 +301,7 @@ const { t } = useI18n()
 const mode = ref('configurer')
 const currentPage = ref(1)
 const visualMode = ref(false)
+const highlightedElementIndex = ref(-1)
 const pdfImageRef = ref(null)
 const bboxOverlayRef = ref(null)
 
