@@ -65,10 +65,11 @@ const messages = {
     'config.documents': 'Documents',
 
     // Results
-    'results.textResult': 'Résultat du texte',
+    'results.elements': 'Éléments',
     'results.markdown': 'Markdown',
     'results.images': 'Images',
     'results.pageOf': 'Page {current} sur {total}',
+    'results.noElements': 'Aucun élément détecté sur cette page',
     'results.noImages': 'Aucune image détectée dans ce document',
     'results.noMarkdown': 'Pas de contenu markdown',
     'results.runAnalysis': 'Lancez une analyse pour voir les résultats',
@@ -154,10 +155,11 @@ const messages = {
     'config.imagesScale': 'Images scale',
     'config.documents': 'Documents',
 
-    'results.textResult': 'Text result',
+    'results.elements': 'Elements',
     'results.markdown': 'Markdown',
     'results.images': 'Images',
     'results.pageOf': 'Page {current} of {total}',
+    'results.noElements': 'No elements detected on this page',
     'results.noImages': 'No images detected in this document',
     'results.noMarkdown': 'No markdown content',
     'results.runAnalysis': 'Run an analysis to see results',

@@ -20,7 +20,7 @@
       ref="canvasRef"
       class="overlay-canvas"
       @mousemove="onMouseMove"
-      @mouseleave="hoveredElement = null"
+      @mouseleave="hoveredElement = null; emit('highlight-element', -1)"
     />
     <div
       v-if="hoveredElement"
@@ -55,8 +55,12 @@ const props = defineProps({
   /** The <img> element to overlay onto */
   imageEl: { type: Object, default: null },
   /** Page data { page_number, width, height, elements[] } for current page */
-  pageData: { type: Object, default: null }
+  pageData: { type: Object, default: null },
+  /** Index of the element to highlight (from ResultTabs hover) */
+  highlightedIndex: { type: Number, default: -1 }
 })
+
+const emit = defineEmits(['highlight-element'])
 
 const hiddenTypes = reactive(new Set())
 const canvasRef = ref(null)
@@ -97,15 +101,23 @@ function draw() {
 
   const scale = computeScale(img.clientWidth, img.clientHeight, props.pageData.width, props.pageData.height)
 
+  // Build a map of content-filtered indices to match ResultTabs ordering
+  const allElements = (props.pageData.elements || [])
+  const contentElements = allElements.filter(e => e.content)
+
   for (const el of visibleElements.value) {
     const rect = bboxToRect(el.bbox, scale)
     const color = ELEMENT_COLORS[el.type] || ELEMENT_COLORS.text
 
+    // Check if this element is the highlighted one
+    const elContentIdx = contentElements.indexOf(el)
+    const isHighlighted = props.highlightedIndex >= 0 && elContentIdx === props.highlightedIndex
+
     ctx.strokeStyle = color
-    ctx.lineWidth = 2
+    ctx.lineWidth = isHighlighted ? 3 : 2
     ctx.strokeRect(rect.x, rect.y, rect.w, rect.h)
 
-    ctx.fillStyle = color + '20'
+    ctx.fillStyle = color + (isHighlighted ? '40' : '20')
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
   }
 }
@@ -121,15 +133,20 @@ function onMouseMove(e) {
 
   const scale = computeScale(img.clientWidth, img.clientHeight, props.pageData.width, props.pageData.height)
 
+  const contentElements = (props.pageData.elements || []).filter(e => e.content)
+
   let found = null
+  let foundIdx = -1
   for (const el of visibleElements.value) {
     if (pointInRect(mx, my, bboxToRect(el.bbox, scale))) {
       found = el
+      foundIdx = contentElements.indexOf(el)
       break
     }
   }
 
   hoveredElement.value = found
+  emit('highlight-element', foundIdx)
   if (found) {
     tooltipStyle.value = {
       left: `${Math.min(mx + 12, canvas.width - 250)}px`,
@@ -151,7 +168,7 @@ onBeforeUnmount(() => {
 })
 
 // Redraw when data or image changes
-watch([() => props.pageData, () => props.imageEl, hiddenTypes], () => {
+watch([() => props.pageData, () => props.imageEl, () => props.highlightedIndex, hiddenTypes], () => {
   nextTick(draw)
 })
 
