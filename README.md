@@ -23,14 +23,7 @@ Upload a PDF, configure the extraction pipeline, and visualize the results — t
 - **Analysis history** — re-visit and open past analyses
 - **Dark / Light theme** and **FR / EN** localization
 
-<details>
-<summary>More screenshots</summary>
 
-| Import | Configure | Results |
-|--------|-----------|---------|
-| ![Import](docs/screenshots/DS-load-document.png) | ![Configure](docs/screenshots/DS-configure-execution.png) | ![Results](docs/screenshots/DS-execution-result.png) |
-
-</details>
 
 ## Architecture
 
