@@ -8,6 +8,7 @@
         v-for="analysis in store.analyses"
         :key="analysis.id"
         class="history-item"
+        @click="openAnalysis(analysis)"
       >
         <div class="item-main">
           <div class="item-header">
@@ -21,7 +22,7 @@
             <span v-if="analysis.completedAt"> — {{ duration(analysis) }}</span>
           </div>
         </div>
-        <button class="item-delete" @click="store.remove(analysis.id)" title="Delete">
+        <button class="item-delete" @click.stop="store.remove(analysis.id)" title="Delete">
           <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
         </button>
       </div>
@@ -30,11 +31,17 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { useHistoryStore } from '../store.js'
 import { useI18n } from '../../../shared/i18n.js'
 
 const store = useHistoryStore()
+const router = useRouter()
 const { t } = useI18n()
+
+function openAnalysis(analysis) {
+  router.push({ name: 'studio', query: { analysisId: analysis.id } })
+}
 
 function statusClass(status) {
   return {
@@ -83,6 +90,7 @@ function duration(analysis) {
   padding: 14px 20px;
   border-bottom: 1px solid var(--border);
   transition: background var(--transition);
+  cursor: pointer;
 }
 
 .history-item:hover { background: var(--bg-hover); }

@@ -269,6 +269,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, reactive } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useDocumentStore } from '../features/document/store.js'
 import { useAnalysisStore } from '../features/analysis/store.js'
 import { DocumentUpload, DocumentList } from '../features/document/index.js'
@@ -277,6 +278,8 @@ import BboxOverlay from '../features/analysis/ui/BboxOverlay.vue'
 import { getPreviewUrl } from '../features/document/api.js'
 import { useI18n } from '../shared/i18n.js'
 
+const route = useRoute()
+const router = useRouter()
 const documentStore = useDocumentStore()
 const analysisStore = useAnalysisStore()
 const { t } = useI18n()
@@ -346,9 +349,24 @@ watch(() => analysisStore.currentAnalysis?.status, (status) => {
   }
 })
 
-onMounted(() => {
-  documentStore.load()
+onMounted(async () => {
+  await documentStore.load()
   analysisStore.load()
+
+  // Restore analysis from history via query param
+  const analysisId = route.query.analysisId
+  if (analysisId) {
+    await analysisStore.select(analysisId)
+    const analysis = analysisStore.currentAnalysis
+    if (analysis) {
+      documentStore.select(analysis.documentId)
+      if (analysis.status === 'COMPLETED') {
+        mode.value = 'verifier'
+      }
+    }
+    // Clean query param from URL
+    router.replace({ query: {} })
+  }
 })
 </script>
 

@@ -67,8 +67,12 @@ const messages = {
     'upload.maxSize': 'Max 50Mo',
 
     // History
-    'history.title': 'Historique des analyses',
+    'history.title': 'Historique',
+    'history.tabAnalyses': 'Analyses',
+    'history.tabDocuments': 'Documents',
     'history.empty': 'Aucune analyse. Allez dans Studio pour analyser votre premier document.',
+    'history.emptyDocs': 'Aucun document. Importez un document depuis le Studio.',
+    'history.open': 'Ouvrir',
 
     // Settings
     'settings.title': 'Paramètres',
@@ -138,8 +142,12 @@ const messages = {
     'upload.uploading': 'Uploading...',
     'upload.maxSize': 'Max 50MB',
 
-    'history.title': 'Analysis History',
+    'history.title': 'History',
+    'history.tabAnalyses': 'Analyses',
+    'history.tabDocuments': 'Documents',
     'history.empty': 'No analyses yet. Go to Studio to analyze your first document.',
+    'history.emptyDocs': 'No documents yet. Upload a document from the Studio.',
+    'history.open': 'Open',
 
     'settings.title': 'Settings',
     'settings.apiUrl': 'API URL',
