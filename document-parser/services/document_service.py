@@ -18,10 +18,17 @@ UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "./uploads")
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
+# PDF magic bytes: %PDF
+_PDF_MAGIC = b"%PDF"
+
+
 async def upload(filename: str, content_type: str, file_content: bytes) -> Document:
     """Save uploaded file to disk and persist metadata."""
     if len(file_content) > MAX_FILE_SIZE:
         raise ValueError("File too large (max 50 MB)")
+
+    if not file_content[:4].startswith(_PDF_MAGIC):
+        raise ValueError("Invalid file: not a PDF document")
 
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 

@@ -255,23 +255,23 @@ def convert_document(
         and images_scale == 1.0
     )
 
-    if is_default:
-        conv = get_default_converter()
-    else:
-        conv = build_converter(
-            do_ocr=do_ocr,
-            do_table_structure=do_table_structure,
-            table_mode=table_mode,
-            do_code_enrichment=do_code_enrichment,
-            do_formula_enrichment=do_formula_enrichment,
-            do_picture_classification=do_picture_classification,
-            do_picture_description=do_picture_description,
-            generate_picture_images=generate_picture_images,
-            generate_page_images=generate_page_images,
-            images_scale=images_scale,
-        )
-
     with _converter_lock:
+        if is_default:
+            conv = get_default_converter()
+        else:
+            conv = build_converter(
+                do_ocr=do_ocr,
+                do_table_structure=do_table_structure,
+                table_mode=table_mode,
+                do_code_enrichment=do_code_enrichment,
+                do_formula_enrichment=do_formula_enrichment,
+                do_picture_classification=do_picture_classification,
+                do_picture_description=do_picture_description,
+                generate_picture_images=generate_picture_images,
+                generate_page_images=generate_page_images,
+                images_scale=images_scale,
+            )
+
         result = conv.convert(file_path)
 
     doc = result.document

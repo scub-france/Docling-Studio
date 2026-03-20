@@ -55,17 +55,12 @@ import { ref, onMounted } from 'vue'
 import { HistoryList, useHistoryStore } from '../features/history/index.js'
 import { useDocumentStore } from '../features/document/store.js'
 import { useI18n } from '../shared/i18n.js'
+import { formatSize } from '../shared/format.js'
 
 const historyStore = useHistoryStore()
 const docStore = useDocumentStore()
 const { t } = useI18n()
 const tab = ref('analyses')
-
-function formatSize(bytes) {
-  if (!bytes) return ''
-  const mb = bytes / (1024 * 1024)
-  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`
-}
 
 function formatDate(iso) {
   if (!iso) return ''

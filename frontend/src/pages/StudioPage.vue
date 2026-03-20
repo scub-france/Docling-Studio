@@ -268,7 +268,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, reactive } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDocumentStore } from '../features/document/store.js'
 import { useAnalysisStore } from '../features/analysis/store.js'
@@ -367,6 +367,10 @@ onMounted(async () => {
     // Clean query param from URL
     router.replace({ query: {} })
   }
+})
+
+onBeforeUnmount(() => {
+  analysisStore.stopPolling()
 })
 </script>
 

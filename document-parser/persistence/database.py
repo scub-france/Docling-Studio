@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from contextlib import asynccontextmanager
 
 import aiosqlite
 
@@ -24,7 +25,7 @@ CREATE TABLE IF NOT EXISTS documents (
 
 CREATE TABLE IF NOT EXISTS analysis_jobs (
     id                TEXT PRIMARY KEY,
-    document_id       TEXT NOT NULL REFERENCES documents(id),
+    document_id       TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
     status            TEXT NOT NULL DEFAULT 'PENDING',
     content_markdown  TEXT,
     content_html      TEXT,
@@ -52,3 +53,13 @@ async def get_db() -> aiosqlite.Connection:
     db.row_factory = aiosqlite.Row
     await db.execute("PRAGMA foreign_keys = ON")
     return db
+
+
+@asynccontextmanager
+async def get_connection():
+    """Context manager that opens and auto-closes a database connection."""
+    db = await get_db()
+    try:
+        yield db
+    finally:
+        await db.close()

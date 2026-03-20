@@ -38,7 +38,7 @@ const props = defineProps({
 const images = computed(() => {
   const result = []
   for (const page of props.pages) {
-    for (const el of page.elements) {
+    for (const el of (page.elements || [])) {
       if (el.type === 'picture') {
         result.push({ ...el, page: page.page_number })
       }
@@ -86,7 +86,7 @@ const images = computed(() => {
 .card-type {
   font-size: 12px;
   font-weight: 600;
-  color: #22C55E;
+  color: var(--success);
   text-transform: uppercase;
 }
 

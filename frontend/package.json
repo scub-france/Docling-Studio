@@ -11,10 +11,11 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "vue": "^3.4.0",
-    "vue-router": "^4.6.4",
+    "dompurify": "^3.3.3",
+    "marked": "^17.0.4",
     "pinia": "^2.3.0",
-    "marked": "^17.0.4"
+    "vue": "^3.4.0",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.0",

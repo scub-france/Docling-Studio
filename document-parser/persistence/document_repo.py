@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from domain.models import Document
-from persistence.database import get_db
+from persistence.database import get_connection
 
 
 def _row_to_document(row) -> Document:
@@ -19,8 +19,7 @@ def _row_to_document(row) -> Document:
 
 
 async def insert(doc: Document) -> None:
-    db = await get_db()
-    try:
+    async with get_connection() as db:
         await db.execute(
             """INSERT INTO documents (id, filename, content_type, file_size, page_count, storage_path, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?)""",
@@ -28,49 +27,36 @@ async def insert(doc: Document) -> None:
              doc.page_count, doc.storage_path, str(doc.created_at)),
         )
         await db.commit()
-    finally:
-        await db.close()
 
 
-async def find_all() -> list[Document]:
-    db = await get_db()
-    try:
+async def find_all(*, limit: int = 200, offset: int = 0) -> list[Document]:
+    async with get_connection() as db:
         cursor = await db.execute(
-            "SELECT * FROM documents ORDER BY created_at DESC"
+            "SELECT * FROM documents ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (limit, offset),
         )
         rows = await cursor.fetchall()
         return [_row_to_document(r) for r in rows]
-    finally:
-        await db.close()
 
 
 async def find_by_id(doc_id: str) -> Document | None:
-    db = await get_db()
-    try:
+    async with get_connection() as db:
         cursor = await db.execute("SELECT * FROM documents WHERE id = ?", (doc_id,))
         row = await cursor.fetchone()
         return _row_to_document(row) if row else None
-    finally:
-        await db.close()
 
 
 async def update_page_count(doc_id: str, page_count: int) -> None:
-    db = await get_db()
-    try:
+    async with get_connection() as db:
         await db.execute(
             "UPDATE documents SET page_count = ? WHERE id = ?",
             (page_count, doc_id),
         )
         await db.commit()
-    finally:
-        await db.close()
 
 
 async def delete(doc_id: str) -> bool:
-    db = await get_db()
-    try:
+    async with get_connection() as db:
         cursor = await db.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
         await db.commit()
         return cursor.rowcount > 0
-    finally:
-        await db.close()

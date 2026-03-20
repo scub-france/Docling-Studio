@@ -87,6 +87,6 @@ async def preview(
         return Response(content=png_bytes, media_type="image/png")
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to generate preview")
-        raise HTTPException(status_code=422, detail=f"Failed to generate preview: {e}")
+        raise HTTPException(status_code=422, detail="Failed to generate preview")

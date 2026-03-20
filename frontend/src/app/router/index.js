@@ -15,6 +15,11 @@ const routes = [
     path: '/settings',
     name: 'settings',
     component: () => import('../../pages/SettingsPage.vue')
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    redirect: '/'
   }
 ]
 

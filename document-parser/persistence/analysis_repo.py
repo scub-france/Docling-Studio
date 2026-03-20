@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from domain.models import AnalysisJob, AnalysisStatus
-from persistence.database import get_db
+from persistence.database import get_connection
 
 
 def _row_to_job(row) -> AnalysisJob:
@@ -30,45 +30,36 @@ _SELECT_WITH_DOC = """
 
 
 async def insert(job: AnalysisJob) -> None:
-    db = await get_db()
-    try:
+    async with get_connection() as db:
         await db.execute(
             """INSERT INTO analysis_jobs (id, document_id, status, created_at)
                VALUES (?, ?, ?, ?)""",
             (job.id, job.document_id, job.status.value, str(job.created_at)),
         )
         await db.commit()
-    finally:
-        await db.close()
 
 
-async def find_all() -> list[AnalysisJob]:
-    db = await get_db()
-    try:
+async def find_all(*, limit: int = 200, offset: int = 0) -> list[AnalysisJob]:
+    async with get_connection() as db:
         cursor = await db.execute(
-            f"{_SELECT_WITH_DOC} ORDER BY aj.created_at DESC"
+            f"{_SELECT_WITH_DOC} ORDER BY aj.created_at DESC LIMIT ? OFFSET ?",
+            (limit, offset),
         )
         rows = await cursor.fetchall()
         return [_row_to_job(r) for r in rows]
-    finally:
-        await db.close()
 
 
 async def find_by_id(job_id: str) -> AnalysisJob | None:
-    db = await get_db()
-    try:
+    async with get_connection() as db:
         cursor = await db.execute(
             f"{_SELECT_WITH_DOC} WHERE aj.id = ?", (job_id,)
         )
         row = await cursor.fetchone()
         return _row_to_job(row) if row else None
-    finally:
-        await db.close()
 
 
 async def update_status(job: AnalysisJob) -> None:
-    db = await get_db()
-    try:
+    async with get_connection() as db:
         await db.execute(
             """UPDATE analysis_jobs
                SET status = ?, content_markdown = ?, content_html = ?,
@@ -81,28 +72,20 @@ async def update_status(job: AnalysisJob) -> None:
              job.id),
         )
         await db.commit()
-    finally:
-        await db.close()
 
 
 async def delete(job_id: str) -> bool:
-    db = await get_db()
-    try:
+    async with get_connection() as db:
         cursor = await db.execute("DELETE FROM analysis_jobs WHERE id = ?", (job_id,))
         await db.commit()
         return cursor.rowcount > 0
-    finally:
-        await db.close()
 
 
 async def delete_by_document(document_id: str) -> int:
     """Delete all analysis jobs for a given document. Returns count deleted."""
-    db = await get_db()
-    try:
+    async with get_connection() as db:
         cursor = await db.execute(
             "DELETE FROM analysis_jobs WHERE document_id = ?", (document_id,)
         )
         await db.commit()
         return cursor.rowcount
-    finally:
-        await db.close()

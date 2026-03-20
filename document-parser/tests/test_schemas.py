@@ -1,6 +1,8 @@
-"""Tests for API schemas — camelCase serialization."""
+"""Tests for API schemas — camelCase serialization and validation."""
 
 from datetime import datetime
+
+import pytest
 
 from api.schemas import (
     AnalysisResponse,
@@ -108,6 +110,28 @@ class TestPipelineOptionsRequest:
         data = opts.model_dump()
         assert data["do_ocr"] is False
         assert data["do_table_structure"] is True  # default preserved
+
+    def test_invalid_table_mode_rejected(self):
+        with pytest.raises(ValueError, match='table_mode must be "accurate" or "fast"'):
+            PipelineOptionsRequest(table_mode="invalid")
+
+    def test_negative_images_scale_rejected(self):
+        with pytest.raises(ValueError, match="images_scale must be between"):
+            PipelineOptionsRequest(images_scale=-1.0)
+
+    def test_zero_images_scale_rejected(self):
+        with pytest.raises(ValueError, match="images_scale must be between"):
+            PipelineOptionsRequest(images_scale=0)
+
+    def test_excessive_images_scale_rejected(self):
+        with pytest.raises(ValueError, match="images_scale must be between"):
+            PipelineOptionsRequest(images_scale=11.0)
+
+    def test_boundary_images_scale_accepted(self):
+        opts = PipelineOptionsRequest(images_scale=0.1)
+        assert opts.images_scale == 0.1
+        opts2 = PipelineOptionsRequest(images_scale=10.0)
+        assert opts2.images_scale == 10.0
 
 
 class TestCreateAnalysisRequest:

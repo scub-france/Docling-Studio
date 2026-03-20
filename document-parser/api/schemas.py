@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 def _to_camel(name: str) -> str:
@@ -60,6 +60,20 @@ class PipelineOptionsRequest(BaseModel):
     generate_picture_images: bool = False
     generate_page_images: bool = False
     images_scale: float = 1.0
+
+    @field_validator("table_mode")
+    @classmethod
+    def validate_table_mode(cls, v: str) -> str:
+        if v not in ("accurate", "fast"):
+            raise ValueError('table_mode must be "accurate" or "fast"')
+        return v
+
+    @field_validator("images_scale")
+    @classmethod
+    def validate_images_scale(cls, v: float) -> float:
+        if v <= 0 or v > 10:
+            raise ValueError("images_scale must be between 0 (exclusive) and 10")
+        return v
 
 
 class CreateAnalysisRequest(BaseModel):

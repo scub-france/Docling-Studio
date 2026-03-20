@@ -5,6 +5,7 @@
 <script setup>
 import { computed } from 'vue'
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { useI18n } from '../../../shared/i18n.js'
 
 const props = defineProps({ content: String })
@@ -12,7 +13,7 @@ const { t } = useI18n()
 
 const rendered = computed(() => {
   if (!props.content) return `<p class="empty">${t('results.noMarkdown')}</p>`
-  return marked.parse(props.content)
+  return DOMPurify.sanitize(marked.parse(props.content))
 })
 </script>
 

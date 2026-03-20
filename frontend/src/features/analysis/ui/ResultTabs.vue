@@ -77,7 +77,7 @@ const pageMarkdown = computed(() => {
   const page = currentPageData.value
   if (!page) return ''
 
-  return page.elements
+  return (page.elements || [])
     .map(el => formatElement(el))
     .filter(Boolean)
     .join('\n\n')
