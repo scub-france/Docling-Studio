@@ -70,12 +70,27 @@ describe('useAnalysisStore', () => {
     expect(store.currentAnalysis).toEqual(job)
     expect(store.analyses[0]).toEqual(job)
     expect(store.running).toBe(true)
+    expect(api.createAnalysis).toHaveBeenCalledWith('d1', null)
 
     // Advance timer to trigger polling
     await vi.advanceTimersByTimeAsync(2000)
 
     expect(api.fetchAnalysis).toHaveBeenCalledWith('j1')
     expect(store.running).toBe(false) // COMPLETED stops polling
+
+    store.stopPolling()
+  })
+
+  it('run() forwards pipeline options to API', async () => {
+    const job = { id: 'j2', status: 'PENDING', documentId: 'd1' }
+    api.createAnalysis.mockResolvedValue(job)
+    api.fetchAnalysis.mockResolvedValue({ ...job, status: 'COMPLETED' })
+
+    const store = useAnalysisStore()
+    const options = { do_ocr: false, table_mode: 'fast' }
+    await store.run('d1', options)
+
+    expect(api.createAnalysis).toHaveBeenCalledWith('d1', options)
 
     store.stopPolling()
   })

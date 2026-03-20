@@ -35,8 +35,12 @@ async def create_analysis(body: CreateAnalysisRequest):
     if not body.documentId or not body.documentId.strip():
         raise HTTPException(status_code=400, detail="documentId is required")
 
+    pipeline_opts = None
+    if body.pipelineOptions:
+        pipeline_opts = body.pipelineOptions.model_dump()
+
     try:
-        job = await analysis_service.create(body.documentId)
+        job = await analysis_service.create(body.documentId, pipeline_options=pipeline_opts)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

@@ -14,7 +14,7 @@ from persistence import analysis_repo, document_repo
 logger = logging.getLogger(__name__)
 
 
-async def create(document_id: str) -> AnalysisJob:
+async def create(document_id: str, *, pipeline_options: dict | None = None) -> AnalysisJob:
     """Create a new analysis job and launch background processing."""
     doc = await document_repo.find_by_id(document_id)
     if not doc:
@@ -25,7 +25,7 @@ async def create(document_id: str) -> AnalysisJob:
     await analysis_repo.insert(job)
 
     # Fire-and-forget background task
-    asyncio.create_task(_run_analysis(job.id, doc.storage_path, doc.filename))
+    asyncio.create_task(_run_analysis(job.id, doc.storage_path, doc.filename, pipeline_options))
 
     return job
 
@@ -42,7 +42,9 @@ async def delete(job_id: str) -> bool:
     return await analysis_repo.delete(job_id)
 
 
-async def _run_analysis(job_id: str, file_path: str, filename: str) -> None:
+async def _run_analysis(
+    job_id: str, file_path: str, filename: str, pipeline_options: dict | None = None,
+) -> None:
     """Background task: run Docling conversion and update job status."""
     job = await analysis_repo.find_by_id(job_id)
     if not job:
@@ -54,8 +56,13 @@ async def _run_analysis(job_id: str, file_path: str, filename: str) -> None:
     logger.info("Analysis started: %s (file: %s)", job_id, filename)
 
     try:
+        # Build kwargs from pipeline options
+        convert_kwargs = pipeline_options or {}
+
         # Run blocking Docling conversion in a thread
-        result: ConversionResult = await asyncio.to_thread(convert_document, file_path)
+        result: ConversionResult = await asyncio.to_thread(
+            convert_document, file_path, **convert_kwargs,
+        )
 
         pages_json = json.dumps([asdict(p) for p in result.pages])
 

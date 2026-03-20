@@ -25,10 +25,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
   }
 
-  async function run(documentId) {
+  async function run(documentId, pipelineOptions = null) {
     running.value = true
     try {
-      const analysis = await api.createAnalysis(documentId)
+      const analysis = await api.createAnalysis(documentId, pipelineOptions)
       currentAnalysis.value = analysis
       analyses.value.unshift(analysis)
       startPolling(analysis.id)

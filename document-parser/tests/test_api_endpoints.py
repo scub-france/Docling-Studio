@@ -147,6 +147,60 @@ class TestAnalysisEndpoints:
         data = resp.json()
         assert data["id"] == "j1"
         assert data["documentId"] == "d1"
+        mock_create.assert_called_once_with("d1", pipeline_options=None)
+
+    @patch("services.analysis_service.create", new_callable=AsyncMock)
+    def test_create_analysis_with_pipeline_options(self, mock_create, client):
+        mock_create.return_value = AnalysisJob(
+            id="j2", document_id="d1", document_filename="test.pdf",
+        )
+
+        resp = client.post("/api/analyses", json={
+            "documentId": "d1",
+            "pipelineOptions": {
+                "do_ocr": False,
+                "do_table_structure": True,
+                "table_mode": "fast",
+                "do_code_enrichment": True,
+                "do_formula_enrichment": False,
+                "do_picture_classification": False,
+                "do_picture_description": False,
+                "generate_picture_images": True,
+                "generate_page_images": False,
+                "images_scale": 2.0,
+            }
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["id"] == "j2"
+
+        call_kwargs = mock_create.call_args
+        opts = call_kwargs.kwargs["pipeline_options"]
+        assert opts["do_ocr"] is False
+        assert opts["table_mode"] == "fast"
+        assert opts["do_code_enrichment"] is True
+        assert opts["generate_picture_images"] is True
+        assert opts["images_scale"] == 2.0
+
+    @patch("services.analysis_service.create", new_callable=AsyncMock)
+    def test_create_analysis_with_partial_pipeline_options(self, mock_create, client):
+        """Pipeline options should use defaults for unspecified fields."""
+        mock_create.return_value = AnalysisJob(
+            id="j3", document_id="d1", document_filename="test.pdf",
+        )
+
+        resp = client.post("/api/analyses", json={
+            "documentId": "d1",
+            "pipelineOptions": {"do_ocr": False}
+        })
+        assert resp.status_code == 200
+
+        opts = mock_create.call_args.kwargs["pipeline_options"]
+        assert opts["do_ocr"] is False
+        # Defaults
+        assert opts["do_table_structure"] is True
+        assert opts["table_mode"] == "accurate"
+        assert opts["do_code_enrichment"] is False
 
     @patch("services.analysis_service.create", new_callable=AsyncMock)
     def test_create_analysis_document_not_found(self, mock_create, client):

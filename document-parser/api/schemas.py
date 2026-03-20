@@ -48,5 +48,20 @@ class AnalysisResponse(_CamelModel):
     created_at: str | datetime
 
 
+class PipelineOptionsRequest(BaseModel):
+    """Docling pipeline configuration options."""
+    do_ocr: bool = True
+    do_table_structure: bool = True
+    table_mode: str = "accurate"  # "accurate" or "fast"
+    do_code_enrichment: bool = False
+    do_formula_enrichment: bool = False
+    do_picture_classification: bool = False
+    do_picture_description: bool = False
+    generate_picture_images: bool = False
+    generate_page_images: bool = False
+    images_scale: float = 1.0
+
+
 class CreateAnalysisRequest(BaseModel):
     documentId: str  # camelCase to match existing frontend contract
+    pipelineOptions: PipelineOptionsRequest | None = None

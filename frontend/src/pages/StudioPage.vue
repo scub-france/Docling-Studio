@@ -139,7 +139,6 @@
           <div class="config-section">
             <label class="config-label">
               {{ t('config.model') }}
-              <span class="config-hint">?</span>
             </label>
             <div class="config-select-display">
               <span class="config-model-name">Docling</span>
@@ -147,50 +146,109 @@
             </div>
           </div>
 
+          <!-- Pipeline options -->
           <div class="config-section">
-            <label class="config-label">
-              {{ t('config.pages') }}
-              <span class="config-hint">?</span>
-            </label>
-            <input type="text" class="config-input" :placeholder="t('config.pagesPlaceholder')" v-model="pageRange" />
-          </div>
+            <label class="config-label">{{ t('config.pipeline') }}</label>
 
-          <div class="config-section">
-            <label class="config-label">
-              {{ t('config.extractTables') }}
-              <span class="config-hint">?</span>
-            </label>
-            <select class="config-select" v-model="tableMode">
-              <option value="markdown">{{ t('config.markdownIntegrated') }}</option>
-              <option value="html">HTML</option>
-              <option value="csv">CSV</option>
-            </select>
-          </div>
+            <div class="config-toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" v-model="pipelineOptions.do_ocr" class="toggle-input" />
+                <span class="toggle-switch" />
+                <span class="toggle-text">{{ t('config.ocr') }}</span>
+              </label>
+              <span class="config-hint"><span class="config-tooltip">{{ t('config.ocrHint') }}</span>?</span>
+            </div>
 
-          <div class="config-section">
-            <label class="config-label">{{ t('config.extract') }}</label>
-            <div class="extract-options">
-              <button
-                v-for="opt in extractOptions"
-                :key="opt.id"
-                class="extract-btn"
-                :class="{ active: activeExtracts.has(opt.id) }"
-                @click="toggleExtract(opt.id)"
-              >
-                <svg v-if="opt.icon === 'image'" viewBox="0 0 20 20" fill="currentColor" class="extract-icon"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/></svg>
-                <svg v-else-if="opt.icon === 'header'" viewBox="0 0 20 20" fill="currentColor" class="extract-icon"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
-                <svg v-else viewBox="0 0 20 20" fill="currentColor" class="extract-icon"><path d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 2h10v7h-2l-1-2-3 4-2-3-2 3V5z"/></svg>
-                {{ opt.label }}
-              </button>
+            <div class="config-toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" v-model="pipelineOptions.do_table_structure" class="toggle-input" />
+                <span class="toggle-switch" />
+                <span class="toggle-text">{{ t('config.tableStructure') }}</span>
+              </label>
+              <span class="config-hint"><span class="config-tooltip">{{ t('config.tableStructureHint') }}</span>?</span>
+            </div>
+
+            <div class="config-sub-option" v-if="pipelineOptions.do_table_structure">
+              <label class="config-label-sm">{{ t('config.tableMode') }}</label>
+              <select class="config-select" v-model="pipelineOptions.table_mode">
+                <option value="accurate">{{ t('config.tableModeAccurate') }}</option>
+                <option value="fast">{{ t('config.tableModeFast') }}</option>
+              </select>
             </div>
           </div>
 
+          <!-- Enrichment options -->
           <div class="config-section">
-            <label class="config-label">
-              {{ t('config.annotateImages') }}
-              <span class="config-hint">?</span>
-            </label>
-            <button class="config-add-btn">{{ t('config.add') }}</button>
+            <label class="config-label">{{ t('config.enrichment') }}</label>
+
+            <div class="config-toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" v-model="pipelineOptions.do_code_enrichment" class="toggle-input" />
+                <span class="toggle-switch" />
+                <span class="toggle-text">{{ t('config.codeEnrichment') }}</span>
+              </label>
+              <span class="config-hint"><span class="config-tooltip">{{ t('config.codeEnrichmentHint') }}</span>?</span>
+            </div>
+
+            <div class="config-toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" v-model="pipelineOptions.do_formula_enrichment" class="toggle-input" />
+                <span class="toggle-switch" />
+                <span class="toggle-text">{{ t('config.formulaEnrichment') }}</span>
+              </label>
+              <span class="config-hint"><span class="config-tooltip">{{ t('config.formulaEnrichmentHint') }}</span>?</span>
+            </div>
+          </div>
+
+          <!-- Picture options -->
+          <div class="config-section">
+            <label class="config-label">{{ t('config.pictures') }}</label>
+
+            <div class="config-toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" v-model="pipelineOptions.do_picture_classification" class="toggle-input" />
+                <span class="toggle-switch" />
+                <span class="toggle-text">{{ t('config.pictureClassification') }}</span>
+              </label>
+              <span class="config-hint"><span class="config-tooltip">{{ t('config.pictureClassificationHint') }}</span>?</span>
+            </div>
+
+            <div class="config-toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" v-model="pipelineOptions.do_picture_description" class="toggle-input" />
+                <span class="toggle-switch" />
+                <span class="toggle-text">{{ t('config.pictureDescription') }}</span>
+              </label>
+              <span class="config-hint"><span class="config-tooltip">{{ t('config.pictureDescriptionHint') }}</span>?</span>
+            </div>
+
+            <div class="config-toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" v-model="pipelineOptions.generate_picture_images" class="toggle-input" />
+                <span class="toggle-switch" />
+                <span class="toggle-text">{{ t('config.generatePictureImages') }}</span>
+              </label>
+              <span class="config-hint"><span class="config-tooltip">{{ t('config.generatePictureImagesHint') }}</span>?</span>
+            </div>
+
+            <div class="config-toggle-row">
+              <label class="toggle-label">
+                <input type="checkbox" v-model="pipelineOptions.generate_page_images" class="toggle-input" />
+                <span class="toggle-switch" />
+                <span class="toggle-text">{{ t('config.generatePageImages') }}</span>
+              </label>
+              <span class="config-hint"><span class="config-tooltip">{{ t('config.generatePageImagesHint') }}</span>?</span>
+            </div>
+
+            <div class="config-sub-option" v-if="pipelineOptions.generate_picture_images || pipelineOptions.generate_page_images">
+              <label class="config-label-sm">{{ t('config.imagesScale') }}</label>
+              <select class="config-select" v-model.number="pipelineOptions.images_scale">
+                <option :value="0.5">0.5x</option>
+                <option :value="1.0">1.0x</option>
+                <option :value="1.5">1.5x</option>
+                <option :value="2.0">2.0x</option>
+              </select>
+            </div>
           </div>
 
           <!-- Documents list at bottom -->
@@ -225,11 +283,22 @@ const { t } = useI18n()
 
 const mode = ref('configurer')
 const currentPage = ref(1)
-const pageRange = ref('')
-const tableMode = ref('markdown')
 const visualMode = ref(false)
 const pdfImageRef = ref(null)
 const bboxOverlayRef = ref(null)
+
+const pipelineOptions = reactive({
+  do_ocr: true,
+  do_table_structure: true,
+  table_mode: 'accurate',
+  do_code_enrichment: false,
+  do_formula_enrichment: false,
+  do_picture_classification: false,
+  do_picture_description: false,
+  generate_picture_images: false,
+  generate_page_images: false,
+  images_scale: 1.0,
+})
 
 const hasAnalysisResults = computed(() => {
   return analysisStore.currentAnalysis?.status === 'COMPLETED' && analysisStore.currentPages?.length > 0
@@ -242,18 +311,6 @@ const currentPageData = computed(() => {
 
 function onPdfImageLoad() {
   nextTick(() => bboxOverlayRef.value?.draw())
-}
-
-const extractOptions = computed(() => [
-  { id: 'images', label: t('config.images'), icon: 'image' },
-  { id: 'header', label: t('config.header'), icon: 'header' },
-  { id: 'footer', label: t('config.footer'), icon: 'footer' }
-])
-const activeExtracts = reactive(new Set(['images']))
-
-function toggleExtract(id) {
-  if (activeExtracts.has(id)) activeExtracts.delete(id)
-  else activeExtracts.add(id)
 }
 
 const selectedDoc = computed(() => {
@@ -274,7 +331,7 @@ function onPageInput(e) {
 
 async function runAnalysis() {
   if (!documentStore.selectedId) return
-  await analysisStore.run(documentStore.selectedId)
+  await analysisStore.run(documentStore.selectedId, { ...pipelineOptions })
 }
 
 function addMore() {
@@ -734,6 +791,7 @@ onMounted(() => {
 }
 
 .config-hint {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -744,6 +802,43 @@ onMounted(() => {
   font-size: 10px;
   color: var(--text-muted);
   cursor: help;
+  flex-shrink: 0;
+}
+
+.config-hint:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.config-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: -8px;
+  width: 240px;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.config-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 12px;
+  border: 5px solid transparent;
+  border-top-color: var(--border-light);
+}
+
+.config-hint:hover .config-tooltip {
+  display: block;
 }
 
 .config-select-display {
@@ -812,59 +907,78 @@ onMounted(() => {
   color: var(--text);
 }
 
-.extract-options {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.extract-btn {
+/* Toggle rows */
+.config-toggle-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
+  border-radius: 10px;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--text-muted);
+  border-radius: 50%;
   transition: all var(--transition);
 }
 
-.extract-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
-.extract-btn.active {
-  background: var(--accent-muted);
+.toggle-input:checked + .toggle-switch {
+  background: var(--accent);
   border-color: var(--accent);
-  color: var(--accent);
 }
 
-.extract-icon {
-  width: 16px;
-  height: 16px;
+.toggle-input:checked + .toggle-switch::after {
+  left: 18px;
+  background: white;
 }
 
-.config-add-btn {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 14px;
-  color: var(--text-secondary);
+.toggle-text {
   font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition);
-  align-self: flex-start;
+  color: var(--text);
 }
 
-.config-add-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text);
+.config-sub-option {
+  padding-left: 46px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.config-label-sm {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 .config-docs {

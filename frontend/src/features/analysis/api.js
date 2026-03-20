@@ -1,9 +1,13 @@
 import { apiFetch } from '../../shared/api/http.js'
 
-export function createAnalysis(documentId) {
+export function createAnalysis(documentId, pipelineOptions = null) {
+  const body = { documentId }
+  if (pipelineOptions) {
+    body.pipelineOptions = pipelineOptions
+  }
   return apiFetch('/api/analyses', {
     method: 'POST',
-    body: JSON.stringify({ documentId })
+    body: JSON.stringify(body)
   })
 }
 

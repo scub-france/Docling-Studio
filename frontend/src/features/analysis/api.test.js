@@ -12,7 +12,7 @@ describe('analysis API', () => {
     vi.clearAllMocks()
   })
 
-  it('createAnalysis sends POST with documentId', async () => {
+  it('createAnalysis sends POST with documentId only', async () => {
     const job = { id: '1', documentId: 'doc-1', status: 'PENDING' }
     apiFetch.mockResolvedValue(job)
 
@@ -21,6 +21,20 @@ describe('analysis API', () => {
     expect(apiFetch).toHaveBeenCalledWith('/api/analyses', {
       method: 'POST',
       body: JSON.stringify({ documentId: 'doc-1' }),
+    })
+    expect(result).toEqual(job)
+  })
+
+  it('createAnalysis sends POST with pipeline options', async () => {
+    const job = { id: '2', documentId: 'doc-1', status: 'PENDING' }
+    apiFetch.mockResolvedValue(job)
+
+    const options = { do_ocr: false, table_mode: 'fast', do_code_enrichment: true }
+    const result = await createAnalysis('doc-1', options)
+
+    expect(apiFetch).toHaveBeenCalledWith('/api/analyses', {
+      method: 'POST',
+      body: JSON.stringify({ documentId: 'doc-1', pipelineOptions: options }),
     })
     expect(result).toEqual(job)
   })

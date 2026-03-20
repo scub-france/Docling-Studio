@@ -6,6 +6,7 @@ from api.schemas import (
     AnalysisResponse,
     CreateAnalysisRequest,
     DocumentResponse,
+    PipelineOptionsRequest,
     _to_camel,
 )
 
@@ -79,7 +80,47 @@ class TestAnalysisResponse:
         assert resp.document_id == "d1"
 
 
+class TestPipelineOptionsRequest:
+    def test_defaults(self):
+        opts = PipelineOptionsRequest()
+        assert opts.do_ocr is True
+        assert opts.do_table_structure is True
+        assert opts.table_mode == "accurate"
+        assert opts.do_code_enrichment is False
+        assert opts.do_formula_enrichment is False
+        assert opts.do_picture_classification is False
+        assert opts.do_picture_description is False
+        assert opts.generate_picture_images is False
+        assert opts.generate_page_images is False
+        assert opts.images_scale == 1.0
+
+    def test_custom_values(self):
+        opts = PipelineOptionsRequest(
+            do_ocr=False, table_mode="fast", do_code_enrichment=True, images_scale=2.0,
+        )
+        assert opts.do_ocr is False
+        assert opts.table_mode == "fast"
+        assert opts.do_code_enrichment is True
+        assert opts.images_scale == 2.0
+
+    def test_model_dump(self):
+        opts = PipelineOptionsRequest(do_ocr=False)
+        data = opts.model_dump()
+        assert data["do_ocr"] is False
+        assert data["do_table_structure"] is True  # default preserved
+
+
 class TestCreateAnalysisRequest:
     def test_parses_document_id(self):
         req = CreateAnalysisRequest(documentId="doc-42")
         assert req.documentId == "doc-42"
+        assert req.pipelineOptions is None
+
+    def test_parses_with_pipeline_options(self):
+        req = CreateAnalysisRequest(
+            documentId="doc-42",
+            pipelineOptions=PipelineOptionsRequest(do_ocr=False, table_mode="fast"),
+        )
+        assert req.documentId == "doc-42"
+        assert req.pipelineOptions.do_ocr is False
+        assert req.pipelineOptions.table_mode == "fast"

@@ -106,11 +106,15 @@ def build_converter(
     do_ocr: bool = True,
     do_table_structure: bool = True,
     table_mode: str = "accurate",
+    do_code_enrichment: bool = False,
+    do_formula_enrichment: bool = False,
+    do_picture_classification: bool = False,
+    do_picture_description: bool = False,
+    generate_picture_images: bool = False,
+    generate_page_images: bool = False,
+    images_scale: float = 1.0,
 ) -> DocumentConverter:
-    """Build a DocumentConverter with the given pipeline options.
-
-    Only exposes options that work out of the box (no extra model downloads).
-    """
+    """Build a DocumentConverter with the given pipeline options."""
     table_options = TableStructureOptions(
         do_cell_matching=True,
         mode=TableFormerMode.ACCURATE if table_mode == "accurate" else TableFormerMode.FAST,
@@ -120,12 +124,13 @@ def build_converter(
         do_ocr=do_ocr,
         do_table_structure=do_table_structure,
         table_structure_options=table_options,
-        do_code_enrichment=False,
-        do_formula_enrichment=False,
-        do_picture_classification=False,
-        do_picture_description=False,
-        generate_page_images=False,
-        generate_picture_images=False,
+        do_code_enrichment=do_code_enrichment,
+        do_formula_enrichment=do_formula_enrichment,
+        do_picture_classification=do_picture_classification,
+        do_picture_description=do_picture_description,
+        generate_page_images=generate_page_images,
+        generate_picture_images=generate_picture_images,
+        images_scale=images_scale,
     )
 
     return DocumentConverter(
@@ -228,19 +233,42 @@ def convert_document(
     do_ocr: bool = True,
     do_table_structure: bool = True,
     table_mode: str = "accurate",
+    do_code_enrichment: bool = False,
+    do_formula_enrichment: bool = False,
+    do_picture_classification: bool = False,
+    do_picture_description: bool = False,
+    generate_picture_images: bool = False,
+    generate_page_images: bool = False,
+    images_scale: float = 1.0,
 ) -> ConversionResult:
     """Convert a document and return structured results.
 
     This is the main entry point for document parsing. Runs synchronously
     (caller should use asyncio.to_thread for non-blocking execution).
     """
-    if do_ocr and do_table_structure and table_mode == "accurate":
+    # Use cached default converter only when all options match defaults
+    is_default = (
+        do_ocr and do_table_structure and table_mode == "accurate"
+        and not do_code_enrichment and not do_formula_enrichment
+        and not do_picture_classification and not do_picture_description
+        and not generate_picture_images and not generate_page_images
+        and images_scale == 1.0
+    )
+
+    if is_default:
         conv = get_default_converter()
     else:
         conv = build_converter(
             do_ocr=do_ocr,
             do_table_structure=do_table_structure,
             table_mode=table_mode,
+            do_code_enrichment=do_code_enrichment,
+            do_formula_enrichment=do_formula_enrichment,
+            do_picture_classification=do_picture_classification,
+            do_picture_description=do_picture_description,
+            generate_picture_images=generate_picture_images,
+            generate_page_images=generate_page_images,
+            images_scale=images_scale,
         )
 
     with _converter_lock:
