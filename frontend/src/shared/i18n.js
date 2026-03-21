@@ -74,6 +74,8 @@ const messages = {
     'results.noMarkdown': 'Pas de contenu markdown',
     'results.runAnalysis': 'Lancez une analyse pour voir les résultats',
     'results.analysisFailed': "L'analyse a échoué",
+    'results.copy': 'Copier',
+    'results.copied': 'Copié !',
     'results.page': 'Page',
 
     // Upload
@@ -164,6 +166,8 @@ const messages = {
     'results.noMarkdown': 'No markdown content',
     'results.runAnalysis': 'Run an analysis to see results',
     'results.analysisFailed': 'Analysis failed',
+    'results.copy': 'Copy',
+    'results.copied': 'Copied!',
     'results.page': 'Page',
 
     'upload.drop': 'Drop a PDF here or click to upload',

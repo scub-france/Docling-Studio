@@ -36,6 +36,20 @@
               {{ el.type }}
             </span>
             <span class="element-level" v-if="el.level">L{{ el.level }}</span>
+            <button
+              v-if="el.content"
+              class="copy-btn copy-btn-element"
+              :title="t('results.copy')"
+              @click.stop="copyElement(idx, el.content)"
+            >
+              <svg v-if="!copiedElements[idx]" viewBox="0 0 20 20" fill="currentColor" class="copy-icon">
+                <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z"/>
+                <path d="M3 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v6h-4.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L10.414 13H15v3a2 2 0 01-2 2H5a2 2 0 01-2-2V5zM15 11h2a1 1 0 110 2h-2v-2z"/>
+              </svg>
+              <svg v-else viewBox="0 0 20 20" fill="currentColor" class="copy-icon copied">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+              </svg>
+            </button>
           </div>
           <div class="element-content" v-if="el.content">
             <MarkdownViewer v-if="el.type === 'table'" :content="el.content" />
@@ -50,6 +64,15 @@
 
       <!-- RAW MARKDOWN -->
       <div v-else-if="activeTab === 'markdown'" class="raw-markdown">
+        <button class="copy-btn copy-btn-block" :title="t('results.copy')" @click="copyMarkdown">
+          <svg v-if="!copiedMarkdown" viewBox="0 0 20 20" fill="currentColor" class="copy-icon">
+            <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z"/>
+            <path d="M3 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v6h-4.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L10.414 13H15v3a2 2 0 01-2 2H5a2 2 0 01-2-2V5zM15 11h2a1 1 0 110 2h-2v-2z"/>
+          </svg>
+          <svg v-else viewBox="0 0 20 20" fill="currentColor" class="copy-icon copied">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+          </svg>
+        </button>
         <pre class="raw-content">{{ pageMarkdown }}</pre>
       </div>
 
@@ -74,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useAnalysisStore } from '../store.js'
 import MarkdownViewer from './MarkdownViewer.vue'
 import ImageGallery from './ImageGallery.vue'
@@ -157,6 +180,26 @@ function formatElement(el) {
     default:
       return `${indent}${el.content}`
   }
+}
+
+// --- Copy to clipboard ---
+const copiedMarkdown = ref(false)
+const copiedElements = reactive({})
+
+async function copyMarkdown() {
+  try {
+    await navigator.clipboard.writeText(pageMarkdown.value)
+    copiedMarkdown.value = true
+    setTimeout(() => { copiedMarkdown.value = false }, 1500)
+  } catch { /* clipboard not available */ }
+}
+
+async function copyElement(idx, content) {
+  try {
+    await navigator.clipboard.writeText(content)
+    copiedElements[idx] = true
+    setTimeout(() => { copiedElements[idx] = false }, 1500)
+  } catch { /* clipboard not available */ }
 }
 </script>
 
@@ -304,9 +347,53 @@ function formatElement(el) {
   color: var(--text-muted);
 }
 
+/* --- Copy button --- */
+.copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: all var(--transition);
+  padding: 4px;
+}
+
+.copy-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.copy-icon { width: 14px; height: 14px; }
+.copy-icon.copied { color: var(--success); }
+
+.copy-btn-element {
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.element-card:hover .copy-btn-element { opacity: 1; }
+
+.copy-btn-block {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  background: var(--bg-surface);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.raw-markdown:hover .copy-btn-block { opacity: 1; }
+
 /* --- Raw markdown --- */
 .raw-markdown {
   height: 100%;
+  position: relative;
 }
 
 .raw-content {

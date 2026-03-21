@@ -32,7 +32,8 @@ async def upload(filename: str, content_type: str, file_content: bytes) -> Docum
 
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-    safe_name = f"{uuid.uuid4()}_{filename}"
+    ext = os.path.splitext(filename)[1] or ".pdf"
+    safe_name = f"{uuid.uuid4()}{ext}"
     file_path = os.path.join(UPLOAD_DIR, safe_name)
 
     with open(file_path, "wb") as f:

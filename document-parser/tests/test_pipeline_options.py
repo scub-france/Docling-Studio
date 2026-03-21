@@ -12,7 +12,7 @@ from docling.datamodel.pipeline_options import (
     TableFormerMode,
 )
 
-from domain.parsing import build_converter, convert_document, get_default_converter
+from domain.parsing import ConversionOptions, build_converter, convert_document, get_default_converter
 
 
 # ---------------------------------------------------------------------------
@@ -42,62 +42,62 @@ class TestBuildConverter:
         assert opts.images_scale == 1.0
 
     def test_ocr_disabled(self):
-        conv = build_converter(do_ocr=False)
+        conv = build_converter(ConversionOptions(do_ocr=False))
         opts = self._get_pipeline_options(conv)
         assert opts.do_ocr is False
 
     def test_table_mode_fast(self):
-        conv = build_converter(table_mode="fast")
+        conv = build_converter(ConversionOptions(table_mode="fast"))
         opts = self._get_pipeline_options(conv)
         assert opts.table_structure_options.mode == TableFormerMode.FAST
 
     def test_table_mode_accurate(self):
-        conv = build_converter(table_mode="accurate")
+        conv = build_converter(ConversionOptions(table_mode="accurate"))
         opts = self._get_pipeline_options(conv)
         assert opts.table_structure_options.mode == TableFormerMode.ACCURATE
 
     def test_table_structure_disabled(self):
-        conv = build_converter(do_table_structure=False)
+        conv = build_converter(ConversionOptions(do_table_structure=False))
         opts = self._get_pipeline_options(conv)
         assert opts.do_table_structure is False
 
     def test_code_enrichment_enabled(self):
-        conv = build_converter(do_code_enrichment=True)
+        conv = build_converter(ConversionOptions(do_code_enrichment=True))
         opts = self._get_pipeline_options(conv)
         assert opts.do_code_enrichment is True
 
     def test_formula_enrichment_enabled(self):
-        conv = build_converter(do_formula_enrichment=True)
+        conv = build_converter(ConversionOptions(do_formula_enrichment=True))
         opts = self._get_pipeline_options(conv)
         assert opts.do_formula_enrichment is True
 
     def test_picture_classification_enabled(self):
-        conv = build_converter(do_picture_classification=True)
+        conv = build_converter(ConversionOptions(do_picture_classification=True))
         opts = self._get_pipeline_options(conv)
         assert opts.do_picture_classification is True
 
     def test_picture_description_enabled(self):
-        conv = build_converter(do_picture_description=True)
+        conv = build_converter(ConversionOptions(do_picture_description=True))
         opts = self._get_pipeline_options(conv)
         assert opts.do_picture_description is True
 
     def test_generate_picture_images(self):
-        conv = build_converter(generate_picture_images=True)
+        conv = build_converter(ConversionOptions(generate_picture_images=True))
         opts = self._get_pipeline_options(conv)
         assert opts.generate_picture_images is True
 
     def test_generate_page_images(self):
-        conv = build_converter(generate_page_images=True)
+        conv = build_converter(ConversionOptions(generate_page_images=True))
         opts = self._get_pipeline_options(conv)
         assert opts.generate_page_images is True
 
     def test_images_scale(self):
-        conv = build_converter(images_scale=2.0)
+        conv = build_converter(ConversionOptions(images_scale=2.0))
         opts = self._get_pipeline_options(conv)
         assert opts.images_scale == 2.0
 
     def test_all_options_combined(self):
-        conv = build_converter(
+        conv = build_converter(ConversionOptions(
             do_ocr=False,
             do_table_structure=True,
             table_mode="fast",
@@ -108,7 +108,7 @@ class TestBuildConverter:
             generate_picture_images=True,
             generate_page_images=True,
             images_scale=1.5,
-        )
+        ))
         opts = self._get_pipeline_options(conv)
         assert opts.do_ocr is False
         assert opts.do_table_structure is True
@@ -158,7 +158,7 @@ class TestConvertDocumentRouting:
         mock_conv.convert.return_value = mock_result
         mock_build.return_value = mock_conv
 
-        convert_document("/tmp/test.pdf", do_ocr=False)
+        convert_document("/tmp/test.pdf", ConversionOptions(do_ocr=False))
 
         mock_build.assert_called_once()
         mock_get_default.assert_not_called()
@@ -175,10 +175,10 @@ class TestConvertDocumentRouting:
         mock_conv.convert.return_value = mock_result
         mock_build.return_value = mock_conv
 
-        convert_document("/tmp/test.pdf", table_mode="fast")
+        opts = ConversionOptions(table_mode="fast")
+        convert_document("/tmp/test.pdf", opts)
 
-        mock_build.assert_called_once()
-        assert mock_build.call_args.kwargs["table_mode"] == "fast"
+        mock_build.assert_called_once_with(opts)
 
     @patch("domain.parsing.get_default_converter")
     @patch("domain.parsing.build_converter")
@@ -192,10 +192,10 @@ class TestConvertDocumentRouting:
         mock_conv.convert.return_value = mock_result
         mock_build.return_value = mock_conv
 
-        convert_document("/tmp/test.pdf", do_code_enrichment=True)
+        opts = ConversionOptions(do_code_enrichment=True)
+        convert_document("/tmp/test.pdf", opts)
 
-        mock_build.assert_called_once()
-        assert mock_build.call_args.kwargs["do_code_enrichment"] is True
+        mock_build.assert_called_once_with(opts)
 
     @patch("domain.parsing.get_default_converter")
     @patch("domain.parsing.build_converter")
@@ -209,7 +209,7 @@ class TestConvertDocumentRouting:
         mock_conv.convert.return_value = mock_result
         mock_build.return_value = mock_conv
 
-        convert_document("/tmp/test.pdf", do_formula_enrichment=True)
+        convert_document("/tmp/test.pdf", ConversionOptions(do_formula_enrichment=True))
 
         mock_build.assert_called_once()
 
@@ -225,7 +225,7 @@ class TestConvertDocumentRouting:
         mock_conv.convert.return_value = mock_result
         mock_build.return_value = mock_conv
 
-        convert_document("/tmp/test.pdf", do_picture_classification=True)
+        convert_document("/tmp/test.pdf", ConversionOptions(do_picture_classification=True))
 
         mock_build.assert_called_once()
 
@@ -241,7 +241,7 @@ class TestConvertDocumentRouting:
         mock_conv.convert.return_value = mock_result
         mock_build.return_value = mock_conv
 
-        convert_document("/tmp/test.pdf", generate_picture_images=True)
+        convert_document("/tmp/test.pdf", ConversionOptions(generate_picture_images=True))
 
         mock_build.assert_called_once()
 
@@ -257,10 +257,10 @@ class TestConvertDocumentRouting:
         mock_conv.convert.return_value = mock_result
         mock_build.return_value = mock_conv
 
-        convert_document("/tmp/test.pdf", images_scale=2.0)
+        opts = ConversionOptions(images_scale=2.0)
+        convert_document("/tmp/test.pdf", opts)
 
-        mock_build.assert_called_once()
-        assert mock_build.call_args.kwargs["images_scale"] == 2.0
+        mock_build.assert_called_once_with(opts)
 
     @patch("domain.parsing.get_default_converter")
     @patch("domain.parsing.build_converter")
@@ -274,8 +274,7 @@ class TestConvertDocumentRouting:
         mock_conv.convert.return_value = mock_result
         mock_build.return_value = mock_conv
 
-        convert_document(
-            "/tmp/test.pdf",
+        opts = ConversionOptions(
             do_ocr=False,
             do_table_structure=False,
             table_mode="fast",
@@ -287,19 +286,9 @@ class TestConvertDocumentRouting:
             generate_page_images=True,
             images_scale=1.5,
         )
+        convert_document("/tmp/test.pdf", opts)
 
-        mock_build.assert_called_once_with(
-            do_ocr=False,
-            do_table_structure=False,
-            table_mode="fast",
-            do_code_enrichment=True,
-            do_formula_enrichment=True,
-            do_picture_classification=True,
-            do_picture_description=True,
-            generate_picture_images=True,
-            generate_page_images=True,
-            images_scale=1.5,
-        )
+        mock_build.assert_called_once_with(opts)
 
 
 # ---------------------------------------------------------------------------
@@ -392,18 +381,15 @@ class TestServiceForwardsPipelineOptions:
 
         await _run_analysis("j1", "/tmp/test.pdf", "test.pdf", opts)
 
-        mock_convert.assert_called_once_with(
-            "/tmp/test.pdf",
-            do_ocr=False,
-            table_mode="fast",
-            do_code_enrichment=True,
-            do_formula_enrichment=False,
-            do_picture_classification=False,
-            do_picture_description=False,
-            generate_picture_images=True,
-            generate_page_images=False,
-            images_scale=2.0,
-        )
+        mock_convert.assert_called_once()
+        call_args = mock_convert.call_args
+        assert call_args[0][0] == "/tmp/test.pdf"
+        conv_opts = call_args[0][1]
+        assert conv_opts.do_ocr is False
+        assert conv_opts.table_mode == "fast"
+        assert conv_opts.do_code_enrichment is True
+        assert conv_opts.generate_picture_images is True
+        assert conv_opts.images_scale == 2.0
 
     @patch("services.analysis_service.analysis_repo")
     @patch("services.analysis_service.document_repo")
@@ -428,8 +414,11 @@ class TestServiceForwardsPipelineOptions:
 
         await _run_analysis("j1", "/tmp/test.pdf", "test.pdf", None)
 
-        # Called with file_path only (no kwargs spread from empty dict)
-        mock_convert.assert_called_once_with("/tmp/test.pdf")
+        # Called with file_path and default ConversionOptions
+        mock_convert.assert_called_once()
+        call_args = mock_convert.call_args
+        assert call_args[0][0] == "/tmp/test.pdf"
+        assert call_args[0][1] == ConversionOptions()
 
     @patch("services.analysis_service.analysis_repo")
     @patch("services.analysis_service.document_repo")

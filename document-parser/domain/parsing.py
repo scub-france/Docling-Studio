@@ -38,6 +38,10 @@ logger = logging.getLogger(__name__)
 # Thread lock — DocumentConverter is not thread-safe
 _converter_lock = threading.Lock()
 
+# US Letter page dimensions (points) — fallback when page size is unknown
+_DEFAULT_PAGE_WIDTH = 612.0
+_DEFAULT_PAGE_HEIGHT = 792.0
+
 # Default converter (lazy-init on first request)
 _default_converter: DocumentConverter | None = None
 
@@ -60,6 +64,23 @@ class PageDetail:
     width: float
     height: float
     elements: list[PageElement] = field(default_factory=list)
+
+
+@dataclass
+class ConversionOptions:
+    do_ocr: bool = True
+    do_table_structure: bool = True
+    table_mode: str = "accurate"
+    do_code_enrichment: bool = False
+    do_formula_enrichment: bool = False
+    do_picture_classification: bool = False
+    do_picture_description: bool = False
+    generate_picture_images: bool = False
+    generate_page_images: bool = False
+    images_scale: float = 1.0
+
+    def is_default(self) -> bool:
+        return self == ConversionOptions()
 
 
 @dataclass
@@ -102,35 +123,26 @@ def _get_element_type(item: DocItem) -> str:
 # Pipeline factory
 # ---------------------------------------------------------------------------
 
-def build_converter(
-    do_ocr: bool = True,
-    do_table_structure: bool = True,
-    table_mode: str = "accurate",
-    do_code_enrichment: bool = False,
-    do_formula_enrichment: bool = False,
-    do_picture_classification: bool = False,
-    do_picture_description: bool = False,
-    generate_picture_images: bool = False,
-    generate_page_images: bool = False,
-    images_scale: float = 1.0,
-) -> DocumentConverter:
+def build_converter(options: ConversionOptions | None = None) -> DocumentConverter:
     """Build a DocumentConverter with the given pipeline options."""
+    opts = options or ConversionOptions()
+
     table_options = TableStructureOptions(
         do_cell_matching=True,
-        mode=TableFormerMode.ACCURATE if table_mode == "accurate" else TableFormerMode.FAST,
+        mode=TableFormerMode.ACCURATE if opts.table_mode == "accurate" else TableFormerMode.FAST,
     )
 
     pipeline_options = PdfPipelineOptions(
-        do_ocr=do_ocr,
-        do_table_structure=do_table_structure,
+        do_ocr=opts.do_ocr,
+        do_table_structure=opts.do_table_structure,
         table_structure_options=table_options,
-        do_code_enrichment=do_code_enrichment,
-        do_formula_enrichment=do_formula_enrichment,
-        do_picture_classification=do_picture_classification,
-        do_picture_description=do_picture_description,
-        generate_page_images=generate_page_images,
-        generate_picture_images=generate_picture_images,
-        images_scale=images_scale,
+        do_code_enrichment=opts.do_code_enrichment,
+        do_formula_enrichment=opts.do_formula_enrichment,
+        do_picture_classification=opts.do_picture_classification,
+        do_picture_description=opts.do_picture_description,
+        generate_page_images=opts.generate_page_images,
+        generate_picture_images=opts.generate_picture_images,
+        images_scale=opts.images_scale,
     )
 
     return DocumentConverter(
@@ -191,7 +203,7 @@ def _process_content_item(
         try:
             page_no = prov.page_no
             if page_no not in pages:
-                pages[page_no] = PageDetail(page_number=page_no, width=612.0, height=792.0)
+                pages[page_no] = PageDetail(page_number=page_no, width=_DEFAULT_PAGE_WIDTH, height=_DEFAULT_PAGE_HEIGHT)
 
             page_height = pages[page_no].height
 
@@ -205,13 +217,13 @@ def _process_content_item(
             if isinstance(item, TableItem):
                 try:
                     content = item.export_to_markdown()
-                except Exception:
+                except (AttributeError, ValueError):
                     pass
 
             pages[page_no].elements.append(
                 PageElement(type=element_type, bbox=bbox, content=content, level=level)
             )
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError):
             logger.warning(
                 "Skipping item %s on page %s",
                 type(item).__name__,
@@ -227,77 +239,54 @@ def _process_content_item(
 # Main conversion entry point
 # ---------------------------------------------------------------------------
 
+def _select_converter(options: ConversionOptions) -> DocumentConverter:
+    """Return the cached default converter or build a custom one."""
+    if options.is_default():
+        return get_default_converter()
+    return build_converter(options)
+
+
+def _build_fallback_pages(doc, page_count: int) -> list[PageDetail]:
+    """Create empty PageDetail entries when extraction yields nothing."""
+    return [
+        PageDetail(
+            page_number=i + 1,
+            width=doc.pages[i + 1].size.width if (i + 1) in doc.pages else _DEFAULT_PAGE_WIDTH,
+            height=doc.pages[i + 1].size.height if (i + 1) in doc.pages else _DEFAULT_PAGE_HEIGHT,
+        )
+        for i in range(page_count)
+    ]
+
+
 def convert_document(
     file_path: str,
-    *,
-    do_ocr: bool = True,
-    do_table_structure: bool = True,
-    table_mode: str = "accurate",
-    do_code_enrichment: bool = False,
-    do_formula_enrichment: bool = False,
-    do_picture_classification: bool = False,
-    do_picture_description: bool = False,
-    generate_picture_images: bool = False,
-    generate_page_images: bool = False,
-    images_scale: float = 1.0,
+    options: ConversionOptions | None = None,
 ) -> ConversionResult:
     """Convert a document and return structured results.
 
     This is the main entry point for document parsing. Runs synchronously
     (caller should use asyncio.to_thread for non-blocking execution).
     """
-    # Use cached default converter only when all options match defaults
-    is_default = (
-        do_ocr and do_table_structure and table_mode == "accurate"
-        and not do_code_enrichment and not do_formula_enrichment
-        and not do_picture_classification and not do_picture_description
-        and not generate_picture_images and not generate_page_images
-        and images_scale == 1.0
-    )
+    opts = options or ConversionOptions()
 
     with _converter_lock:
-        if is_default:
-            conv = get_default_converter()
-        else:
-            conv = build_converter(
-                do_ocr=do_ocr,
-                do_table_structure=do_table_structure,
-                table_mode=table_mode,
-                do_code_enrichment=do_code_enrichment,
-                do_formula_enrichment=do_formula_enrichment,
-                do_picture_classification=do_picture_classification,
-                do_picture_description=do_picture_description,
-                generate_picture_images=generate_picture_images,
-                generate_page_images=generate_page_images,
-                images_scale=images_scale,
-            )
-
+        conv = _select_converter(opts)
         result = conv.convert(file_path)
 
     doc = result.document
-    content_markdown = doc.export_to_markdown()
-    content_html = doc.export_to_html()
     page_count = len(doc.pages)
-
     pages_detail, skipped = extract_pages_detail(result)
 
     if not pages_detail and page_count > 0:
-        pages_detail = [
-            PageDetail(
-                page_number=i + 1,
-                width=doc.pages[i + 1].size.width if (i + 1) in doc.pages else 612.0,
-                height=doc.pages[i + 1].size.height if (i + 1) in doc.pages else 792.0,
-            )
-            for i in range(page_count)
-        ]
+        pages_detail = _build_fallback_pages(doc, page_count)
 
     if skipped > 0:
         logger.info("Parsed: %d pages, %d items skipped", page_count, skipped)
 
     return ConversionResult(
         page_count=page_count or len(pages_detail) or 1,
-        content_markdown=content_markdown,
-        content_html=content_html,
+        content_markdown=doc.export_to_markdown(),
+        content_html=doc.export_to_html(),
         pages=pages_detail,
         skipped_items=skipped,
     )

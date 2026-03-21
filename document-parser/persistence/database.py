@@ -35,6 +35,10 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
     completed_at      TEXT,
     created_at        TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE INDEX IF NOT EXISTS idx_analysis_jobs_status ON analysis_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_analysis_jobs_created_at ON analysis_jobs(created_at);
+CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at);
 """
 
 

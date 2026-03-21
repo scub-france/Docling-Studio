@@ -31,6 +31,10 @@ async def upload(file: UploadFile):
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
+    # Reject early if Content-Length exceeds limit (before reading body)
+    if file.size and file.size > document_service.MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="File too large (max 50 MB)")
+
     content = await file.read()
 
     try:

@@ -8,7 +8,7 @@ import logging
 from dataclasses import asdict
 
 from domain.models import AnalysisJob
-from domain.parsing import ConversionResult, convert_document
+from domain.parsing import ConversionOptions, ConversionResult, convert_document
 from persistence import analysis_repo, document_repo
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ def _on_task_done(task: asyncio.Task) -> None:
         return
     exc = task.exception()
     if exc:
-        logger.error("Unhandled exception in analysis task: %s", exc, exc_info=exc)
+        logger.error("Unhandled exception in analysis task: %s", exc, exc_info=True)
 
 
 async def find_all() -> list[AnalysisJob]:
@@ -72,12 +72,12 @@ async def _run_analysis(
         await analysis_repo.update_status(job)
         logger.info("Analysis started: %s (file: %s)", job_id, filename)
 
-        # Build kwargs from pipeline options
-        convert_kwargs = pipeline_options or {}
+        # Build conversion options from pipeline dict
+        options = ConversionOptions(**(pipeline_options or {}))
 
         # Run blocking Docling conversion in a thread with timeout
         result: ConversionResult = await asyncio.wait_for(
-            asyncio.to_thread(convert_document, file_path, **convert_kwargs),
+            asyncio.to_thread(convert_document, file_path, options),
             timeout=CONVERSION_TIMEOUT,
         )
 

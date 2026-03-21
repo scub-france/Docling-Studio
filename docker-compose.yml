@@ -2,8 +2,8 @@ services:
   document-parser:
     build:
       context: ./document-parser
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
       - uploads_data:/app/uploads
       - db_data:/app/data

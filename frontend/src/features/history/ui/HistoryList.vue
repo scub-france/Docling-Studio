@@ -32,10 +32,10 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { useHistoryStore } from '../store.js'
+import { useAnalysisStore } from '../../analysis/store.js'
 import { useI18n } from '../../../shared/i18n.js'
 
-const store = useHistoryStore()
+const store = useAnalysisStore()
 const router = useRouter()
 const { t } = useI18n()
 

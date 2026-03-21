@@ -41,13 +41,16 @@ COPY --from=frontend-build /build/dist /usr/share/nginx/html
 # Nginx config
 COPY nginx.conf /etc/nginx/sites-enabled/default
 
+# Non-root user
+RUN useradd --create-home --shell /bin/bash appuser
+
 # Data directories
-RUN mkdir -p /app/uploads /app/data
+RUN mkdir -p /app/uploads /app/data && chown -R appuser:appuser /app
 
 ENV UPLOAD_DIR=/app/uploads
 ENV DB_PATH=/app/data/docling_studio.db
 
 EXPOSE 3000
 
-# Start both nginx and uvicorn
-CMD ["sh", "-c", "nginx && exec uvicorn main:app --host 127.0.0.1 --port 8000"]
+# nginx needs to run as root for port binding, then drops to appuser for uvicorn
+CMD ["sh", "-c", "nginx && exec su appuser -c 'uvicorn main:app --host 127.0.0.1 --port 8000'"]

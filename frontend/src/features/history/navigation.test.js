@@ -7,11 +7,6 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
 
-vi.mock('./api.js', () => ({
-  fetchAnalyses: vi.fn(),
-  deleteAnalysis: vi.fn(),
-}))
-
 vi.mock('../analysis/api.js', () => ({
   fetchAnalyses: vi.fn(),
   fetchAnalysis: vi.fn(),
@@ -38,7 +33,7 @@ describe('History → Studio navigation', () => {
 
   describe('History store provides data for navigation', () => {
     it('analyses contain documentId for document selection', async () => {
-      const { fetchAnalyses } = await import('./api.js')
+      const { fetchAnalyses } = await import('../analysis/api.js')
       fetchAnalyses.mockResolvedValue([
         { id: 'a1', documentId: 'd1', documentFilename: 'test.pdf', status: 'COMPLETED' },
         { id: 'a2', documentId: 'd2', documentFilename: 'other.pdf', status: 'FAILED' },
