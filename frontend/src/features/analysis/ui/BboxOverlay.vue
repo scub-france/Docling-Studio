@@ -72,6 +72,13 @@ const visibleElements = computed(() => {
   return props.pageData.elements.filter((e: PageElement) => !hiddenTypes.has(e.type))
 })
 
+// Single source of truth for content-bearing elements.
+// Used by both draw() and onMouseMove() to keep highlight indices in sync.
+const contentElements = computed(() => {
+  if (!props.pageData) return []
+  return props.pageData.elements.filter((e: PageElement) => e.content)
+})
+
 function toggleType(type: string): void {
   if (hiddenTypes.has(type)) hiddenTypes.delete(type)
   else hiddenTypes.add(type)
@@ -90,25 +97,28 @@ function draw(): void {
 
   if (!img.clientWidth || !img.clientHeight) return
 
-  canvas.width = img.clientWidth
-  canvas.height = img.clientHeight
+  // Retina support: scale the canvas backing store by devicePixelRatio
+  // so strokes render crisp on high-DPI screens.
+  const dpr = window.devicePixelRatio || 1
+  canvas.width = img.clientWidth * dpr
+  canvas.height = img.clientHeight * dpr
+  canvas.style.width = img.clientWidth + 'px'
+  canvas.style.height = img.clientHeight + 'px'
 
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, img.clientWidth, img.clientHeight)
 
   if (!props.pageData) return
 
   const scale = computeScale(img.clientWidth, img.clientHeight, props.pageData.width, props.pageData.height)
 
-  const allElements = (props.pageData.elements || [])
-  const contentElements = allElements.filter((e: PageElement) => e.content)
-
   for (const el of visibleElements.value) {
     const rect = bboxToRect(el.bbox, scale)
     const color = ELEMENT_COLORS[el.type] || ELEMENT_COLORS.text
 
-    const elContentIdx = contentElements.indexOf(el)
+    const elContentIdx = contentElements.value.indexOf(el)
     const isHighlighted = props.highlightedIndex >= 0 && elContentIdx === props.highlightedIndex
 
     ctx.strokeStyle = color
@@ -131,14 +141,12 @@ function onMouseMove(e: MouseEvent): void {
 
   const scale = computeScale(img.clientWidth, img.clientHeight, props.pageData.width, props.pageData.height)
 
-  const contentElements = (props.pageData.elements || []).filter((el: PageElement) => el.content)
-
   let found: PageElement | null = null
   let foundIdx = -1
   for (const el of visibleElements.value) {
     if (pointInRect(mx, my, bboxToRect(el.bbox, scale))) {
       found = el
-      foundIdx = contentElements.indexOf(el)
+      foundIdx = contentElements.value.indexOf(el)
       break
     }
   }
