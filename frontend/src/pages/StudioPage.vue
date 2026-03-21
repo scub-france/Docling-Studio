@@ -281,16 +281,17 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useDocumentStore } from '../features/document/store.js'
-import { useAnalysisStore } from '../features/analysis/store.js'
-import { DocumentUpload, DocumentList } from '../features/document/index.js'
-import { ResultTabs } from '../features/analysis/index.js'
+import { useDocumentStore } from '../features/document/store'
+import { useAnalysisStore } from '../features/analysis/store'
+import { DocumentUpload, DocumentList } from '../features/document/index'
+import { ResultTabs } from '../features/analysis/index'
 import BboxOverlay from '../features/analysis/ui/BboxOverlay.vue'
-import { getPreviewUrl } from '../features/document/api.js'
-import { useI18n } from '../shared/i18n.js'
+import { getPreviewUrl } from '../features/document/api'
+import { useI18n } from '../shared/i18n'
+import type { PipelineOptions } from '../shared/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -302,8 +303,8 @@ const mode = ref('configurer')
 const currentPage = ref(1)
 const visualMode = ref(false)
 const highlightedElementIndex = ref(-1)
-const pdfImageRef = ref(null)
-const bboxOverlayRef = ref(null)
+const pdfImageRef = ref<HTMLImageElement | null>(null)
+const bboxOverlayRef = ref<InstanceType<typeof BboxOverlay> | null>(null)
 
 // --- Resizable right panel ---
 const RIGHT_PANEL_MIN = 280
@@ -311,7 +312,7 @@ const RIGHT_PANEL_MAX_RATIO = 0.7
 const rightPanelWidth = ref(380)
 let resizing = false
 
-function onResizeStart(e) {
+function onResizeStart(e: MouseEvent) {
   e.preventDefault()
   resizing = true
   document.body.style.cursor = 'col-resize'
@@ -320,7 +321,7 @@ function onResizeStart(e) {
   document.addEventListener('mouseup', onResizeEnd)
 }
 
-function onResizeMove(e) {
+function onResizeMove(e: MouseEvent) {
   if (!resizing) return
   const maxWidth = window.innerWidth * RIGHT_PANEL_MAX_RATIO
   const newWidth = window.innerWidth - e.clientX
@@ -337,7 +338,7 @@ function onResizeEnd() {
   nextTick(() => bboxOverlayRef.value?.draw())
 }
 
-const pipelineOptions = reactive({
+const pipelineOptions = reactive<PipelineOptions>({
   do_ocr: true,
   do_table_structure: true,
   table_mode: 'accurate',
@@ -372,8 +373,8 @@ const previewUrl = computed(() => {
   return getPreviewUrl(selectedDoc.value.id, currentPage.value)
 })
 
-function onPageInput(e) {
-  const val = parseInt(e.target.value)
+function onPageInput(e: Event) {
+  const val = parseInt((e.target as HTMLInputElement).value)
   if (!val || val < 1) return
   const max = selectedDoc.value?.pageCount || val
   currentPage.value = Math.min(val, max)
@@ -403,7 +404,7 @@ onMounted(async () => {
   // Restore analysis from history via query param
   const analysisId = route.query.analysisId
   if (analysisId) {
-    await analysisStore.select(analysisId)
+    await analysisStore.select(analysisId as string)
     const analysis = analysisStore.currentAnalysis
     if (analysis) {
       documentStore.select(analysis.documentId)

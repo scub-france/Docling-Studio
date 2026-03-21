@@ -14,7 +14,7 @@
       <PagePreview
         :document-id="selectedDoc.id"
         :page="currentPage"
-        :page-count="selectedDoc.pageCount"
+        :page-count="selectedDoc.pageCount ?? undefined"
         @update:page="currentPage = $event"
       />
     </div>
@@ -44,11 +44,11 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useDocumentStore } from '../../document/store.js'
-import { useAnalysisStore } from '../store.js'
-import { DocumentUpload, DocumentList, PagePreview } from '../../document/index.js'
+import { useDocumentStore } from '../../document/store'
+import { useAnalysisStore } from '../store'
+import { DocumentUpload, DocumentList, PagePreview } from '../../document/index'
 
 const documentStore = useDocumentStore()
 const analysisStore = useAnalysisStore()

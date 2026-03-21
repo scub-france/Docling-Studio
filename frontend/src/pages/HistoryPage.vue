@@ -9,10 +9,10 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted } from 'vue'
-import { HistoryList, useHistoryStore } from '../features/history/index.js'
-import { useI18n } from '../shared/i18n.js'
+import { HistoryList, useHistoryStore } from '../features/history/index'
+import { useI18n } from '../shared/i18n'
 
 const historyStore = useHistoryStore()
 const { t } = useI18n()

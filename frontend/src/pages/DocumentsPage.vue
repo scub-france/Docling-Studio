@@ -35,16 +35,16 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted } from 'vue'
-import { useDocumentStore } from '../features/document/store.js'
-import { useI18n } from '../shared/i18n.js'
-import { formatSize } from '../shared/format.js'
+import { useDocumentStore } from '../features/document/store'
+import { useI18n } from '../shared/i18n'
+import { formatSize } from '../shared/format'
 
 const docStore = useDocumentStore()
 const { t } = useI18n()
 
-function formatDate(iso) {
+function formatDate(iso: string) {
   if (!iso) return ''
   return new Date(iso).toLocaleString()
 }

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fetchDocuments, fetchDocument, uploadDocument, deleteDocument, getPreviewUrl } from './api.js'
+import { fetchDocuments, fetchDocument, uploadDocument, deleteDocument, getPreviewUrl } from './api'
 
-vi.mock('../../shared/api/http.js', () => ({
+vi.mock('../../shared/api/http', () => ({
   apiFetch: vi.fn(),
 }))
 
-import { apiFetch } from '../../shared/api/http.js'
+import { apiFetch } from '../../shared/api/http'
 
 describe('document API', () => {
   beforeEach(() => {

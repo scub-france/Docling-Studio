@@ -48,13 +48,14 @@ ruff check . --fix    # lint with auto-fix
 ruff format .         # format
 ```
 
-### Frontend — ESLint + Prettier
+### Frontend — TypeScript + ESLint + Prettier
 
 ```bash
 cd frontend
-npx eslint src/       # lint
-npx prettier --check src/  # check formatting
-npx prettier --write src/  # auto-format
+npm run type-check          # type check (vue-tsc)
+npx eslint src/             # lint
+npx prettier --check src/   # check formatting
+npx prettier --write src/   # auto-format
 ```
 
 ## Running Tests
@@ -64,7 +65,7 @@ npx prettier --write src/  # auto-format
 cd document-parser
 pytest tests/ -v
 
-# Frontend (87 tests)
+# Frontend (81 tests)
 cd frontend
 npm run test:run
 ```

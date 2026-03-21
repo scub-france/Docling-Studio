@@ -33,9 +33,9 @@
   </aside>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { RouterLink, useRoute } from 'vue-router'
-import { useI18n } from '../i18n.js'
+import { useI18n } from '../i18n'
 
 const route = useRoute()
 const { t } = useI18n()

@@ -1,4 +1,4 @@
-export { useDocumentStore } from './store.js'
+export { useDocumentStore } from './store'
 export { default as DocumentUpload } from './ui/DocumentUpload.vue'
 export { default as DocumentList } from './ui/DocumentList.vue'
 export { default as PagePreview } from './ui/PagePreview.vue'

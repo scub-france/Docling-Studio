@@ -7,23 +7,23 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
 
-vi.mock('../analysis/api.js', () => ({
+vi.mock('../analysis/api', () => ({
   fetchAnalyses: vi.fn(),
   fetchAnalysis: vi.fn(),
   createAnalysis: vi.fn(),
   deleteAnalysis: vi.fn(),
 }))
 
-vi.mock('../document/api.js', () => ({
+vi.mock('../document/api', () => ({
   fetchDocuments: vi.fn(),
   uploadDocument: vi.fn(),
   deleteDocument: vi.fn(),
   getPreviewUrl: vi.fn(),
 }))
 
-import { useHistoryStore } from './store.js'
-import { useAnalysisStore } from '../analysis/store.js'
-import { useDocumentStore } from '../document/store.js'
+import { useHistoryStore } from './store'
+import { useAnalysisStore } from '../analysis/store'
+import { useDocumentStore } from '../document/store'
 
 describe('History → Studio navigation', () => {
   beforeEach(() => {
@@ -33,7 +33,7 @@ describe('History → Studio navigation', () => {
 
   describe('History store provides data for navigation', () => {
     it('analyses contain documentId for document selection', async () => {
-      const { fetchAnalyses } = await import('../analysis/api.js')
+      const { fetchAnalyses } = await import('../analysis/api')
       fetchAnalyses.mockResolvedValue([
         { id: 'a1', documentId: 'd1', documentFilename: 'test.pdf', status: 'COMPLETED' },
         { id: 'a2', documentId: 'd2', documentFilename: 'other.pdf', status: 'FAILED' },
@@ -49,7 +49,7 @@ describe('History → Studio navigation', () => {
 
   describe('Analysis store select() restores analysis state', () => {
     it('select() sets currentAnalysis from fetched data', async () => {
-      const { fetchAnalysis } = await import('../analysis/api.js')
+      const { fetchAnalysis } = await import('../analysis/api')
       const analysis = {
         id: 'a1',
         documentId: 'd1',
@@ -67,7 +67,7 @@ describe('History → Studio navigation', () => {
     })
 
     it('select() allows document store to select the associated document', async () => {
-      const { fetchAnalysis } = await import('../analysis/api.js')
+      const { fetchAnalysis } = await import('../analysis/api')
       fetchAnalysis.mockResolvedValue({
         id: 'a1',
         documentId: 'd1',
@@ -126,7 +126,7 @@ describe('History → Studio navigation', () => {
 
   describe('Full restore flow (store-level integration)', () => {
     it('restores completed analysis: selects analysis + document + verifier mode', async () => {
-      const { fetchAnalysis } = await import('../analysis/api.js')
+      const { fetchAnalysis } = await import('../analysis/api')
       fetchAnalysis.mockResolvedValue({
         id: 'a1',
         documentId: 'd1',
@@ -153,7 +153,7 @@ describe('History → Studio navigation', () => {
     })
 
     it('restores failed analysis: selects analysis + document, stays in configurer mode', async () => {
-      const { fetchAnalysis } = await import('../analysis/api.js')
+      const { fetchAnalysis } = await import('../analysis/api')
       fetchAnalysis.mockResolvedValue({
         id: 'a2',
         documentId: 'd2',
@@ -176,7 +176,7 @@ describe('History → Studio navigation', () => {
     })
 
     it('handles missing analysis gracefully', async () => {
-      const { fetchAnalysis } = await import('../analysis/api.js')
+      const { fetchAnalysis } = await import('../analysis/api')
       fetchAnalysis.mockRejectedValue(new Error('Not found'))
       vi.spyOn(console, 'error').mockImplementation(() => {})
 

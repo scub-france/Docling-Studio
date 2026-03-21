@@ -30,20 +30,21 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { useAnalysisStore } from '../../analysis/store.js'
-import { useI18n } from '../../../shared/i18n.js'
+import { useAnalysisStore } from '../../analysis/store'
+import { useI18n } from '../../../shared/i18n'
+import type { Analysis } from '../../../shared/types'
 
 const store = useAnalysisStore()
 const router = useRouter()
 const { t } = useI18n()
 
-function openAnalysis(analysis) {
+function openAnalysis(analysis: Analysis) {
   router.push({ name: 'studio', query: { analysisId: analysis.id } })
 }
 
-function statusClass(status) {
+function statusClass(status: string) {
   return {
     'status-pending': status === 'PENDING',
     'status-running': status === 'RUNNING',
@@ -52,14 +53,14 @@ function statusClass(status) {
   }
 }
 
-function formatDate(iso) {
+function formatDate(iso: string) {
   if (!iso) return ''
   return new Date(iso).toLocaleString()
 }
 
-function duration(analysis) {
+function duration(analysis: Analysis) {
   if (!analysis.startedAt || !analysis.completedAt) return ''
-  const ms = new Date(analysis.completedAt) - new Date(analysis.startedAt)
+  const ms = new Date(analysis.completedAt!).getTime() - new Date(analysis.startedAt!).getTime()
   const secs = Math.round(ms / 1000)
   return secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m ${secs % 60}s`
 }

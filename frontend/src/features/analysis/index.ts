@@ -1,4 +1,4 @@
-export { useAnalysisStore } from './store.js'
+export { useAnalysisStore } from './store'
 export { default as AnalysisPanel } from './ui/AnalysisPanel.vue'
 export { default as ResultTabs } from './ui/ResultTabs.vue'
 export { default as MarkdownViewer } from './ui/MarkdownViewer.vue'

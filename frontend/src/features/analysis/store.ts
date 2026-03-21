@@ -1,36 +1,42 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import * as api from './api.js'
+import type { Analysis, Page, PipelineOptions } from '../../shared/types'
+import * as api from './api'
 
 export const useAnalysisStore = defineStore('analysis', () => {
-  const analyses = ref([])
-  const currentAnalysis = ref(null)
+  const analyses = ref<Analysis[]>([])
+  const currentAnalysis = ref<Analysis | null>(null)
   const running = ref(false)
-  const error = ref(null)
-  const pollingInterval = ref(null)
+  const error = ref<string | null>(null)
+  const pollingInterval = ref<ReturnType<typeof setInterval> | null>(null)
 
-  const currentPages = computed(() => {
+  const currentPages = computed<Page[]>(() => {
     if (!currentAnalysis.value?.pagesJson) return []
     try {
-      return JSON.parse(currentAnalysis.value.pagesJson)
+      return JSON.parse(currentAnalysis.value.pagesJson) as Page[]
     } catch {
       return []
     }
   })
 
-  function clearError() { error.value = null }
+  function clearError(): void {
+    error.value = null
+  }
 
-  async function load() {
+  async function load(): Promise<void> {
     try {
       error.value = null
       analyses.value = await api.fetchAnalyses()
     } catch (e) {
-      error.value = e.message || 'Failed to load analyses'
+      error.value = (e as Error).message || 'Failed to load analyses'
       console.error('Failed to load analyses', e)
     }
   }
 
-  async function run(documentId, pipelineOptions = null) {
+  async function run(
+    documentId: string,
+    pipelineOptions: PipelineOptions | null = null,
+  ): Promise<Analysis> {
     running.value = true
     error.value = null
     try {
@@ -41,26 +47,26 @@ export const useAnalysisStore = defineStore('analysis', () => {
       return analysis
     } catch (e) {
       running.value = false
-      error.value = e.message || 'Failed to start analysis'
+      error.value = (e as Error).message || 'Failed to start analysis'
       console.error('Failed to start analysis', e)
       throw e
     }
   }
 
-  function startPolling(id) {
+  function startPolling(id: string): void {
     stopPolling()
     pollingInterval.value = setInterval(async () => {
       try {
         const updated = await api.fetchAnalysis(id)
         currentAnalysis.value = updated
-        const idx = analyses.value.findIndex(a => a.id === id)
+        const idx = analyses.value.findIndex((a) => a.id === id)
         if (idx !== -1) analyses.value[idx] = updated
         if (updated.status === 'COMPLETED' || updated.status === 'FAILED') {
           stopPolling()
           running.value = false
         }
       } catch (e) {
-        error.value = e.message || 'Polling error'
+        error.value = (e as Error).message || 'Polling error'
         console.error('Polling error', e)
         stopPolling()
         running.value = false
@@ -68,32 +74,44 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }, 2000)
   }
 
-  function stopPolling() {
+  function stopPolling(): void {
     if (pollingInterval.value) {
       clearInterval(pollingInterval.value)
       pollingInterval.value = null
     }
   }
 
-  async function select(id) {
+  async function select(id: string): Promise<void> {
     try {
       currentAnalysis.value = await api.fetchAnalysis(id)
     } catch (e) {
-      error.value = e.message || 'Failed to load analysis'
+      error.value = (e as Error).message || 'Failed to load analysis'
       console.error('Failed to load analysis', e)
     }
   }
 
-  async function remove(id) {
+  async function remove(id: string): Promise<void> {
     try {
       await api.deleteAnalysis(id)
-      analyses.value = analyses.value.filter(a => a.id !== id)
+      analyses.value = analyses.value.filter((a) => a.id !== id)
       if (currentAnalysis.value?.id === id) currentAnalysis.value = null
     } catch (e) {
-      error.value = e.message || 'Failed to delete analysis'
+      error.value = (e as Error).message || 'Failed to delete analysis'
       console.error('Failed to delete analysis', e)
     }
   }
 
-  return { analyses, currentAnalysis, currentPages, running, error, clearError, load, run, select, remove, stopPolling }
+  return {
+    analyses,
+    currentAnalysis,
+    currentPages,
+    running,
+    error,
+    clearError,
+    load,
+    run,
+    select,
+    remove,
+    stopPolling,
+  }
 })

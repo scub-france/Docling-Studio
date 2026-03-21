@@ -53,13 +53,14 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useDocumentStore } from '../features/document/store.js'
-import { useHistoryStore } from '../features/history/index.js'
-import { DocumentUpload } from '../features/document/index.js'
-import { useI18n } from '../shared/i18n.js'
+import { useDocumentStore } from '../features/document/store'
+import { useHistoryStore } from '../features/history/index'
+import { DocumentUpload } from '../features/document/index'
+import { useI18n } from '../shared/i18n'
+import type { Document } from '../shared/types'
 
 const router = useRouter()
 const documentStore = useDocumentStore()
@@ -70,7 +71,7 @@ const docCount = computed(() => documentStore.documents.length)
 const analysisCount = computed(() => historyStore.analyses.length)
 const recentDocs = computed(() => documentStore.documents.slice(0, 5))
 
-function openInStudio(doc) {
+function openInStudio(doc: Document) {
   documentStore.select(doc.id)
   router.push('/studio')
 }

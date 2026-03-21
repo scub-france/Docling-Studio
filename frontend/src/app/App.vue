@@ -26,13 +26,13 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import { RouterView, useRouter } from 'vue-router'
-import { AppSidebar } from '../shared/ui/index.js'
-import { useSettingsStore } from '../features/settings/store.js'
-import { useDocumentStore } from '../features/document/store.js'
-import { useI18n } from '../shared/i18n.js'
+import { AppSidebar } from '../shared/ui/index'
+import { useSettingsStore } from '../features/settings/store'
+import { useDocumentStore } from '../features/document/store'
+import { useI18n } from '../shared/i18n'
 
 useSettingsStore()
 const { t } = useI18n()

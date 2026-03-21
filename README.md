@@ -38,7 +38,7 @@ Upload a PDF, configure the extraction pipeline, and visualize the results — t
 
 | Service | Stack | Role |
 |---------|-------|------|
-| **frontend** | Vue 3, Vite, Pinia | UI, PDF viewer, results display |
+| **frontend** | Vue 3, TypeScript, Vite, Pinia | UI, PDF viewer, results display |
 | **document-parser** | FastAPI, Docling, SQLite, pdf2image | REST API, document parsing, storage |
 
 ### Backend structure (clean architecture)
@@ -80,7 +80,7 @@ frontend/src/
 │   ├── document/             # Document store, API, upload, list
 │   ├── history/              # History store, API, navigation
 │   └── settings/             # Settings store
-└── shared/                   # Shared utilities (i18n, http, format)
+└── shared/                   # Shared utilities (types, i18n, http, format)
 ```
 
 ## Quick Start
@@ -128,7 +128,7 @@ cd document-parser
 pip install pytest pytest-asyncio httpx
 pytest tests/ -v
 
-# Frontend (87 tests)
+# Frontend (81 tests)
 cd frontend
 npm run test:run
 ```
@@ -167,7 +167,7 @@ GitHub Actions pipelines (see [`.github/workflows/`](.github/workflows/)):
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| **CI** | push to `main`, pull requests | Backend tests (99) + Frontend tests (87) + build |
+| **CI** | push to `main`, pull requests | Lint + type check + Backend tests (99) + Frontend tests (81) + build |
 | **Release** | push tag `v*` | Build & push multi-arch Docker image to `ghcr.io` |
 
 To publish a new version:
@@ -199,7 +199,7 @@ All Docker images are multi-arch (linux/amd64 + linux/arm64). No GPU required.
 
 ## Tech Stack
 
-- **Frontend**: Vue 3, Vite, Pinia, DOMPurify
+- **Frontend**: Vue 3, TypeScript, Vite, Pinia, DOMPurify
 - **Backend**: FastAPI, Docling 2.x, SQLite (aiosqlite), pdf2image
 - **CI**: GitHub Actions
 - **Infra**: Docker Compose + Nginx

@@ -9,9 +9,9 @@
   </div>
 </template>
 
-<script setup>
-import { SettingsPanel } from '../features/settings/index.js'
-import { useI18n } from '../shared/i18n.js'
+<script setup lang="ts">
+import { SettingsPanel } from '../features/settings/index'
+import { useI18n } from '../shared/i18n'
 
 const { t } = useI18n()
 </script>

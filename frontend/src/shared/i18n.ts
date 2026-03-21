@@ -1,6 +1,10 @@
-import { useSettingsStore } from '../features/settings/store.js'
+import type { Locale } from './types'
+import { useSettingsStore } from '../features/settings/store'
 
-const messages = {
+type MessageMap = Record<string, string>
+type Messages = Record<Locale, MessageMap>
+
+const messages: Messages = {
   fr: {
     // Sidebar
     'nav.home': 'Accueil',
@@ -188,16 +192,16 @@ const messages = {
     'settings.themeDark': 'Dark',
     'settings.themeLight': 'Light',
     'settings.language': 'Language',
-  }
+  },
 }
 
 export function useI18n() {
   const settings = useSettingsStore()
 
-  function t(key, params = {}) {
+  function t(key: string, params: Record<string, string | number> = {}): string {
     let str = messages[settings.locale]?.[key] || messages['fr'][key] || key
     for (const [k, v] of Object.entries(params)) {
-      str = str.replace(`{${k}}`, v)
+      str = str.replace(`{${k}}`, String(v))
     }
     return str
   }

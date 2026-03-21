@@ -1,2 +1,2 @@
-export { useHistoryStore } from './store.js'
+export { useHistoryStore } from './store'
 export { default as HistoryList } from './ui/HistoryList.vue'

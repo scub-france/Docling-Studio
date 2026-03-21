@@ -35,11 +35,12 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, nextTick, reactive, onMounted, onBeforeUnmount } from 'vue'
-import { computeScale, bboxToRect, pointInRect } from '../bboxScaling.js'
+import { computeScale, bboxToRect, pointInRect } from '../bboxScaling'
+import type { Page, PageElement } from '../../../shared/types'
 
-const ELEMENT_COLORS = {
+const ELEMENT_COLORS: Record<string, string> = {
   title: '#EF4444',
   section_header: '#F97316',
   text: '#3B82F6',
@@ -51,65 +52,62 @@ const ELEMENT_COLORS = {
   caption: '#EAB308'
 }
 
-const props = defineProps({
-  /** The <img> element to overlay onto */
-  imageEl: { type: Object, default: null },
-  /** Page data { page_number, width, height, elements[] } for current page */
-  pageData: { type: Object, default: null },
-  /** Index of the element to highlight (from ResultTabs hover) */
-  highlightedIndex: { type: Number, default: -1 }
-})
+const props = defineProps<{
+  imageEl: HTMLImageElement | null
+  pageData: Page | null
+  highlightedIndex: number
+}>()
 
-const emit = defineEmits(['highlight-element'])
+const emit = defineEmits<{
+  'highlight-element': [index: number]
+}>()
 
-const hiddenTypes = reactive(new Set())
-const canvasRef = ref(null)
-const hoveredElement = ref(null)
-const tooltipStyle = ref({})
+const hiddenTypes = reactive(new Set<string>())
+const canvasRef = ref<HTMLCanvasElement | null>(null)
+const hoveredElement = ref<PageElement | null>(null)
+const tooltipStyle = ref<Record<string, string>>({})
 
 const visibleElements = computed(() => {
   if (!props.pageData) return []
-  return props.pageData.elements.filter(e => !hiddenTypes.has(e.type))
+  return props.pageData.elements.filter((e: PageElement) => !hiddenTypes.has(e.type))
 })
 
-function toggleType(type) {
+function toggleType(type: string): void {
   if (hiddenTypes.has(type)) hiddenTypes.delete(type)
   else hiddenTypes.add(type)
   draw()
 }
 
-function countElements(type) {
+function countElements(type: string): number {
   if (!props.pageData) return 0
-  return props.pageData.elements.filter(e => e.type === type).length
+  return props.pageData.elements.filter((e: PageElement) => e.type === type).length
 }
 
-function draw() {
+function draw(): void {
   const canvas = canvasRef.value
   const img = props.imageEl
   if (!canvas || !img) return
 
-  // Wait until image is loaded (clientWidth > 0)
   if (!img.clientWidth || !img.clientHeight) return
 
   canvas.width = img.clientWidth
   canvas.height = img.clientHeight
 
   const ctx = canvas.getContext('2d')
+  if (!ctx) return
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
   if (!props.pageData) return
 
   const scale = computeScale(img.clientWidth, img.clientHeight, props.pageData.width, props.pageData.height)
 
-  // Build a map of content-filtered indices to match ResultTabs ordering
   const allElements = (props.pageData.elements || [])
-  const contentElements = allElements.filter(e => e.content)
+  const contentElements = allElements.filter((e: PageElement) => e.content)
 
   for (const el of visibleElements.value) {
     const rect = bboxToRect(el.bbox, scale)
     const color = ELEMENT_COLORS[el.type] || ELEMENT_COLORS.text
 
-    // Check if this element is the highlighted one
     const elContentIdx = contentElements.indexOf(el)
     const isHighlighted = props.highlightedIndex >= 0 && elContentIdx === props.highlightedIndex
 
@@ -122,7 +120,7 @@ function draw() {
   }
 }
 
-function onMouseMove(e) {
+function onMouseMove(e: MouseEvent): void {
   const canvas = canvasRef.value
   const img = props.imageEl
   if (!canvas || !img || !props.pageData) return
@@ -133,9 +131,9 @@ function onMouseMove(e) {
 
   const scale = computeScale(img.clientWidth, img.clientHeight, props.pageData.width, props.pageData.height)
 
-  const contentElements = (props.pageData.elements || []).filter(e => e.content)
+  const contentElements = (props.pageData.elements || []).filter((el: PageElement) => el.content)
 
-  let found = null
+  let found: PageElement | null = null
   let foundIdx = -1
   for (const el of visibleElements.value) {
     if (pointInRect(mx, my, bboxToRect(el.bbox, scale))) {
@@ -155,8 +153,7 @@ function onMouseMove(e) {
   }
 }
 
-// Redraw on resize
-let resizeObserver = null
+let resizeObserver: ResizeObserver | null = null
 onMounted(() => {
   if (props.imageEl) {
     resizeObserver = new ResizeObserver(() => draw())

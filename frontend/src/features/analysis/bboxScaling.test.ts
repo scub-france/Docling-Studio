@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeScale, bboxToRect, pointInRect } from './bboxScaling.js'
+import { computeScale, bboxToRect, pointInRect } from './bboxScaling'
 
 describe('computeScale', () => {
   it('returns 1:1 when display matches page', () => {

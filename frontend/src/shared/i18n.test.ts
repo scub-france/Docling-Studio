@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 // Mock settings store before importing i18n
-vi.mock('../features/settings/store.js', () => ({
+vi.mock('../features/settings/store', () => ({
   useSettingsStore: vi.fn(),
 }))
 
-import { useSettingsStore } from '../features/settings/store.js'
-import { useI18n } from './i18n.js'
+import { useSettingsStore } from '../features/settings/store'
+import { useI18n } from './i18n'
 
 describe('useI18n', () => {
   beforeEach(() => {

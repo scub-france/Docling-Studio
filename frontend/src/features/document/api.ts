@@ -1,0 +1,28 @@
+import type { Document } from '../../shared/types'
+import { apiFetch } from '../../shared/api/http'
+
+export function fetchDocuments(): Promise<Document[]> {
+  return apiFetch<Document[]>('/api/documents')
+}
+
+export function fetchDocument(id: string): Promise<Document> {
+  return apiFetch<Document>(`/api/documents/${id}`)
+}
+
+export async function uploadDocument(file: File): Promise<Document> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return apiFetch<Document>('/api/documents/upload', {
+    method: 'POST',
+    body: formData,
+    skipContentType: true,
+  })
+}
+
+export function deleteDocument(id: string): Promise<unknown> {
+  return apiFetch(`/api/documents/${id}`, { method: 'DELETE' })
+}
+
+export function getPreviewUrl(id: string, page = 1, dpi = 150): string {
+  return `/api/documents/${id}/preview?page=${page}&dpi=${dpi}`
+}

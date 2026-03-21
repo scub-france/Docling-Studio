@@ -23,9 +23,9 @@
   </div>
 </template>
 
-<script setup>
-import { useDocumentStore } from '../store.js'
-import { formatSize } from '../../../shared/format.js'
+<script setup lang="ts">
+import { useDocumentStore } from '../store'
+import { formatSize } from '../../../shared/format'
 const store = useDocumentStore()
 </script>
 

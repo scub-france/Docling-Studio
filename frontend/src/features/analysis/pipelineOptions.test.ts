@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useAnalysisStore } from './store.js'
+import { useAnalysisStore } from './store'
 
-vi.mock('../../shared/api/http.js', () => ({
+vi.mock('../../shared/api/http', () => ({
   apiFetch: vi.fn(),
 }))
 
-vi.mock('./api.js', () => ({
+vi.mock('./api', () => ({
   fetchAnalyses: vi.fn(),
   fetchAnalysis: vi.fn(),
   createAnalysis: vi.fn(),
   deleteAnalysis: vi.fn(),
 }))
 
-import * as api from './api.js'
+import * as api from './api'
 
 // ---------------------------------------------------------------------------
 // API layer — body construction with pipeline options
@@ -24,17 +24,17 @@ describe('createAnalysis — pipeline options body construction', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Reset the real module to get the unmocked version
-    vi.doUnmock('./api.js')
+    vi.doUnmock('./api')
   })
 
   // We test the mock integration (store → api) separately below.
   // Here we verify the raw apiFetch call shape.
 
   it('sends body without pipelineOptions when null', async () => {
-    const { apiFetch: realApiFetch } = await import('../../shared/api/http.js')
+    const { apiFetch: realApiFetch } = await import('../../shared/api/http')
     realApiFetch.mockResolvedValue({ id: '1', status: 'PENDING' })
 
-    const { createAnalysis: real } = await import('./api.js')
+    const { createAnalysis: real } = await import('./api')
     await real('doc-1', null)
 
     expect(realApiFetch).toHaveBeenCalledWith('/api/analyses', {
@@ -44,10 +44,10 @@ describe('createAnalysis — pipeline options body construction', () => {
   })
 
   it('sends body without pipelineOptions when undefined', async () => {
-    const { apiFetch: realApiFetch } = await import('../../shared/api/http.js')
+    const { apiFetch: realApiFetch } = await import('../../shared/api/http')
     realApiFetch.mockResolvedValue({ id: '1', status: 'PENDING' })
 
-    const { createAnalysis: real } = await import('./api.js')
+    const { createAnalysis: real } = await import('./api')
     await real('doc-1')
 
     expect(realApiFetch).toHaveBeenCalledWith('/api/analyses', {
@@ -57,7 +57,7 @@ describe('createAnalysis — pipeline options body construction', () => {
   })
 
   it('includes pipelineOptions in body when provided', async () => {
-    const { apiFetch: realApiFetch } = await import('../../shared/api/http.js')
+    const { apiFetch: realApiFetch } = await import('../../shared/api/http')
     realApiFetch.mockResolvedValue({ id: '1', status: 'PENDING' })
 
     const opts = {
@@ -73,7 +73,7 @@ describe('createAnalysis — pipeline options body construction', () => {
       images_scale: 1.0,
     }
 
-    const { createAnalysis: real } = await import('./api.js')
+    const { createAnalysis: real } = await import('./api')
     await real('doc-1', opts)
 
     const sentBody = JSON.parse(realApiFetch.mock.calls[0][1].body)
@@ -82,12 +82,12 @@ describe('createAnalysis — pipeline options body construction', () => {
   })
 
   it('includes only specified fields in partial options', async () => {
-    const { apiFetch: realApiFetch } = await import('../../shared/api/http.js')
+    const { apiFetch: realApiFetch } = await import('../../shared/api/http')
     realApiFetch.mockResolvedValue({ id: '1', status: 'PENDING' })
 
     const opts = { do_ocr: false }
 
-    const { createAnalysis: real } = await import('./api.js')
+    const { createAnalysis: real } = await import('./api')
     await real('doc-1', opts)
 
     const sentBody = JSON.parse(realApiFetch.mock.calls[0][1].body)
@@ -95,11 +95,11 @@ describe('createAnalysis — pipeline options body construction', () => {
   })
 
   it('does not include pipelineOptions key when options is empty object treated as falsy', async () => {
-    const { apiFetch: realApiFetch } = await import('../../shared/api/http.js')
+    const { apiFetch: realApiFetch } = await import('../../shared/api/http')
     realApiFetch.mockResolvedValue({ id: '1', status: 'PENDING' })
 
     // Empty object is truthy in JS, so it SHOULD be included
-    const { createAnalysis: real } = await import('./api.js')
+    const { createAnalysis: real } = await import('./api')
     await real('doc-1', {})
 
     const sentBody = JSON.parse(realApiFetch.mock.calls[0][1].body)

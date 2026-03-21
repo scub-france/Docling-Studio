@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useDocumentStore } from './store.js'
+import { useDocumentStore } from './store'
 
-vi.mock('./api.js', () => ({
+vi.mock('./api', () => ({
   fetchDocuments: vi.fn(),
   uploadDocument: vi.fn(),
   deleteDocument: vi.fn(),
 }))
 
-import * as api from './api.js'
+import * as api from './api'
 
 describe('useDocumentStore', () => {
   beforeEach(() => {

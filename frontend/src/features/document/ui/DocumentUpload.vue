@@ -22,29 +22,30 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
-import { useDocumentStore } from '../store.js'
-import { useI18n } from '../../../shared/i18n.js'
+import { useDocumentStore } from '../store'
+import { useI18n } from '../../../shared/i18n'
 
 const store = useDocumentStore()
 const { t } = useI18n()
-const fileInput = ref(null)
+const fileInput = ref<HTMLInputElement | null>(null)
 const dragging = ref(false)
 
 function openFilePicker() {
   fileInput.value?.click()
 }
 
-async function onFileSelect(e) {
-  const file = e.target.files?.[0]
+async function onFileSelect(e: Event) {
+  const target = e.target as HTMLInputElement
+  const file = target.files?.[0]
   if (file) await store.upload(file)
-  e.target.value = ''
+  target.value = ''
 }
 
-async function onDrop(e) {
+async function onDrop(e: DragEvent) {
   dragging.value = false
-  const file = e.dataTransfer.files?.[0]
+  const file = e.dataTransfer?.files?.[0]
   if (file && file.type === 'application/pdf') {
     await store.upload(file)
   }

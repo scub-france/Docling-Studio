@@ -32,7 +32,7 @@
     <div class="canvas-container" ref="containerRef">
       <img
         v-if="documentId"
-        :src="previewUrl"
+        :src="previewUrl ?? undefined"
         class="page-image"
         ref="imageRef"
         @load="onImageLoad"
@@ -58,12 +58,13 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch, nextTick, reactive } from 'vue'
-import { getPreviewUrl } from '../../document/api.js'
-import { computeScale, bboxToRect, pointInRect } from '../bboxScaling.js'
+import { getPreviewUrl } from '../../document/api'
+import { computeScale, bboxToRect, pointInRect } from '../bboxScaling'
+import type { Page, PageElement } from '../../../shared/types'
 
-const ELEMENT_COLORS = {
+const ELEMENT_COLORS: Record<string, string> = {
   section_header: '#F97316',
   text: '#3B82F6',
   table: '#8B5CF6',
@@ -74,17 +75,17 @@ const ELEMENT_COLORS = {
 }
 
 const props = defineProps({
-  pages: { type: Array, default: () => [] },
+  pages: { type: Array as () => Page[], default: () => [] },
   documentId: String
 })
 
 const selectedPage = ref(1)
-const hiddenTypes = reactive(new Set())
-const containerRef = ref(null)
-const imageRef = ref(null)
-const canvasRef = ref(null)
-const hoveredElement = ref(null)
-const tooltipStyle = ref({})
+const hiddenTypes = reactive(new Set<string>())
+const containerRef = ref<HTMLDivElement | null>(null)
+const imageRef = ref<HTMLImageElement | null>(null)
+const canvasRef = ref<HTMLCanvasElement | null>(null)
+const hoveredElement = ref<PageElement | null>(null)
+const tooltipStyle = ref<Record<string, string>>({})
 const imageSize = ref({ width: 0, height: 0 })
 
 const currentPageData = computed(() => {
@@ -101,13 +102,13 @@ const previewUrl = computed(() => {
   return getPreviewUrl(props.documentId, selectedPage.value)
 })
 
-function toggleType(type) {
+function toggleType(type: string) {
   if (hiddenTypes.has(type)) hiddenTypes.delete(type)
   else hiddenTypes.add(type)
   drawOverlay()
 }
 
-function countElements(type) {
+function countElements(type: string) {
   if (!currentPageData.value) return 0
   return currentPageData.value.elements.filter(e => e.type === type).length
 }
@@ -128,6 +129,7 @@ function drawOverlay() {
   canvas.height = img.clientHeight
 
   const ctx = canvas.getContext('2d')
+  if (!ctx) return
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
   const page = currentPageData.value
@@ -148,7 +150,7 @@ function drawOverlay() {
   }
 }
 
-function onMouseMove(e) {
+function onMouseMove(e: MouseEvent) {
   const canvas = canvasRef.value
   const page = currentPageData.value
   const img = imageRef.value
@@ -160,7 +162,7 @@ function onMouseMove(e) {
 
   const scale = computeScale(img.clientWidth, img.clientHeight, page.width, page.height)
 
-  let found = null
+  let found: PageElement | null = null
   for (const el of visibleElements.value) {
     if (pointInRect(mx, my, bboxToRect(el.bbox, scale))) {
       found = el

@@ -27,9 +27,9 @@
   </div>
 </template>
 
-<script setup>
-import { useSettingsStore } from '../store.js'
-import { useI18n } from '../../../shared/i18n.js'
+<script setup lang="ts">
+import { useSettingsStore } from '../store'
+import { useI18n } from '../../../shared/i18n'
 
 const store = useSettingsStore()
 const { t } = useI18n()

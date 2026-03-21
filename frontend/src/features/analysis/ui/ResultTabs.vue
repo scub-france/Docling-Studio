@@ -96,14 +96,15 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
-import { useAnalysisStore } from '../store.js'
+import { useAnalysisStore } from '../store'
 import MarkdownViewer from './MarkdownViewer.vue'
 import ImageGallery from './ImageGallery.vue'
-import { useI18n } from '../../../shared/i18n.js'
+import { useI18n } from '../../../shared/i18n'
+import type { PageElement } from '../../../shared/types'
 
-const ELEMENT_COLORS = {
+const ELEMENT_COLORS: Record<string, string> = {
   title: '#EF4444',
   section_header: '#F97316',
   text: '#3B82F6',
@@ -157,7 +158,7 @@ const pageMarkdown = computed(() => {
     .join('\n\n')
 })
 
-function formatElement(el) {
+function formatElement(el: PageElement) {
   if (!el.content) return ''
   const indent = '  '.repeat(Math.max(0, (el.level || 0) - 1))
   switch (el.type) {
@@ -184,7 +185,7 @@ function formatElement(el) {
 
 // --- Copy to clipboard ---
 const copiedMarkdown = ref(false)
-const copiedElements = reactive({})
+const copiedElements: Record<number, boolean> = reactive({})
 
 async function copyMarkdown() {
   try {
@@ -194,7 +195,7 @@ async function copyMarkdown() {
   } catch { /* clipboard not available */ }
 }
 
-async function copyElement(idx, content) {
+async function copyElement(idx: number, content: string) {
   try {
     await navigator.clipboard.writeText(content)
     copiedElements[idx] = true

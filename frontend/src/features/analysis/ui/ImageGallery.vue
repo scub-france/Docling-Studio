@@ -25,18 +25,19 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
-import { useI18n } from '../../../shared/i18n.js'
+import { useI18n } from '../../../shared/i18n'
+import type { Page, PageElement } from '../../../shared/types'
 
 const { t } = useI18n()
 
 const props = defineProps({
-  pages: { type: Array, default: () => [] }
+  pages: { type: Array as () => Page[], default: () => [] }
 })
 
 const images = computed(() => {
-  const result = []
+  const result: (PageElement & { page: number })[] = []
   for (const page of props.pages) {
     for (const el of (page.elements || [])) {
       if (el.type === 'picture') {

@@ -35,7 +35,10 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio httpx
+          pip install pytest pytest-asyncio httpx ruff
+
+      - name: Lint
+        run: ruff check .
 
       - name: Run tests
         run: pytest tests/ -v
@@ -58,6 +61,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npx eslint src/
+
+      - name: Type check
+        run: npm run type-check
 
       - name: Run tests
         run: npm run test:run

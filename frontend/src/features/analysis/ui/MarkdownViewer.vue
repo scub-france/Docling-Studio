@@ -2,18 +2,18 @@
   <div class="markdown-viewer" v-html="rendered" />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { useI18n } from '../../../shared/i18n.js'
+import { useI18n } from '../../../shared/i18n'
 
 const props = defineProps({ content: String })
 const { t } = useI18n()
 
 const rendered = computed(() => {
   if (!props.content) return `<p class="empty">${t('results.noMarkdown')}</p>`
-  return DOMPurify.sanitize(marked.parse(props.content))
+  return DOMPurify.sanitize(marked.parse(props.content) as string)
 })
 </script>
 
