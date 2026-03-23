@@ -28,12 +28,12 @@ Upload a PDF, configure the extraction pipeline, and visualize the results — t
 ## Architecture
 
 ```
-┌────────────┐         ┌───────────────────────┐
-│  Frontend   │────────▶│   Document Parser      │
-│  Vue 3      │  /api/* │ FastAPI + Docling       │
-│  port 3000  │         │ SQLite + file storage   │
-└────────────┘         │   port 8000             │
-                        └───────────────────────┘
+┌────────────┐         ┌──────────────────────┐
+│  Frontend  │────────▶│   Document Parser    │
+│  Vue 3     │  /api/* │ FastAPI + Docling    │
+│  port 3000 │         │ SQLite + file storage│
+└────────────┘         │   port 8000          │
+                       └──────────────────────┘
 ```
 
 | Service | Stack | Role |
