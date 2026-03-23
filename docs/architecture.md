@@ -2,16 +2,37 @@
 
 ## Overview
 
-```
-┌────────────┐         ┌───────────────────────┐
-│  Frontend   │────────▶│   Document Parser      │
-│  Vue 3 + TS │  /api/* │ FastAPI + Docling       │
-│  port 3000  │         │ SQLite + file storage   │
-└────────────┘         │   port 8000             │
-                        └───────────────────────┘
-```
+![Docling Studio architecture](images/archi.png){ width="700" }
 
 Two services communicating via REST. The frontend is a Vue 3 SPA served by Nginx in production. The backend is a FastAPI app that wraps Docling's document conversion engine.
+
+### Zooming into the backend
+
+The schema above shows the macro view. Inside the backend, the code follows a **Clean Architecture** with strict layer boundaries:
+
+```
+┌──────────────────────────────────────────────────────┐
+│                     Backend                           │
+│                                                      │
+│   ┌──────────┐                                       │
+│   │   api/   │  ← HTTP (FastAPI routes, Pydantic)    │
+│   └────┬─────┘                                       │
+│        │ calls                                       │
+│   ┌────▼─────┐                                       │
+│   │services/ │  ← Use case orchestration             │
+│   └──┬────┬──┘                                       │
+│      │    │                                          │
+│  ┌───▼──┐ ┌▼───────────┐                             │
+│  │domain│ │persistence/ │                             │
+│  │      │ │             │                             │
+│  │bbox  │ │ SQLite CRUD │  ← Storage (your blue box) │
+│  │parse │ │ file store  │                             │
+│  └──────┘ └─────────────┘                             │
+│  ↑ pure Python, no deps   ↑ aiosqlite               │
+└──────────────────────────────────────────────────────┘
+```
+
+Dependencies flow **inward**: `api → services → domain`. The domain layer has zero knowledge of HTTP or database.
 
 ## Backend — Clean Architecture
 
