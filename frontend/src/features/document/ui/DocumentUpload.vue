@@ -27,7 +27,7 @@ import { ref } from 'vue'
 import { useDocumentStore } from '../store'
 import { useI18n } from '../../../shared/i18n'
 
-const emit = defineEmits<{ uploaded: [docId: number] }>()
+const emit = defineEmits<{ uploaded: [docId: string] }>()
 
 const store = useDocumentStore()
 const { t } = useI18n()
