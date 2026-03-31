@@ -70,10 +70,14 @@ async def delete(doc_id: str) -> bool:
     # Delete associated analyses first (cascade)
     await analysis_repo.delete_by_document(doc_id)
 
-    # Delete file from disk
+    # Delete file from disk (only if inside UPLOAD_DIR)
     try:
-        if os.path.exists(doc.storage_path):
-            os.unlink(doc.storage_path)
+        real_path = os.path.realpath(doc.storage_path)
+        real_upload_dir = os.path.realpath(UPLOAD_DIR)
+        if real_path.startswith(real_upload_dir + os.sep) and os.path.exists(real_path):
+            os.unlink(real_path)
+        elif os.path.exists(doc.storage_path):
+            logger.warning("Refused to delete file outside upload dir: %s", doc.storage_path)
     except OSError:
         logger.warning("Could not delete file: %s", doc.storage_path)
 

@@ -57,7 +57,7 @@ async function onFileSelect(e: Event) {
 async function onDrop(e: DragEvent) {
   dragging.value = false
   const file = e.dataTransfer?.files?.[0]
-  if (file && file.type === 'application/pdf') {
+  if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
     try {
       store.clearError()
       const doc = await store.upload(file)

@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.analyses import router as analyses_router
@@ -87,11 +87,6 @@ app.add_middleware(
 
 app.include_router(documents_router)
 app.include_router(analyses_router)
-
-
-def get_analysis_service(request: Request) -> AnalysisService:
-    """FastAPI dependency — retrieve the AnalysisService from app.state."""
-    return request.app.state.analysis_service
 
 
 @app.get("/health")
