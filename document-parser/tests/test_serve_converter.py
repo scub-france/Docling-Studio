@@ -32,7 +32,7 @@ class TestBuildFormData:
         assert data["do_picture_description"] == "false"
         assert data["include_images"] == "false"
         assert data["images_scale"] == "1.0"
-        assert '"json"' in data["to_formats"]
+        assert set(data["to_formats"]) == {"md", "html", "json"}
 
     def test_custom_options(self):
         opts = ConversionOptions(
@@ -299,11 +299,11 @@ class TestServeConverterConvert:
         assert len(result.pages[0].elements) == 1
         assert result.pages[0].elements[0].type == "title"
 
-        # Verify form fields sent individually (not as JSON blob)
+        # Verify form fields sent as dict with list for repeated keys
         call_kwargs = mock_client.post.call_args
         sent_data = call_kwargs.kwargs.get("data", {})
-        assert "do_ocr" in sent_data
         assert sent_data["do_ocr"] == "true"
+        assert set(sent_data["to_formats"]) == {"md", "html", "json"}
 
     @pytest.mark.asyncio
     async def test_http_error_raises(self, tmp_path):

@@ -108,14 +108,14 @@ class ServeConverter:
             return False
 
 
-def _build_form_data(options: ConversionOptions) -> dict[str, str]:
-    """Build individual form fields matching Docling Serve's FormDepends pattern.
+def _build_form_data(options: ConversionOptions) -> dict[str, str | list[str]]:
+    """Build form fields matching Docling Serve's multipart form contract.
 
-    Docling Serve uses FormDepends to flatten ConvertDocumentsRequestOptions
-    into individual form fields (not a JSON blob).
+    Array fields (to_formats) are sent as lists — httpx encodes them as
+    repeated form keys (to_formats=md&to_formats=html&to_formats=json).
     """
     return {
-        "to_formats": '["md","html","json"]',
+        "to_formats": ["md", "html", "json"],
         "do_ocr": str(options.do_ocr).lower(),
         "do_table_structure": str(options.do_table_structure).lower(),
         "table_mode": options.table_mode,
