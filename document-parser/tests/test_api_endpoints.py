@@ -18,7 +18,9 @@ class TestHealthEndpoint:
     def test_health(self, client):
         resp = client.get("/health")
         assert resp.status_code == 200
-        assert resp.json() == {"status": "ok"}
+        data = resp.json()
+        assert data["status"] == "ok"
+        assert "engine" in data
 
 
 class TestDocumentEndpoints:
@@ -102,7 +104,7 @@ class TestDocumentEndpoints:
 
 
 class TestAnalysisEndpoints:
-    @patch("services.analysis_service.find_all", new_callable=AsyncMock)
+    @patch("main.analysis_service.find_all", new_callable=AsyncMock)
     def test_list_analyses(self, mock_find_all, client):
         mock_find_all.return_value = [
             AnalysisJob(id="j1", document_id="d1", document_filename="test.pdf"),
@@ -117,7 +119,7 @@ class TestAnalysisEndpoints:
         assert data[0]["documentFilename"] == "test.pdf"
         assert data[0]["status"] == "PENDING"
 
-    @patch("services.analysis_service.find_by_id", new_callable=AsyncMock)
+    @patch("main.analysis_service.find_by_id", new_callable=AsyncMock)
     def test_get_analysis(self, mock_find, client):
         job = AnalysisJob(id="j1", document_id="d1", document_filename="test.pdf")
         job.mark_running()
@@ -129,14 +131,14 @@ class TestAnalysisEndpoints:
         assert data["status"] == "RUNNING"
         assert data["startedAt"] is not None
 
-    @patch("services.analysis_service.find_by_id", new_callable=AsyncMock)
+    @patch("main.analysis_service.find_by_id", new_callable=AsyncMock)
     def test_get_analysis_not_found(self, mock_find, client):
         mock_find.return_value = None
 
         resp = client.get("/api/analyses/missing")
         assert resp.status_code == 404
 
-    @patch("services.analysis_service.create", new_callable=AsyncMock)
+    @patch("main.analysis_service.create", new_callable=AsyncMock)
     def test_create_analysis(self, mock_create, client):
         mock_create.return_value = AnalysisJob(
             id="j1", document_id="d1", document_filename="test.pdf",
@@ -149,7 +151,7 @@ class TestAnalysisEndpoints:
         assert data["documentId"] == "d1"
         mock_create.assert_called_once_with("d1", pipeline_options=None)
 
-    @patch("services.analysis_service.create", new_callable=AsyncMock)
+    @patch("main.analysis_service.create", new_callable=AsyncMock)
     def test_create_analysis_with_pipeline_options(self, mock_create, client):
         mock_create.return_value = AnalysisJob(
             id="j2", document_id="d1", document_filename="test.pdf",
@@ -182,7 +184,7 @@ class TestAnalysisEndpoints:
         assert opts["generate_picture_images"] is True
         assert opts["images_scale"] == 2.0
 
-    @patch("services.analysis_service.create", new_callable=AsyncMock)
+    @patch("main.analysis_service.create", new_callable=AsyncMock)
     def test_create_analysis_with_partial_pipeline_options(self, mock_create, client):
         """Pipeline options should use defaults for unspecified fields."""
         mock_create.return_value = AnalysisJob(
@@ -202,7 +204,7 @@ class TestAnalysisEndpoints:
         assert opts["table_mode"] == "accurate"
         assert opts["do_code_enrichment"] is False
 
-    @patch("services.analysis_service.create", new_callable=AsyncMock)
+    @patch("main.analysis_service.create", new_callable=AsyncMock)
     def test_create_analysis_document_not_found(self, mock_create, client):
         mock_create.side_effect = ValueError("Document not found: d99")
 
@@ -217,14 +219,14 @@ class TestAnalysisEndpoints:
         resp = client.post("/api/analyses", json={"documentId": "   "})
         assert resp.status_code == 400
 
-    @patch("services.analysis_service.delete", new_callable=AsyncMock)
+    @patch("main.analysis_service.delete", new_callable=AsyncMock)
     def test_delete_analysis(self, mock_delete, client):
         mock_delete.return_value = True
 
         resp = client.delete("/api/analyses/j1")
         assert resp.status_code == 204
 
-    @patch("services.analysis_service.delete", new_callable=AsyncMock)
+    @patch("main.analysis_service.delete", new_callable=AsyncMock)
     def test_delete_analysis_not_found(self, mock_delete, client):
         mock_delete.return_value = False
 
