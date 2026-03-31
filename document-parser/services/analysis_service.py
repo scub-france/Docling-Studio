@@ -10,10 +10,13 @@ import asyncio
 import json
 import logging
 from dataclasses import asdict
+from typing import TYPE_CHECKING
 
 from domain.models import AnalysisJob
-from domain.ports import DocumentConverter
 from domain.value_objects import ConversionOptions, ConversionResult
+
+if TYPE_CHECKING:
+    from domain.ports import DocumentConverter
 from persistence import analysis_repo, document_repo
 
 logger = logging.getLogger(__name__)

@@ -14,6 +14,8 @@ from docling.datamodel.pipeline_options import (
 from domain.value_objects import ConversionOptions
 from infra.local_converter import (
     _build_docling_converter as build_converter,
+)
+from infra.local_converter import (
     _convert_sync as convert_document,
 )
 
@@ -457,13 +459,15 @@ class TestAnalysisEndpointPipelineOptions:
     @pytest.fixture
     def client(self):
         from fastapi.testclient import TestClient
+
         from main import app
         return TestClient(app, raise_server_exceptions=False)
 
     @pytest.fixture
     def mock_svc(self, client):
-        from main import app
         from unittest.mock import MagicMock
+
+        from main import app
         mock = MagicMock()
         original = getattr(app.state, "analysis_service", None)
         app.state.analysis_service = mock

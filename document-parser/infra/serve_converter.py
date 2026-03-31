@@ -214,16 +214,17 @@ def _extract_bbox(bbox_data: dict, page_height: float) -> list[float]:
     if not isinstance(bbox_data, dict):
         return [0.0, 0.0, 0.0, 0.0]
 
-    l = bbox_data.get("l", 0.0)
-    t = bbox_data.get("t", 0.0)
-    r = bbox_data.get("r", 0.0)
-    b = bbox_data.get("b", 0.0)
+    left = bbox_data.get("l", 0.0)
+    top = bbox_data.get("t", 0.0)
+    right = bbox_data.get("r", 0.0)
+    bottom = bbox_data.get("b", 0.0)
     coord_origin = bbox_data.get("coord_origin", "TOPLEFT")
 
     if coord_origin == "BOTTOMLEFT":
-        # Convert: top = page_height - old_top, bottom = page_height - old_bottom
-        new_t = page_height - b
-        new_b = page_height - t
-        t, b = new_t, new_b
+        # In BOTTOMLEFT: top has higher y, bottom has lower y
+        # In TOPLEFT: flip both — new_top = page_height - old_top
+        new_top = page_height - top
+        new_bottom = page_height - bottom
+        top, bottom = new_top, new_bottom
 
-    return [l, t, r, b]
+    return [left, top, right, bottom]

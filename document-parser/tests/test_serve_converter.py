@@ -8,15 +8,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from domain.value_objects import ConversionOptions, ConversionResult, PageDetail, PageElement
+from domain.value_objects import ConversionOptions, ConversionResult
 from infra.serve_converter import (
     ServeConverter,
     _build_form_data,
     _extract_bbox,
-    _extract_pages_from_docling_document,
     _parse_response,
 )
-
 
 # ---------------------------------------------------------------------------
 # Unit tests — form data building
@@ -182,8 +180,9 @@ class TestExtractBbox:
         assert bbox == [10, 20, 100, 50]
 
     def test_bottomleft_conversion(self):
-        bbox = _extract_bbox({"l": 10, "t": 742, "r": 100, "b": 772, "coord_origin": "BOTTOMLEFT"}, 792.0)
-        # new_t = 792 - 772 = 20, new_b = 792 - 742 = 50
+        # In BOTTOMLEFT: t (top of box) has higher y than b (bottom of box)
+        bbox = _extract_bbox({"l": 10, "t": 772, "r": 100, "b": 742, "coord_origin": "BOTTOMLEFT"}, 792.0)
+        # new_top = 792 - 772 = 20, new_bottom = 792 - 742 = 50
         assert bbox == [10, 20, 100, 50]
 
     def test_missing_coord_origin_defaults_topleft(self):
@@ -308,9 +307,9 @@ class TestServeConverterConvert:
 
         conv = ServeConverter(base_url="http://localhost:5001")
 
-        with patch("infra.serve_converter.httpx.AsyncClient", return_value=mock_client):
-            with pytest.raises(httpx.HTTPStatusError):
-                await conv.convert(str(test_file), ConversionOptions())
+        with patch("infra.serve_converter.httpx.AsyncClient", return_value=mock_client), \
+             pytest.raises(httpx.HTTPStatusError):
+            await conv.convert(str(test_file), ConversionOptions())
 
     @pytest.mark.asyncio
     async def test_health_check_success(self):

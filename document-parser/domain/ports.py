@@ -6,9 +6,10 @@ Infrastructure adapters (local Docling, Docling Serve, etc.) implement these.
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
-from domain.value_objects import ConversionOptions, ConversionResult
+if TYPE_CHECKING:
+    from domain.value_objects import ConversionOptions, ConversionResult
 
 
 class DocumentConverter(Protocol):
