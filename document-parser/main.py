@@ -14,13 +14,14 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.analyses import router as analyses_router
 from api.documents import router as documents_router
 from infra.settings import Settings
 from persistence.database import init_db
+from services.analysis_service import AnalysisService
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,17 +51,12 @@ def _build_converter():
         return LocalConverter()
 
 
-def _build_analysis_service():
-    from services.analysis_service import AnalysisService
+def _build_analysis_service() -> AnalysisService:
     converter = _build_converter()
     return AnalysisService(
         converter=converter,
         conversion_timeout=settings.conversion_timeout,
     )
-
-
-# Singleton service instance — imported by API routers
-analysis_service = _build_analysis_service()
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +66,7 @@ analysis_service = _build_analysis_service()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    app.state.analysis_service = _build_analysis_service()
     logger.info("Docling Studio backend ready (engine=%s)", settings.conversion_engine)
     yield
 
@@ -90,6 +87,11 @@ app.add_middleware(
 
 app.include_router(documents_router)
 app.include_router(analyses_router)
+
+
+def get_analysis_service(request: Request) -> AnalysisService:
+    """FastAPI dependency — retrieve the AnalysisService from app.state."""
+    return request.app.state.analysis_service
 
 
 @app.get("/health")

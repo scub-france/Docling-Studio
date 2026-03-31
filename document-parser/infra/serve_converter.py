@@ -1,12 +1,18 @@
 """Remote Docling Serve converter — delegates conversion via HTTP.
 
 This adapter implements the DocumentConverter port by calling a remote
-Docling Serve instance's REST API. It supports both synchronous and
-asynchronous conversion endpoints.
+Docling Serve instance's REST API (v1).
+
+API contract based on docling-serve source code:
+- Options are sent as individual multipart form fields (not a JSON blob)
+- Response contains document.md_content, document.html_content, document.json_content
+- json_content is a serialized DoclingDocument with texts[], tables[], pictures[]
+- Bounding boxes use {l, t, r, b, coord_origin} format
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import mimetypes
 from pathlib import Path
@@ -22,11 +28,27 @@ from domain.value_objects import (
 
 logger = logging.getLogger(__name__)
 
-# Docling Serve API base path
 _API_PREFIX = "/v1"
-
-# Default timeout for HTTP requests (seconds)
 _DEFAULT_TIMEOUT = 600.0
+
+# Docling Serve label → our element type
+_LABEL_MAP = {
+    "table": "table",
+    "picture": "picture",
+    "figure": "picture",
+    "title": "title",
+    "section_header": "section_header",
+    "list_item": "list",
+    "formula": "formula",
+    "code": "code",
+    "caption": "text",
+    "footnote": "text",
+    "page_header": "text",
+    "page_footer": "text",
+    "paragraph": "text",
+    "text": "text",
+    "reference": "text",
+}
 
 
 class ServeConverter:
@@ -48,21 +70,6 @@ class ServeConverter:
             headers["X-Api-Key"] = self._api_key
         return headers
 
-    def _build_conversion_options(self, options: ConversionOptions) -> dict:
-        """Map our ConversionOptions to Docling Serve's expected format."""
-        opts: dict = {
-            "to_formats": ["md", "html"],
-            "do_ocr": options.do_ocr,
-            "do_table_structure": options.do_table_structure,
-            "table_mode": options.table_mode,
-            "do_code_enrichment": options.do_code_enrichment,
-            "do_formula_enrichment": options.do_formula_enrichment,
-            "do_picture_classification": options.do_picture_classification,
-            "do_picture_description": options.do_picture_description,
-            "images_scale": options.images_scale,
-        }
-        return opts
-
     async def convert(
         self, file_path: str, options: ConversionOptions,
     ) -> ConversionResult:
@@ -70,25 +77,20 @@ class ServeConverter:
         path = Path(file_path)
         content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
 
-        conversion_opts = self._build_conversion_options(options)
-
+        form_data = _build_form_data(options)
         url = f"{self._base_url}{_API_PREFIX}/convert/file"
 
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             with open(path, "rb") as f:
-                files = {"files": (path.name, f, content_type)}
-                data = {"options": _serialize_options(conversion_opts)}
-
-                logger.info("Sending conversion request to %s", url)
                 response = await client.post(
                     url,
-                    files=files,
-                    data=data,
+                    files={"files": (path.name, f, content_type)},
+                    data=form_data,
                     headers=self._headers(),
                 )
 
-            response.raise_for_status()
-            result_data = response.json()
+        response.raise_for_status()
+        result_data = response.json()
 
         return _parse_response(result_data)
 
@@ -102,40 +104,46 @@ class ServeConverter:
                 )
                 return resp.status_code == 200
         except httpx.HTTPError:
+            logger.warning("Docling Serve health check failed at %s", self._base_url, exc_info=True)
             return False
 
 
-def _serialize_options(opts: dict) -> str:
-    """Serialize conversion options to JSON string for multipart form."""
-    import json
-    return json.dumps(opts)
+def _build_form_data(options: ConversionOptions) -> dict[str, str]:
+    """Build individual form fields matching Docling Serve's FormDepends pattern.
+
+    Docling Serve uses FormDepends to flatten ConvertDocumentsRequestOptions
+    into individual form fields (not a JSON blob).
+    """
+    return {
+        "to_formats": '["md","html","json"]',
+        "do_ocr": str(options.do_ocr).lower(),
+        "do_table_structure": str(options.do_table_structure).lower(),
+        "table_mode": options.table_mode,
+        "do_code_enrichment": str(options.do_code_enrichment).lower(),
+        "do_formula_enrichment": str(options.do_formula_enrichment).lower(),
+        "do_picture_classification": str(options.do_picture_classification).lower(),
+        "do_picture_description": str(options.do_picture_description).lower(),
+        "include_images": str(options.generate_picture_images).lower(),
+        "images_scale": str(options.images_scale),
+    }
 
 
 def _parse_response(data: dict) -> ConversionResult:
-    """Parse Docling Serve JSON response into our domain ConversionResult.
+    """Parse Docling Serve v1 ConvertDocumentResponse into our domain ConversionResult."""
+    document = data.get("document", {})
 
-    Docling Serve returns a DoclingDocument structure. The response format
-    contains document content and page-level information with bounding boxes.
-    """
-    document = data.get("document", data)
+    content_md = document.get("md_content") or ""
+    content_html = document.get("html_content") or ""
 
-    # Extract markdown and HTML content
-    content_md = ""
-    content_html = ""
+    # json_content contains the full DoclingDocument with pages, elements, bboxes
+    json_content = document.get("json_content")
+    if isinstance(json_content, str):
+        json_content = json.loads(json_content)
 
-    # Docling Serve may return content in different formats
-    if "md_content" in document:
-        content_md = document["md_content"]
-    elif "export_to_markdown" in document:
-        content_md = document["export_to_markdown"]
+    pages: list[PageDetail] = []
+    if json_content:
+        pages = _extract_pages_from_docling_document(json_content)
 
-    if "html_content" in document:
-        content_html = document["html_content"]
-    elif "export_to_html" in document:
-        content_html = document["export_to_html"]
-
-    # Parse pages
-    pages = _extract_pages(document)
     page_count = len(pages) if pages else 1
 
     return ConversionResult(
@@ -146,13 +154,19 @@ def _parse_response(data: dict) -> ConversionResult:
     )
 
 
-def _extract_pages(document: dict) -> list[PageDetail]:
-    """Extract page details with elements from Docling Serve response."""
+def _extract_pages_from_docling_document(doc: dict) -> list[PageDetail]:
+    """Extract pages with elements from a serialized DoclingDocument.
+
+    DoclingDocument structure:
+    - pages: {page_no: {size: {width, height}}}
+    - texts: [{label, text, prov: [{page_no, bbox: {l,t,r,b,coord_origin}}]}]
+    - tables: [{label, prov: [...], data: {...}}]
+    - pictures: [{label, prov: [...]}]
+    """
     pages_dict: dict[int, PageDetail] = {}
 
-    # Extract page dimensions from pages metadata
-    raw_pages = document.get("pages", {})
-    for page_key, page_data in raw_pages.items():
+    # Build page dimensions
+    for page_key, page_data in doc.get("pages", {}).items():
         page_no = int(page_key)
         size = page_data.get("size", {})
         pages_dict[page_no] = PageDetail(
@@ -161,69 +175,55 @@ def _extract_pages(document: dict) -> list[PageDetail]:
             height=size.get("height", 792.0),
         )
 
-    # Extract elements from the document body
-    body = document.get("body", document.get("main_text", []))
-    if isinstance(body, list):
-        for item in body:
-            _process_serve_item(item, pages_dict, document)
+    # Process all element arrays
+    for item in doc.get("texts", []):
+        _add_element(item, pages_dict)
+
+    for item in doc.get("tables", []):
+        _add_element(item, pages_dict)
+
+    for item in doc.get("pictures", []):
+        _add_element(item, pages_dict)
 
     return sorted(pages_dict.values(), key=lambda p: p.page_number)
 
 
-def _process_serve_item(
-    item: dict, pages: dict[int, PageDetail], document: dict,
-) -> None:
-    """Process a single item from Docling Serve response body."""
-    prov_list = item.get("prov", [])
-    if not prov_list:
-        return
+def _add_element(item: dict, pages: dict[int, PageDetail]) -> None:
+    """Add an element from a DoclingDocument array to the correct page."""
+    label = item.get("label", "text")
+    element_type = _LABEL_MAP.get(label, "text")
+    content = item.get("text", "") or ""
 
-    item_type = _map_item_type(item)
-    content = item.get("text", "")
-    level = item.get("level", 0)
-
-    for prov in prov_list:
-        page_no = prov.get("page_no", prov.get("page", 1))
+    for prov in item.get("prov", []):
+        page_no = prov.get("page_no", 1)
         if page_no not in pages:
             pages[page_no] = PageDetail(
                 page_number=page_no, width=612.0, height=792.0,
             )
 
         bbox_data = prov.get("bbox", {})
-        if isinstance(bbox_data, dict):
-            bbox = [
-                bbox_data.get("l", 0.0),
-                bbox_data.get("t", 0.0),
-                bbox_data.get("r", 0.0),
-                bbox_data.get("b", 0.0),
-            ]
-        elif isinstance(bbox_data, list) and len(bbox_data) == 4:
-            bbox = [float(v) for v in bbox_data]
-        else:
-            bbox = [0.0, 0.0, 0.0, 0.0]
+        bbox = _extract_bbox(bbox_data, pages[page_no].height)
 
         pages[page_no].elements.append(
-            PageElement(type=item_type, bbox=bbox, content=content, level=level)
+            PageElement(type=element_type, bbox=bbox, content=content, level=0)
         )
 
 
-def _map_item_type(item: dict) -> str:
-    """Map Docling Serve item type to our element type string."""
-    item_type = item.get("type", item.get("obj_type", "text"))
-    type_mapping = {
-        "table": "table",
-        "picture": "picture",
-        "figure": "picture",
-        "title": "title",
-        "section_header": "section_header",
-        "section-header": "section_header",
-        "list_item": "list",
-        "list": "list",
-        "formula": "formula",
-        "equation": "formula",
-        "code": "code",
-        "floating": "floating",
-        "text": "text",
-        "paragraph": "text",
-    }
-    return type_mapping.get(item_type.lower(), "text") if item_type else "text"
+def _extract_bbox(bbox_data: dict, page_height: float) -> list[float]:
+    """Extract and normalize bbox to TOPLEFT [l, t, r, b] format."""
+    if not isinstance(bbox_data, dict):
+        return [0.0, 0.0, 0.0, 0.0]
+
+    l = bbox_data.get("l", 0.0)
+    t = bbox_data.get("t", 0.0)
+    r = bbox_data.get("r", 0.0)
+    b = bbox_data.get("b", 0.0)
+    coord_origin = bbox_data.get("coord_origin", "TOPLEFT")
+
+    if coord_origin == "BOTTOMLEFT":
+        # Convert: top = page_height - old_top, bottom = page_height - old_bottom
+        new_t = page_height - b
+        new_b = page_height - t
+        t, b = new_t, new_b
+
+    return [l, t, r, b]

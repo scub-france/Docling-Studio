@@ -11,10 +11,10 @@ from docling.datamodel.pipeline_options import (
     TableFormerMode,
 )
 
-from domain.parsing import (
-    ConversionOptions,
-    build_converter,
-    convert_document,
+from domain.value_objects import ConversionOptions
+from infra.local_converter import (
+    _build_docling_converter as build_converter,
+    _convert_sync as convert_document,
 )
 
 # ---------------------------------------------------------------------------
@@ -30,7 +30,7 @@ class TestBuildConverter:
         return fmt_opt.pipeline_options
 
     def test_defaults(self):
-        conv = build_converter()
+        conv = build_converter(ConversionOptions())
         opts = self._get_pipeline_options(conv)
         assert opts.do_ocr is True
         assert opts.do_table_structure is True
@@ -143,7 +143,7 @@ class TestConvertDocumentRouting:
         mock_conv.convert.return_value = mock_result
         mock_get_default.return_value = mock_conv
 
-        convert_document("/tmp/test.pdf")
+        convert_document("/tmp/test.pdf", ConversionOptions())
 
         mock_get_default.assert_called_once()
         mock_build.assert_not_called()
@@ -457,30 +457,37 @@ class TestAnalysisEndpointPipelineOptions:
     @pytest.fixture
     def client(self):
         from fastapi.testclient import TestClient
-
         from main import app
         return TestClient(app, raise_server_exceptions=False)
 
-    @patch("main.analysis_service.create", new_callable=AsyncMock)
-    def test_no_pipeline_options_sends_none(self, mock_create, client):
+    @pytest.fixture
+    def mock_svc(self, client):
+        from main import app
+        from unittest.mock import MagicMock
+        mock = MagicMock()
+        original = getattr(app.state, "analysis_service", None)
+        app.state.analysis_service = mock
+        yield mock
+        app.state.analysis_service = original
+
+    def test_no_pipeline_options_sends_none(self, client, mock_svc):
         from domain.models import AnalysisJob
-        mock_create.return_value = AnalysisJob(id="j1", document_id="d1")
+        mock_svc.create = AsyncMock(return_value=AnalysisJob(id="j1", document_id="d1"))
 
         client.post("/api/analyses", json={"documentId": "d1"})
 
-        mock_create.assert_called_once_with("d1", pipeline_options=None)
+        mock_svc.create.assert_called_once_with("d1", pipeline_options=None)
 
-    @patch("main.analysis_service.create", new_callable=AsyncMock)
-    def test_empty_pipeline_options_object_uses_defaults(self, mock_create, client):
+    def test_empty_pipeline_options_object_uses_defaults(self, client, mock_svc):
         from domain.models import AnalysisJob
-        mock_create.return_value = AnalysisJob(id="j1", document_id="d1")
+        mock_svc.create = AsyncMock(return_value=AnalysisJob(id="j1", document_id="d1"))
 
         client.post("/api/analyses", json={
             "documentId": "d1",
             "pipelineOptions": {},
         })
 
-        opts = mock_create.call_args.kwargs["pipeline_options"]
+        opts = mock_svc.create.call_args.kwargs["pipeline_options"]
         assert opts["do_ocr"] is True
         assert opts["do_table_structure"] is True
         assert opts["table_mode"] == "accurate"
@@ -488,20 +495,18 @@ class TestAnalysisEndpointPipelineOptions:
         assert opts["do_formula_enrichment"] is False
         assert opts["images_scale"] == 1.0
 
-    @patch("main.analysis_service.create", new_callable=AsyncMock)
-    def test_partial_pipeline_options_merges_with_defaults(self, mock_create, client):
+    def test_partial_pipeline_options_merges_with_defaults(self, client, mock_svc):
         from domain.models import AnalysisJob
-        mock_create.return_value = AnalysisJob(id="j1", document_id="d1")
+        mock_svc.create = AsyncMock(return_value=AnalysisJob(id="j1", document_id="d1"))
 
         client.post("/api/analyses", json={
             "documentId": "d1",
             "pipelineOptions": {"do_ocr": False, "images_scale": 1.5},
         })
 
-        opts = mock_create.call_args.kwargs["pipeline_options"]
+        opts = mock_svc.create.call_args.kwargs["pipeline_options"]
         assert opts["do_ocr"] is False
         assert opts["images_scale"] == 1.5
-        # All other fields should have defaults
         assert opts["do_table_structure"] is True
         assert opts["table_mode"] == "accurate"
         assert opts["do_code_enrichment"] is False
@@ -511,10 +516,9 @@ class TestAnalysisEndpointPipelineOptions:
         assert opts["generate_picture_images"] is False
         assert opts["generate_page_images"] is False
 
-    @patch("main.analysis_service.create", new_callable=AsyncMock)
-    def test_full_pipeline_options(self, mock_create, client):
+    def test_full_pipeline_options(self, client, mock_svc):
         from domain.models import AnalysisJob
-        mock_create.return_value = AnalysisJob(id="j1", document_id="d1")
+        mock_svc.create = AsyncMock(return_value=AnalysisJob(id="j1", document_id="d1"))
 
         payload = {
             "documentId": "d1",
@@ -535,25 +539,22 @@ class TestAnalysisEndpointPipelineOptions:
         resp = client.post("/api/analyses", json=payload)
         assert resp.status_code == 200
 
-        opts = mock_create.call_args.kwargs["pipeline_options"]
+        opts = mock_svc.create.call_args.kwargs["pipeline_options"]
         assert opts == payload["pipelineOptions"]
 
-    @patch("main.analysis_service.create", new_callable=AsyncMock)
-    def test_invalid_pipeline_option_type_rejected(self, mock_create, client):
+    def test_invalid_pipeline_option_type_rejected(self, client, mock_svc):
         resp = client.post("/api/analyses", json={
             "documentId": "d1",
             "pipelineOptions": {"do_ocr": "not-a-bool"},
         })
         assert resp.status_code == 422
 
-    @patch("main.analysis_service.create", new_callable=AsyncMock)
-    def test_unknown_pipeline_option_ignored(self, mock_create, client):
+    def test_unknown_pipeline_option_ignored(self, client, mock_svc):
         from domain.models import AnalysisJob
-        mock_create.return_value = AnalysisJob(id="j1", document_id="d1")
+        mock_svc.create = AsyncMock(return_value=AnalysisJob(id="j1", document_id="d1"))
 
         resp = client.post("/api/analyses", json={
             "documentId": "d1",
             "pipelineOptions": {"do_ocr": True, "unknown_field": True},
         })
-        # Pydantic ignores extra fields by default
         assert resp.status_code == 200

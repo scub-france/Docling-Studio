@@ -3,19 +3,22 @@
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from api.schemas import AnalysisResponse, CreateAnalysisRequest
+from services.analysis_service import AnalysisService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/analyses", tags=["analyses"])
 
 
-def _get_service():
-    """Lazy import to avoid circular dependency at module level."""
-    from main import analysis_service
-    return analysis_service
+def _get_service(request: Request) -> AnalysisService:
+    return request.app.state.analysis_service
+
+
+ServiceDep = Annotated[AnalysisService, Depends(_get_service)]
 
 
 def _to_response(job) -> AnalysisResponse:
@@ -35,7 +38,7 @@ def _to_response(job) -> AnalysisResponse:
 
 
 @router.post("", response_model=AnalysisResponse)
-async def create_analysis(body: CreateAnalysisRequest):
+async def create_analysis(body: CreateAnalysisRequest, service: ServiceDep):
     """Create a new analysis job for a document."""
     if not body.documentId or not body.documentId.strip():
         raise HTTPException(status_code=400, detail="documentId is required")
@@ -45,7 +48,7 @@ async def create_analysis(body: CreateAnalysisRequest):
         pipeline_opts = body.pipelineOptions.model_dump()
 
     try:
-        job = await _get_service().create(body.documentId, pipeline_options=pipeline_opts)
+        job = await service.create(body.documentId, pipeline_options=pipeline_opts)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
@@ -53,24 +56,24 @@ async def create_analysis(body: CreateAnalysisRequest):
 
 
 @router.get("", response_model=list[AnalysisResponse])
-async def list_analyses():
+async def list_analyses(service: ServiceDep):
     """List all analysis jobs."""
-    jobs = await _get_service().find_all()
+    jobs = await service.find_all()
     return [_to_response(j) for j in jobs]
 
 
 @router.get("/{job_id}", response_model=AnalysisResponse)
-async def get_analysis(job_id: str):
+async def get_analysis(job_id: str, service: ServiceDep):
     """Get a single analysis job."""
-    job = await _get_service().find_by_id(job_id)
+    job = await service.find_by_id(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Analysis not found")
     return _to_response(job)
 
 
 @router.delete("/{job_id}", status_code=204)
-async def delete_analysis(job_id: str):
+async def delete_analysis(job_id: str, service: ServiceDep):
     """Delete an analysis job."""
-    deleted = await _get_service().delete(job_id)
+    deleted = await service.delete(job_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Analysis not found")
