@@ -1,0 +1,30 @@
+"""Centralized application settings — loaded from environment variables."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+
+
+@dataclass(frozen=True)
+class Settings:
+    conversion_engine: str = "local"  # "local" or "remote"
+    docling_serve_url: str = "http://localhost:5001"
+    docling_serve_api_key: str | None = None
+    conversion_timeout: int = 600
+    upload_dir: str = "./uploads"
+    db_path: str = "./data/docling_studio.db"
+    cors_origins: list[str] = field(default_factory=lambda: ["http://localhost:3000", "http://localhost:5173"])
+
+    @classmethod
+    def from_env(cls) -> Settings:
+        cors_raw = os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
+        return cls(
+            conversion_engine=os.environ.get("CONVERSION_ENGINE", "local"),
+            docling_serve_url=os.environ.get("DOCLING_SERVE_URL", "http://localhost:5001"),
+            docling_serve_api_key=os.environ.get("DOCLING_SERVE_API_KEY"),
+            conversion_timeout=int(os.environ.get("CONVERSION_TIMEOUT", "600")),
+            upload_dir=os.environ.get("UPLOAD_DIR", "./uploads"),
+            db_path=os.environ.get("DB_PATH", "./data/docling_studio.db"),
+            cors_origins=[o.strip() for o in cors_raw.split(",")],
+        )

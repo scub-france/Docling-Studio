@@ -18,6 +18,7 @@
       </svg>
       <span class="upload-text">{{ t('upload.drop') }}</span>
       <span class="upload-hint">{{ t('upload.maxSize') }}</span>
+      <span v-if="store.error" class="upload-error">{{ store.error }}</span>
     </div>
   </div>
 </template>
@@ -42,8 +43,13 @@ async function onFileSelect(e: Event) {
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
   if (file) {
-    const doc = await store.upload(file)
-    if (doc) emit('uploaded', doc.id)
+    try {
+      store.clearError()
+      const doc = await store.upload(file)
+      if (doc) emit('uploaded', doc.id)
+    } catch {
+      // error is already set in store.upload
+    }
   }
   target.value = ''
 }
@@ -51,9 +57,14 @@ async function onFileSelect(e: Event) {
 async function onDrop(e: DragEvent) {
   dragging.value = false
   const file = e.dataTransfer?.files?.[0]
-  if (file && file.type === 'application/pdf') {
-    const doc = await store.upload(file)
-    if (doc) emit('uploaded', doc.id)
+  if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
+    try {
+      store.clearError()
+      const doc = await store.upload(file)
+      if (doc) emit('uploaded', doc.id)
+    } catch {
+      // error is already set in store.upload
+    }
   }
 }
 </script>
@@ -101,6 +112,12 @@ async function onDrop(e: DragEvent) {
 .upload-hint {
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.upload-error {
+  font-size: 13px;
+  color: var(--error, #e53e3e);
+  font-weight: 500;
 }
 
 .spinner {

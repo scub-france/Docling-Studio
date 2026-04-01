@@ -9,6 +9,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
   const running = ref(false)
   const error = ref<string | null>(null)
   const pollingInterval = ref<ReturnType<typeof setInterval> | null>(null)
+  const pollingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+  const MAX_POLLING_DURATION = 10 * 60 * 1000 // 10 minutes
 
   const currentPages = computed<Page[]>(() => {
     if (!currentAnalysis.value?.pagesJson) return []
@@ -72,12 +74,23 @@ export const useAnalysisStore = defineStore('analysis', () => {
         running.value = false
       }
     }, 2000)
+    pollingTimeout.value = setTimeout(() => {
+      if (pollingInterval.value) {
+        error.value = 'Analysis timed out'
+        stopPolling()
+        running.value = false
+      }
+    }, MAX_POLLING_DURATION)
   }
 
   function stopPolling(): void {
     if (pollingInterval.value) {
       clearInterval(pollingInterval.value)
       pollingInterval.value = null
+    }
+    if (pollingTimeout.value) {
+      clearTimeout(pollingTimeout.value)
+      pollingTimeout.value = null
     }
   }
 

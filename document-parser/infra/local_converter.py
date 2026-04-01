@@ -1,15 +1,16 @@
-"""Docling document extraction logic — pure domain, no HTTP concerns.
+"""Local Docling converter — runs Docling as a Python library in-process.
 
-Wraps the Docling library to convert documents and extract structured
-per-page elements with bounding boxes and hierarchy levels.
+This adapter implements the DocumentConverter port using the Docling library
+directly. It wraps the blocking DocumentConverter in asyncio.to_thread for
+non-blocking execution.
 """
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import logging
 import threading
-from dataclasses import dataclass, field
 
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import (
@@ -17,7 +18,8 @@ from docling.datamodel.pipeline_options import (
     TableFormerMode,
     TableStructureOptions,
 )
-from docling.document_converter import DocumentConverter, PdfFormatOption
+from docling.document_converter import DocumentConverter as DoclingConverter
+from docling.document_converter import PdfFormatOption
 from docling_core.types.doc import (
     CodeItem,
     DocItem,
@@ -33,10 +35,16 @@ from docling_core.types.doc import (
 )
 
 from domain.bbox import to_topleft_list
+from domain.value_objects import (
+    ConversionOptions,
+    ConversionResult,
+    PageDetail,
+    PageElement,
+)
 
 logger = logging.getLogger(__name__)
 
-# Thread lock — DocumentConverter is not thread-safe
+# Thread lock — DoclingConverter is not thread-safe
 _converter_lock = threading.Lock()
 
 # US Letter page dimensions (points) — fallback when page size is unknown
@@ -44,61 +52,13 @@ _DEFAULT_PAGE_WIDTH = 612.0
 _DEFAULT_PAGE_HEIGHT = 792.0
 
 # Default converter (lazy-init on first request)
-_default_converter: DocumentConverter | None = None
-
-
-# ---------------------------------------------------------------------------
-# Domain value objects
-# ---------------------------------------------------------------------------
-
-@dataclass
-class PageElement:
-    type: str
-    bbox: list[float]
-    content: str
-    level: int = 0
-
-
-@dataclass
-class PageDetail:
-    page_number: int
-    width: float
-    height: float
-    elements: list[PageElement] = field(default_factory=list)
-
-
-@dataclass
-class ConversionOptions:
-    do_ocr: bool = True
-    do_table_structure: bool = True
-    table_mode: str = "accurate"
-    do_code_enrichment: bool = False
-    do_formula_enrichment: bool = False
-    do_picture_classification: bool = False
-    do_picture_description: bool = False
-    generate_picture_images: bool = False
-    generate_page_images: bool = False
-    images_scale: float = 1.0
-
-    def is_default(self) -> bool:
-        return self == ConversionOptions()
-
-
-@dataclass
-class ConversionResult:
-    page_count: int
-    content_markdown: str
-    content_html: str
-    pages: list[PageDetail]
-    skipped_items: int = 0
+_default_converter: DoclingConverter | None = None
 
 
 # ---------------------------------------------------------------------------
 # Element type detection
 # ---------------------------------------------------------------------------
 
-# Mapping from Docling type to element type string.
-# Order matters: most specific types before their parents.
 _ELEMENT_TYPE_MAP: list[tuple[type, str]] = [
     (TableItem, "table"),
     (PictureItem, "picture"),
@@ -113,7 +73,6 @@ _ELEMENT_TYPE_MAP: list[tuple[type, str]] = [
 
 
 def _get_element_type(item: DocItem) -> str:
-    """Determine element type via isinstance on Docling's type hierarchy."""
     for cls, type_name in _ELEMENT_TYPE_MAP:
         if isinstance(item, cls):
             return type_name
@@ -124,51 +83,50 @@ def _get_element_type(item: DocItem) -> str:
 # Pipeline factory
 # ---------------------------------------------------------------------------
 
-def build_converter(options: ConversionOptions | None = None) -> DocumentConverter:
-    """Build a DocumentConverter with the given pipeline options."""
-    opts = options or ConversionOptions()
-
+def _build_docling_converter(options: ConversionOptions) -> DoclingConverter:
     table_options = TableStructureOptions(
         do_cell_matching=True,
-        mode=TableFormerMode.ACCURATE if opts.table_mode == "accurate" else TableFormerMode.FAST,
+        mode=TableFormerMode.ACCURATE if options.table_mode == "accurate" else TableFormerMode.FAST,
     )
 
     pipeline_options = PdfPipelineOptions(
-        do_ocr=opts.do_ocr,
-        do_table_structure=opts.do_table_structure,
+        do_ocr=options.do_ocr,
+        do_table_structure=options.do_table_structure,
         table_structure_options=table_options,
-        do_code_enrichment=opts.do_code_enrichment,
-        do_formula_enrichment=opts.do_formula_enrichment,
-        do_picture_classification=opts.do_picture_classification,
-        do_picture_description=opts.do_picture_description,
-        generate_page_images=opts.generate_page_images,
-        generate_picture_images=opts.generate_picture_images,
-        images_scale=opts.images_scale,
+        do_code_enrichment=options.do_code_enrichment,
+        do_formula_enrichment=options.do_formula_enrichment,
+        do_picture_classification=options.do_picture_classification,
+        do_picture_description=options.do_picture_description,
+        generate_page_images=options.generate_page_images,
+        generate_picture_images=options.generate_picture_images,
+        images_scale=options.images_scale,
     )
 
-    return DocumentConverter(
+    return DoclingConverter(
         format_options={
             InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options),
         }
     )
 
 
-def get_default_converter() -> DocumentConverter:
+def _get_default_converter() -> DoclingConverter:
     global _default_converter
     if _default_converter is None:
-        _default_converter = build_converter()
+        _default_converter = _build_docling_converter(ConversionOptions())
     return _default_converter
+
+
+def _select_converter(options: ConversionOptions) -> DoclingConverter:
+    if options.is_default():
+        return _get_default_converter()
+    return _build_docling_converter(options)
 
 
 # ---------------------------------------------------------------------------
 # Page extraction
 # ---------------------------------------------------------------------------
 
-def extract_pages_detail(doc_result) -> tuple[list[PageDetail], int]:
-    """Extract per-page element details with bounding boxes from Docling result.
-
-    Returns (pages, skipped_count) for transparent error reporting.
-    """
+def _extract_pages_detail(doc_result) -> tuple[list[PageDetail], int]:
     pages: dict[int, PageDetail] = {}
     document = doc_result.document
     skipped = 0
@@ -193,7 +151,6 @@ def extract_pages_detail(doc_result) -> tuple[list[PageDetail], int]:
 def _process_content_item(
     item: DocItem | GroupItem, level: int, pages: dict[int, PageDetail],
 ) -> bool:
-    """Process a single content item and add it to the appropriate page."""
     if isinstance(item, GroupItem):
         return True
 
@@ -204,9 +161,6 @@ def _process_content_item(
         try:
             page_no = prov.page_no
             if page_no not in pages:
-                # Fallback: page was not found in document.pages (corrupted PDF or
-                # Docling edge case). US Letter dimensions are used as a safe default.
-                # This may cause slight bbox misalignment on non-Letter pages (e.g. A4).
                 logger.warning(
                     "Page %d not found in document metadata — using US Letter fallback (%sx%s pt)",
                     page_no, _DEFAULT_PAGE_WIDTH, _DEFAULT_PAGE_HEIGHT,
@@ -242,49 +196,27 @@ def _process_content_item(
 
 
 # ---------------------------------------------------------------------------
-# Main conversion entry point
+# Synchronous conversion (called via asyncio.to_thread)
 # ---------------------------------------------------------------------------
 
-def _select_converter(options: ConversionOptions) -> DocumentConverter:
-    """Return the cached default converter or build a custom one."""
-    if options.is_default():
-        return get_default_converter()
-    return build_converter(options)
-
-
-def _build_fallback_pages(doc, page_count: int) -> list[PageDetail]:
-    """Create empty PageDetail entries when extraction yields nothing."""
-    return [
-        PageDetail(
-            page_number=i + 1,
-            width=doc.pages[i + 1].size.width if (i + 1) in doc.pages else _DEFAULT_PAGE_WIDTH,
-            height=doc.pages[i + 1].size.height if (i + 1) in doc.pages else _DEFAULT_PAGE_HEIGHT,
-        )
-        for i in range(page_count)
-    ]
-
-
-def convert_document(
-    file_path: str,
-    options: ConversionOptions | None = None,
-) -> ConversionResult:
-    """Convert a document and return structured results.
-
-    This is the main entry point for document parsing. Runs synchronously
-    (caller should use asyncio.to_thread for non-blocking execution).
-    """
-    opts = options or ConversionOptions()
-
+def _convert_sync(file_path: str, options: ConversionOptions) -> ConversionResult:
     with _converter_lock:
-        conv = _select_converter(opts)
+        conv = _select_converter(options)
         result = conv.convert(file_path)
 
     doc = result.document
     page_count = len(doc.pages)
-    pages_detail, skipped = extract_pages_detail(result)
+    pages_detail, skipped = _extract_pages_detail(result)
 
     if not pages_detail and page_count > 0:
-        pages_detail = _build_fallback_pages(doc, page_count)
+        pages_detail = [
+            PageDetail(
+                page_number=i + 1,
+                width=doc.pages[i + 1].size.width if (i + 1) in doc.pages else _DEFAULT_PAGE_WIDTH,
+                height=doc.pages[i + 1].size.height if (i + 1) in doc.pages else _DEFAULT_PAGE_HEIGHT,
+            )
+            for i in range(page_count)
+        ]
 
     if skipped > 0:
         logger.info("Parsed: %d pages, %d items skipped", page_count, skipped)
@@ -296,3 +228,16 @@ def convert_document(
         pages=pages_detail,
         skipped_items=skipped,
     )
+
+
+# ---------------------------------------------------------------------------
+# Public adapter class
+# ---------------------------------------------------------------------------
+
+class LocalConverter:
+    """Adapter that runs Docling locally as a Python library."""
+
+    async def convert(
+        self, file_path: str, options: ConversionOptions,
+    ) -> ConversionResult:
+        return await asyncio.to_thread(_convert_sync, file_path, options)
