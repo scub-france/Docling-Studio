@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
     content_markdown  TEXT,
     content_html      TEXT,
     pages_json        TEXT,
+    document_json     TEXT,
+    chunks_json       TEXT,
     error_message     TEXT,
     started_at        TEXT,
     completed_at      TEXT,
@@ -42,11 +44,29 @@ CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at);
 """
 
 
+_MIGRATIONS = [
+    ("document_json", "ALTER TABLE analysis_jobs ADD COLUMN document_json TEXT"),
+    ("chunks_json", "ALTER TABLE analysis_jobs ADD COLUMN chunks_json TEXT"),
+]
+
+
+async def _run_migrations(db: aiosqlite.Connection) -> None:
+    """Add columns that may be missing in older databases."""
+    cursor = await db.execute("PRAGMA table_info(analysis_jobs)")
+    existing = {row[1] for row in await cursor.fetchall()}
+    for col_name, ddl in _MIGRATIONS:
+        if col_name not in existing:
+            await db.execute(ddl)
+            logger.info("Migration: added column %s to analysis_jobs", col_name)
+    await db.commit()
+
+
 async def init_db() -> None:
     """Create database file and tables if they don't exist."""
     os.makedirs(os.path.dirname(DB_PATH) or ".", exist_ok=True)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(_SCHEMA)
+        await _run_migrations(db)
         await db.commit()
     logger.info("Database initialized at %s", DB_PATH)
 
