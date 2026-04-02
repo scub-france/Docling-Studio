@@ -7,7 +7,7 @@
         </svg>
       </button>
       <div class="topbar-logo">
-        <span class="topbar-logo-icon">D</span>
+        <img src="/logo.png" alt="Docling Studio" class="topbar-logo-icon" />
         <span class="topbar-logo-text">Docling Studio</span>
       </div>
       <div class="topbar-spacer" />
@@ -167,16 +167,10 @@ body {
 }
 
 .topbar-logo-icon {
-  width: 26px;
-  height: 26px;
-  background: var(--accent);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 5px;
-  font-weight: 700;
-  font-size: 13px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: contain;
 }
 
 .topbar-logo-text {
