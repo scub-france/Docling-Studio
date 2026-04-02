@@ -49,3 +49,23 @@ class ConversionResult:
     content_html: str
     pages: list[PageDetail]
     skipped_items: int = 0
+    document_json: str | None = None
+
+
+@dataclass
+class ChunkingOptions:
+    chunker_type: str = "hybrid"  # "hybrid", "hierarchical", "page"
+    max_tokens: int = 512
+    merge_peers: bool = True
+    repeat_table_header: bool = True
+
+    def is_default(self) -> bool:
+        return self == ChunkingOptions()
+
+
+@dataclass
+class ChunkResult:
+    text: str
+    headings: list[str] = field(default_factory=list)
+    source_page: int | None = None
+    token_count: int = 0

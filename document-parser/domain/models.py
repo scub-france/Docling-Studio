@@ -42,6 +42,8 @@ class AnalysisJob:
     content_markdown: str | None = None
     content_html: str | None = None
     pages_json: str | None = None
+    document_json: str | None = None
+    chunks_json: str | None = None
     error_message: str | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None
@@ -55,12 +57,19 @@ class AnalysisJob:
         self.started_at = _utcnow()
 
     def mark_completed(
-        self, markdown: str, html: str, pages_json: str,
+        self,
+        markdown: str,
+        html: str,
+        pages_json: str,
+        document_json: str | None = None,
+        chunks_json: str | None = None,
     ) -> None:
         self.status = AnalysisStatus.COMPLETED
         self.content_markdown = markdown
         self.content_html = html
         self.pages_json = pages_json
+        self.document_json = document_json
+        self.chunks_json = chunks_json
         self.completed_at = _utcnow()
 
     def mark_failed(self, error: str) -> None:

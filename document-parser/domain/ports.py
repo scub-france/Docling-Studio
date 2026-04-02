@@ -9,7 +9,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from domain.value_objects import ConversionOptions, ConversionResult
+    from domain.value_objects import (
+        ChunkingOptions,
+        ChunkResult,
+        ConversionOptions,
+        ConversionResult,
+    )
 
 
 class DocumentConverter(Protocol):
@@ -20,5 +25,20 @@ class DocumentConverter(Protocol):
     """
 
     async def convert(
-        self, file_path: str, options: ConversionOptions,
+        self,
+        file_path: str,
+        options: ConversionOptions,
     ) -> ConversionResult: ...
+
+
+class DocumentChunker(Protocol):
+    """Port for document chunking.
+
+    Takes a serialized DoclingDocument (JSON) and returns chunks.
+    """
+
+    async def chunk(
+        self,
+        document_json: str,
+        options: ChunkingOptions,
+    ) -> list[ChunkResult]: ...
