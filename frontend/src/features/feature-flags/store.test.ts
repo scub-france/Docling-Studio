@@ -7,10 +7,6 @@ vi.mock('../../shared/api/http', () => ({
   apiFetch: (...args: unknown[]) => mockApiFetch(...args),
 }))
 
-vi.mock('../settings/store', () => ({
-  useSettingsStore: () => ({ apiUrl: 'http://localhost:8000' }),
-}))
-
 describe('useFeatureFlagStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())

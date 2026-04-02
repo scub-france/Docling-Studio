@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { apiFetch } from '../../shared/api/http'
-import { useSettingsStore } from '../settings/store'
 
 type ConversionEngine = 'local' | 'remote'
 
@@ -44,9 +43,8 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
   }
 
   async function load(): Promise<void> {
-    const settings = useSettingsStore()
     try {
-      const data = await apiFetch<HealthResponse>(`${settings.apiUrl}/health`)
+      const data = await apiFetch<HealthResponse>('/health')
       engine.value = data.engine
       loaded.value = true
       error.value = null
