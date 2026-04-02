@@ -16,7 +16,6 @@
     "format:check": "prettier --check src/"
   },
   "dependencies": {
-    "@vitest/mocker": "^4.1.2",
     "dompurify": "^3.3.3",
     "marked": "^17.0.4",
     "pinia": "^2.3.0",
@@ -25,6 +24,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@vitest/mocker": "^4.1.2",
     "@types/dompurify": "^3.2.0",
     "@vitejs/plugin-vue": "^6.0.5",
     "eslint": "^9.0.0",
