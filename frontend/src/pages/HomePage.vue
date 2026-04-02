@@ -17,10 +17,12 @@
       <!-- Stats -->
       <div class="home-stats" v-if="docCount > 0 || analysisCount > 0">
         <div class="stat-card" @click="$router.push('/documents')">
+          <svg class="stat-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
           <div class="stat-value">{{ docCount }}</div>
           <div class="stat-label">{{ t('home.documents') }}</div>
         </div>
         <div class="stat-card" @click="$router.push('/history')">
+          <svg class="stat-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
           <div class="stat-value">{{ analysisCount }}</div>
           <div class="stat-label">{{ t('home.analyses') }}</div>
         </div>
@@ -171,8 +173,19 @@ onMounted(() => {
 }
 
 .stat-card:hover {
-  border-color: var(--border-light);
+  border-color: var(--accent);
   background: var(--bg-elevated);
+}
+
+.stat-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.stat-card:hover .stat-icon {
+  color: var(--accent);
 }
 
 .stat-value {
