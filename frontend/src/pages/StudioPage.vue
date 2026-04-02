@@ -2,9 +2,7 @@
   <!-- STATE 1: No document selected — Import view -->
   <div v-if="!selectedDoc" class="import-page">
     <div class="import-center">
-      <div class="import-logo">
-        <span class="logo-icon">D</span>
-      </div>
+      <img src="/logo.png" alt="Docling Studio" class="import-logo-img" />
       <h1 class="import-title">{{ t('studio.title') }}</h1>
       <p class="import-subtitle">{{ t('studio.subtitle') }}</p>
       <DocumentUpload />
@@ -482,21 +480,12 @@ onBeforeUnmount(() => {
   gap: 20px;
 }
 
-.import-logo {
+.import-logo-img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
   margin-bottom: 8px;
-}
-
-.import-logo .logo-icon {
-  width: 48px;
-  height: 48px;
-  background: var(--accent);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: var(--radius);
-  font-weight: 700;
-  font-size: 22px;
 }
 
 .import-title {

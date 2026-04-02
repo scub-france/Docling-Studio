@@ -2,9 +2,7 @@
   <div class="home-page">
     <div class="home-center">
       <div class="hero">
-        <div class="hero-icon">
-          <span class="hero-d">D</span>
-        </div>
+        <img src="/logo.png" alt="Docling Studio" class="hero-logo" />
         <h1 class="hero-title">{{ t('home.title') }}</h1>
         <p class="hero-subtitle">{{ t('home.subtitle') }}</p>
       </div>
@@ -116,21 +114,12 @@ onMounted(() => {
   text-align: center;
 }
 
-.hero-icon {
+.hero-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
   margin-bottom: 4px;
-}
-
-.hero-d {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  background: var(--accent);
-  color: white;
   border-radius: var(--radius-lg);
-  font-weight: 700;
-  font-size: 26px;
 }
 
 .hero-title {
