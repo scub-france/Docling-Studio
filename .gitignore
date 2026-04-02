@@ -12,7 +12,7 @@ site/
 .run/
 .claude/
 CLAUDE.md
-*/CLAUDE.md
+**/CLAUDE.md
 *.iml
 
 # OS
