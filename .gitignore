@@ -34,6 +34,9 @@ __pycache__/
 .venv/
 *.egg-info/
 
+# Excalidraw working files
+docs/excalidraw/
+
 # Logs
 *.log
 hs_err_pid*
