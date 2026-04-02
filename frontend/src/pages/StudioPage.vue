@@ -27,6 +27,7 @@
             :class="{ active: mode === 'configurer' }"
             @click="mode = 'configurer'"
           >
+            <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
             {{ t('studio.configure') }}
           </button>
           <button
@@ -35,6 +36,7 @@
             @click="mode = 'verifier'"
             :disabled="!analysisStore.currentAnalysis"
           >
+            <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
             {{ t('studio.verify') }}
           </button>
           <button
@@ -44,6 +46,7 @@
             @click="mode = 'preparer'"
             :disabled="!analysisStore.currentAnalysis"
           >
+            <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
             {{ t('studio.prepare') }}
           </button>
         </div>
@@ -558,35 +561,57 @@ onBeforeUnmount(() => {
 
 .mode-toggle {
   display: flex;
+  gap: 2px;
   background: var(--bg-elevated);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  overflow: hidden;
+  padding: 3px;
 }
 
 .toggle-btn {
-  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   background: transparent;
   border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 200ms ease;
+}
+
+.toggle-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 200ms ease;
 }
 
 .toggle-btn:hover:not(:disabled) {
-  color: var(--text);
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+}
+
+.toggle-btn:hover:not(:disabled) .toggle-icon {
+  opacity: 0.8;
 }
 
 .toggle-btn.active {
-  background: var(--bg);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  background: var(--accent-muted);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.toggle-btn.active .toggle-icon {
+  opacity: 1;
 }
 
 .toggle-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
