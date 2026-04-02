@@ -37,6 +37,15 @@
           >
             {{ t('studio.verify') }}
           </button>
+          <button
+            v-if="chunkingEnabled"
+            class="toggle-btn"
+            :class="{ active: mode === 'preparer' }"
+            @click="mode = 'preparer'"
+            :disabled="!analysisStore.currentAnalysis"
+          >
+            {{ t('studio.prepare') }}
+          </button>
         </div>
       </div>
       <div class="topbar-actions">
@@ -280,6 +289,11 @@
             @highlight-element="highlightedElementIndex = $event"
           />
         </div>
+
+        <!-- PREPARER MODE (feature-flipped) -->
+        <div v-if="mode === 'preparer' && chunkingEnabled" class="prepare-panel">
+          <ChunkPanel />
+        </div>
       </div>
     </div>
   </div>
@@ -293,6 +307,8 @@ import { useAnalysisStore } from '../features/analysis/store'
 import { DocumentUpload, DocumentList } from '../features/document/index'
 import { ResultTabs } from '../features/analysis/index'
 import BboxOverlay from '../features/analysis/ui/BboxOverlay.vue'
+import { ChunkPanel } from '../features/chunking'
+import { useFeatureFlag } from '../features/feature-flags'
 import { getPreviewUrl } from '../features/document/api'
 import { useI18n } from '../shared/i18n'
 import type { PipelineOptions } from '../shared/types'
@@ -302,6 +318,7 @@ const router = useRouter()
 const documentStore = useDocumentStore()
 const analysisStore = useAnalysisStore()
 const { t } = useI18n()
+const chunkingEnabled = useFeatureFlag('chunking')
 
 const mode = ref('configurer')
 const currentPage = ref(1)

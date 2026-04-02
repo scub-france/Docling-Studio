@@ -95,6 +95,18 @@ const messages: Messages = {
     'history.emptyDocs': 'Aucun document. Importez un document depuis le Studio.',
     'history.open': 'Ouvrir',
 
+    // Chunking
+    'studio.prepare': 'Préparer',
+    'chunking.settings': 'Chunking',
+    'chunking.chunkerType': 'Type de chunker',
+    'chunking.maxTokens': 'Tokens max',
+    'chunking.mergePeers': 'Fusionner les pairs',
+    'chunking.repeatTableHeader': 'Répéter en-têtes tableaux',
+    'chunking.run': 'Chunker',
+    'chunking.chunking': 'Chunking...',
+    'chunking.chunks': 'chunks',
+    'chunking.noChunks': 'Lancez le chunking pour préparer les segments.',
+
     // Settings
     'settings.title': 'Paramètres',
     'settings.apiUrl': 'API URL',
@@ -184,6 +196,17 @@ const messages: Messages = {
     'history.empty': 'No analyses yet. Go to Studio to analyze your first document.',
     'history.emptyDocs': 'No documents yet. Upload a document from the Studio.',
     'history.open': 'Open',
+
+    'studio.prepare': 'Prepare',
+    'chunking.settings': 'Chunking',
+    'chunking.chunkerType': 'Chunker type',
+    'chunking.maxTokens': 'Max tokens',
+    'chunking.mergePeers': 'Merge peers',
+    'chunking.repeatTableHeader': 'Repeat table headers',
+    'chunking.run': 'Chunk',
+    'chunking.chunking': 'Chunking...',
+    'chunking.chunks': 'chunks',
+    'chunking.noChunks': 'Run chunking to prepare segments.',
 
     'settings.title': 'Settings',
     'settings.apiUrl': 'API URL',

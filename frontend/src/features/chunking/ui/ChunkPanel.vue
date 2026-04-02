@@ -1,0 +1,336 @@
+<template>
+  <div class="chunk-panel">
+    <!-- Chunking config -->
+    <div class="chunk-config">
+      <div class="config-section">
+        <label class="config-label">{{ t('chunking.settings') }}</label>
+
+        <div class="config-row">
+          <label class="config-label-sm">{{ t('chunking.chunkerType') }}</label>
+          <select class="config-select" v-model="options.chunker_type">
+            <option value="hybrid">Hybrid</option>
+            <option value="hierarchical">Hierarchical</option>
+          </select>
+        </div>
+
+        <div class="config-row">
+          <label class="config-label-sm">{{ t('chunking.maxTokens') }}</label>
+          <input
+            type="number"
+            class="config-input"
+            v-model.number="options.max_tokens"
+            min="64"
+            max="8192"
+            step="64"
+          />
+        </div>
+
+        <div class="config-toggle-row" v-if="options.chunker_type === 'hybrid'">
+          <label class="toggle-label">
+            <input type="checkbox" v-model="options.merge_peers" class="toggle-input" />
+            <span class="toggle-switch" />
+            <span class="toggle-text">{{ t('chunking.mergePeers') }}</span>
+          </label>
+        </div>
+
+        <div class="config-toggle-row" v-if="options.chunker_type === 'hybrid'">
+          <label class="toggle-label">
+            <input type="checkbox" v-model="options.repeat_table_header" class="toggle-input" />
+            <span class="toggle-switch" />
+            <span class="toggle-text">{{ t('chunking.repeatTableHeader') }}</span>
+          </label>
+        </div>
+      </div>
+
+      <button
+        class="chunk-btn primary"
+        :disabled="!canRechunk || analysisStore.rechunking"
+        @click="doRechunk"
+      >
+        <div v-if="analysisStore.rechunking" class="spinner-sm" />
+        {{ analysisStore.rechunking ? t('chunking.chunking') : t('chunking.run') }}
+      </button>
+    </div>
+
+    <!-- Chunks list -->
+    <div class="chunk-results" v-if="analysisStore.currentChunks.length">
+      <div class="chunk-summary">
+        {{ analysisStore.currentChunks.length }} {{ t('chunking.chunks') }}
+      </div>
+      <div class="chunk-list">
+        <div
+          class="chunk-card"
+          v-for="(chunk, idx) in analysisStore.currentChunks"
+          :key="idx"
+        >
+          <div class="chunk-header">
+            <span class="chunk-index">#{{ idx + 1 }}</span>
+            <span class="chunk-tokens" v-if="chunk.tokenCount">
+              {{ chunk.tokenCount }} tokens
+            </span>
+            <span class="chunk-page" v-if="chunk.sourcePage">
+              p.{{ chunk.sourcePage }}
+            </span>
+          </div>
+          <div class="chunk-headings" v-if="chunk.headings.length">
+            <span class="chunk-heading" v-for="h in chunk.headings" :key="h">{{ h }}</span>
+          </div>
+          <div class="chunk-text">{{ chunk.text }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chunk-empty" v-else-if="!analysisStore.rechunking">
+      <p>{{ t('chunking.noChunks') }}</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { reactive, computed } from 'vue'
+import { useAnalysisStore } from '../../analysis/store'
+import { useI18n } from '../../../shared/i18n'
+import type { ChunkingOptions } from '../../../shared/types'
+
+const analysisStore = useAnalysisStore()
+const { t } = useI18n()
+
+const options = reactive<Required<ChunkingOptions>>({
+  chunker_type: 'hybrid',
+  max_tokens: 512,
+  merge_peers: true,
+  repeat_table_header: true,
+})
+
+const canRechunk = computed(() => {
+  const analysis = analysisStore.currentAnalysis
+  return analysis?.status === 'COMPLETED' && analysis.hasDocumentJson
+})
+
+async function doRechunk() {
+  if (!analysisStore.currentAnalysis) return
+  await analysisStore.rechunk(analysisStore.currentAnalysis.id, { ...options })
+}
+</script>
+
+<style scoped>
+.chunk-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.chunk-config {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.config-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.config-label-sm {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.config-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.config-select,
+.config-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text);
+  width: 100%;
+}
+
+.config-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.toggle-input {
+  display: none;
+}
+
+.toggle-switch {
+  width: 32px;
+  height: 18px;
+  background: var(--bg-tertiary);
+  border-radius: 9px;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle-input:checked + .toggle-switch {
+  background: var(--accent);
+}
+
+.toggle-input:checked + .toggle-switch::after {
+  transform: translateX(14px);
+}
+
+.chunk-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.chunk-btn.primary {
+  background: var(--accent);
+  color: white;
+}
+
+.chunk-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chunk-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.chunk-summary {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.chunk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chunk-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+.chunk-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.chunk-index {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.chunk-tokens,
+.chunk-page {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.chunk-headings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.chunk-heading {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-bg, rgba(99, 102, 241, 0.1));
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.chunk-text {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.chunk-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.spinner-sm {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>

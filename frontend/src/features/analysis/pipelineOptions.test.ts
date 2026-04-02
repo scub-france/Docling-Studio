@@ -131,7 +131,7 @@ describe('useAnalysisStore — pipeline options forwarding', () => {
     const store = useAnalysisStore()
     await store.run('d1')
 
-    expect(api.createAnalysis).toHaveBeenCalledWith('d1', null)
+    expect(api.createAnalysis).toHaveBeenCalledWith('d1', null, null)
     store.stopPolling()
   })
 
@@ -155,7 +155,7 @@ describe('useAnalysisStore — pipeline options forwarding', () => {
     }
     await store.run('d1', opts)
 
-    expect(api.createAnalysis).toHaveBeenCalledWith('d1', opts)
+    expect(api.createAnalysis).toHaveBeenCalledWith('d1', opts, null)
     store.stopPolling()
   })
 
@@ -168,7 +168,7 @@ describe('useAnalysisStore — pipeline options forwarding', () => {
     const opts = { do_ocr: false }
     await store.run('d1', opts)
 
-    expect(api.createAnalysis).toHaveBeenCalledWith('d1', { do_ocr: false })
+    expect(api.createAnalysis).toHaveBeenCalledWith('d1', { do_ocr: false }, null)
     store.stopPolling()
   })
 

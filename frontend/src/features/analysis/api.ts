@@ -1,17 +1,31 @@
-import type { Analysis, PipelineOptions } from '../../shared/types'
+import type { Analysis, Chunk, ChunkingOptions, PipelineOptions } from '../../shared/types'
 import { apiFetch } from '../../shared/api/http'
 
 export function createAnalysis(
   documentId: string,
   pipelineOptions: PipelineOptions | null = null,
+  chunkingOptions: ChunkingOptions | null = null,
 ): Promise<Analysis> {
   const body: Record<string, unknown> = { documentId }
   if (pipelineOptions) {
     body.pipelineOptions = pipelineOptions
   }
+  if (chunkingOptions) {
+    body.chunkingOptions = chunkingOptions
+  }
   return apiFetch<Analysis>('/api/analyses', {
     method: 'POST',
     body: JSON.stringify(body),
+  })
+}
+
+export function rechunkAnalysis(
+  jobId: string,
+  chunkingOptions: ChunkingOptions,
+): Promise<Chunk[]> {
+  return apiFetch<Chunk[]>(`/api/analyses/${jobId}/rechunk`, {
+    method: 'POST',
+    body: JSON.stringify({ chunkingOptions }),
   })
 }
 
