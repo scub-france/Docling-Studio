@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from api.schemas import ChunkingOptionsRequest, ChunkResponse, RechunkRequest
+from api.schemas import ChunkBboxResponse, ChunkingOptionsRequest, ChunkResponse, RechunkRequest
 from domain.models import AnalysisJob, AnalysisStatus
-from domain.value_objects import ChunkingOptions, ChunkResult
+from domain.value_objects import ChunkBbox, ChunkingOptions, ChunkResult
 from main import app
 
 # ---------------------------------------------------------------------------
@@ -60,7 +60,52 @@ class TestChunkResult:
     def test_serializable(self):
         chunk = ChunkResult(text="x", headings=["h1"], source_page=1, token_count=10)
         data = asdict(chunk)
-        assert data == {"text": "x", "headings": ["h1"], "source_page": 1, "token_count": 10}
+        assert data == {
+            "text": "x",
+            "headings": ["h1"],
+            "source_page": 1,
+            "token_count": 10,
+            "bboxes": [],
+        }
+
+
+class TestChunkBbox:
+    def test_construction(self):
+        bbox = ChunkBbox(page=1, bbox=[10.0, 20.0, 100.0, 80.0])
+        assert bbox.page == 1
+        assert bbox.bbox == [10.0, 20.0, 100.0, 80.0]
+
+    def test_serializable(self):
+        bbox = ChunkBbox(page=2, bbox=[0.0, 0.0, 50.0, 50.0])
+        data = asdict(bbox)
+        assert data == {"page": 2, "bbox": [0.0, 0.0, 50.0, 50.0]}
+
+    def test_chunk_result_with_bboxes(self):
+        chunk = ChunkResult(
+            text="content",
+            bboxes=[
+                ChunkBbox(page=1, bbox=[10, 20, 100, 80]),
+                ChunkBbox(page=2, bbox=[50, 50, 150, 250]),
+            ],
+        )
+        assert len(chunk.bboxes) == 2
+        assert chunk.bboxes[0].page == 1
+
+
+class TestChunkBboxResponse:
+    def test_serializes(self):
+        resp = ChunkBboxResponse(page=1, bbox=[10.0, 20.0, 100.0, 80.0])
+        data = resp.model_dump(by_alias=True)
+        assert data == {"page": 1, "bbox": [10.0, 20.0, 100.0, 80.0]}
+
+    def test_chunk_response_with_bboxes(self):
+        resp = ChunkResponse(
+            text="hello",
+            bboxes=[ChunkBboxResponse(page=1, bbox=[10, 20, 100, 80])],
+        )
+        data = resp.model_dump(by_alias=True)
+        assert len(data["bboxes"]) == 1
+        assert data["bboxes"][0]["page"] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -281,6 +326,28 @@ class TestRechunkEndpoint:
             },
         )
         assert resp.status_code == 400
+
+    def test_rechunk_returns_bboxes(self, client, mock_analysis_service):
+        mock_analysis_service.rechunk = AsyncMock(
+            return_value=[
+                ChunkResult(
+                    text="chunk1",
+                    source_page=1,
+                    token_count=10,
+                    bboxes=[ChunkBbox(page=1, bbox=[10, 20, 100, 80])],
+                ),
+            ]
+        )
+
+        resp = client.post(
+            "/api/analyses/j1/rechunk",
+            json={"chunkingOptions": {"chunker_type": "hybrid"}},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data[0]["bboxes"]) == 1
+        assert data[0]["bboxes"][0]["page"] == 1
+        assert data[0]["bboxes"][0]["bbox"] == [10, 20, 100, 80]
 
     def test_rechunk_invalid_chunker_type(self, client, mock_analysis_service):
         resp = client.post(

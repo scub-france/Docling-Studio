@@ -21,8 +21,14 @@ describe('analysis store — chunking', () => {
   it('currentChunks parses chunksJson from current analysis', () => {
     const store = useAnalysisStore()
     const chunks = [
-      { text: 'chunk1', headings: ['H1'], sourcePage: 1, tokenCount: 10 },
-      { text: 'chunk2', headings: [], sourcePage: 2, tokenCount: 20 },
+      {
+        text: 'chunk1',
+        headings: ['H1'],
+        sourcePage: 1,
+        tokenCount: 10,
+        bboxes: [{ page: 1, bbox: [10, 20, 100, 80] }],
+      },
+      { text: 'chunk2', headings: [], sourcePage: 2, tokenCount: 20, bboxes: [] },
     ]
     store.currentAnalysis = {
       id: 'j1',
@@ -64,7 +70,7 @@ describe('analysis store — chunking', () => {
 
   it('rechunk calls API and refreshes analysis', async () => {
     const store = useAnalysisStore()
-    const chunks = [{ text: 'c1', headings: [], sourcePage: 1, tokenCount: 5 }]
+    const chunks = [{ text: 'c1', headings: [], sourcePage: 1, tokenCount: 5, bboxes: [] }]
     vi.mocked(api.rechunkAnalysis).mockResolvedValue(chunks)
     vi.mocked(api.fetchAnalysis).mockResolvedValue({
       id: 'j1',
