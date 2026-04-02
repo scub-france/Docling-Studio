@@ -64,8 +64,15 @@ class ChunkingOptions:
 
 
 @dataclass
+class ChunkBbox:
+    page: int
+    bbox: list[float]  # [left, top, right, bottom] in TOPLEFT origin
+
+
+@dataclass
 class ChunkResult:
     text: str
     headings: list[str] = field(default_factory=list)
     source_page: int | None = None
     token_count: int = 0
+    bboxes: list[ChunkBbox] = field(default_factory=list)

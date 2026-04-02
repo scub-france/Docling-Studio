@@ -38,7 +38,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { computeScale, bboxToRect, pointInRect } from '../bboxScaling'
-import type { Page, PageElement } from '../../../shared/types'
+import type { Page, PageElement, ChunkBbox } from '../../../shared/types'
 
 const ELEMENT_COLORS: Record<string, string> = {
   title: '#EF4444',
@@ -52,11 +52,15 @@ const ELEMENT_COLORS: Record<string, string> = {
   caption: '#EAB308'
 }
 
-const props = defineProps<{
-  imageEl: HTMLImageElement | null
-  pageData: Page | null
-  highlightedIndex: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    imageEl: HTMLImageElement | null
+    pageData: Page | null
+    highlightedIndex: number
+    highlightedBboxes: ChunkBbox[]
+  }>(),
+  { highlightedBboxes: () => [] },
+)
 
 const emit = defineEmits<{
   'highlight-element': [index: number]
@@ -114,6 +118,8 @@ function draw(): void {
 
   const scale = computeScale(img.clientWidth, img.clientHeight, props.pageData.width, props.pageData.height)
 
+  const hasChunkHighlight = props.highlightedBboxes.length > 0
+
   for (const el of visibleElements.value) {
     const rect = bboxToRect(el.bbox, scale)
     const color = ELEMENT_COLORS[el.type] || ELEMENT_COLORS.text
@@ -121,12 +127,28 @@ function draw(): void {
     const elContentIdx = contentElements.value.indexOf(el)
     const isHighlighted = props.highlightedIndex >= 0 && elContentIdx === props.highlightedIndex
 
-    ctx.strokeStyle = color
+    // Dim non-highlighted elements when a chunk is hovered
+    const dimmed = hasChunkHighlight && !isHighlighted
+
+    ctx.strokeStyle = dimmed ? color + '40' : color
     ctx.lineWidth = isHighlighted ? 3 : 2
     ctx.strokeRect(rect.x, rect.y, rect.w, rect.h)
 
-    ctx.fillStyle = color + (isHighlighted ? '40' : '20')
+    ctx.fillStyle = color + (isHighlighted ? '40' : dimmed ? '08' : '20')
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
+  }
+
+  // Draw chunk-highlighted bboxes on top with accent color
+  if (hasChunkHighlight) {
+    const CHUNK_COLOR = '#F59E0B'
+    for (const cb of props.highlightedBboxes) {
+      const rect = bboxToRect(cb.bbox, scale)
+      ctx.strokeStyle = CHUNK_COLOR
+      ctx.lineWidth = 3
+      ctx.strokeRect(rect.x, rect.y, rect.w, rect.h)
+      ctx.fillStyle = CHUNK_COLOR + '30'
+      ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
+    }
   }
 }
 
@@ -173,7 +195,7 @@ onBeforeUnmount(() => {
 })
 
 // Redraw when data or image changes
-watch([() => props.pageData, () => props.imageEl, () => props.highlightedIndex, hiddenTypes], () => {
+watch([() => props.pageData, () => props.imageEl, () => props.highlightedIndex, () => props.highlightedBboxes, hiddenTypes], () => {
   nextTick(draw)
 })
 

@@ -103,11 +103,17 @@ class ChunkingOptionsRequest(BaseModel):
         return v
 
 
+class ChunkBboxResponse(_CamelModel):
+    page: int
+    bbox: list[float]
+
+
 class ChunkResponse(_CamelModel):
     text: str
     headings: list[str] = []
     source_page: int | None = None
     token_count: int = 0
+    bboxes: list[ChunkBboxResponse] = []
 
 
 class CreateAnalysisRequest(BaseModel):

@@ -76,6 +76,9 @@
           class="chunk-card"
           v-for="(chunk, localIdx) in pagination.paginatedItems.value"
           :key="globalIndex(localIdx)"
+          :class="{ highlighted: hoveredChunkIdx === globalIndex(localIdx) }"
+          @mouseenter="onChunkHover(chunk, localIdx)"
+          @mouseleave="onChunkLeave"
         >
           <div class="chunk-header">
             <span class="chunk-index">#{{ globalIndex(localIdx) + 1 }}</span>
@@ -121,10 +124,14 @@ import { useAnalysisStore } from '../../analysis/store'
 import { useI18n } from '../../../shared/i18n'
 import { usePagination } from '../../../shared/composables/usePagination'
 import { PaginationBar } from '../../../shared/ui'
-import type { ChunkingOptions } from '../../../shared/types'
+import type { Chunk, ChunkBbox, ChunkingOptions } from '../../../shared/types'
 
 const props = defineProps<{
   currentPage: number
+}>()
+
+const emit = defineEmits<{
+  'highlight-bboxes': [bboxes: ChunkBbox[]]
 }>()
 
 const analysisStore = useAnalysisStore()
@@ -151,6 +158,19 @@ const pagination = usePagination(pageChunks, { pageSize: 20 })
 
 function globalIndex(localIdx: number): number {
   return (pagination.page.value - 1) * pagination.pageSize.value + localIdx
+}
+
+const hoveredChunkIdx = ref(-1)
+
+function onChunkHover(chunk: Chunk, localIdx: number) {
+  hoveredChunkIdx.value = globalIndex(localIdx)
+  const pageBboxes = chunk.bboxes.filter((b) => b.page === props.currentPage)
+  emit('highlight-bboxes', pageBboxes)
+}
+
+function onChunkLeave() {
+  hoveredChunkIdx.value = -1
+  emit('highlight-bboxes', [])
 }
 
 async function doRechunk() {
@@ -335,6 +355,17 @@ async function doRechunk() {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 10px 12px;
+  cursor: default;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.chunk-card:hover {
+  border-color: #F59E0B;
+}
+
+.chunk-card.highlighted {
+  border-color: #F59E0B;
+  background: rgba(245, 158, 11, 0.08);
 }
 
 .chunk-header {

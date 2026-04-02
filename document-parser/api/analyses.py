@@ -7,7 +7,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from api.schemas import AnalysisResponse, ChunkResponse, CreateAnalysisRequest, RechunkRequest
+from api.schemas import (
+    AnalysisResponse,
+    ChunkBboxResponse,
+    ChunkResponse,
+    CreateAnalysisRequest,
+    RechunkRequest,
+)
 from services.analysis_service import AnalysisService
 
 logger = logging.getLogger(__name__)
@@ -94,6 +100,7 @@ async def rechunk_analysis(job_id: str, body: RechunkRequest, service: ServiceDe
             headings=c.headings,
             source_page=c.source_page,
             token_count=c.token_count,
+            bboxes=[ChunkBboxResponse(page=b.page, bbox=b.bbox) for b in c.bboxes],
         )
         for c in chunks
     ]

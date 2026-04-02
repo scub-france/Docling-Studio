@@ -141,6 +141,7 @@
               :image-el="pdfImageRef"
               :page-data="currentPageData"
               :highlighted-index="highlightedElementIndex"
+              :highlighted-bboxes="highlightedChunkBboxes"
               @highlight-element="highlightedElementIndex = $event"
             />
           </div>
@@ -292,7 +293,10 @@
 
         <!-- PREPARER MODE (feature-flipped) -->
         <div v-if="mode === 'preparer' && chunkingEnabled" class="prepare-panel">
-          <ChunkPanel :current-page="currentPage" />
+          <ChunkPanel
+            :current-page="currentPage"
+            @highlight-bboxes="highlightedChunkBboxes = $event"
+          />
         </div>
       </div>
     </div>
@@ -311,7 +315,7 @@ import { ChunkPanel } from '../features/chunking'
 import { useFeatureFlag } from '../features/feature-flags'
 import { getPreviewUrl } from '../features/document/api'
 import { useI18n } from '../shared/i18n'
-import type { PipelineOptions } from '../shared/types'
+import type { ChunkBbox, PipelineOptions } from '../shared/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -324,6 +328,7 @@ const mode = ref('configurer')
 const currentPage = ref(1)
 const visualMode = ref(false)
 const highlightedElementIndex = ref(-1)
+const highlightedChunkBboxes = ref<ChunkBbox[]>([])
 const pdfImageRef = ref<HTMLImageElement | null>(null)
 const bboxOverlayRef = ref<InstanceType<typeof BboxOverlay> | null>(null)
 
@@ -409,6 +414,16 @@ async function runAnalysis() {
 function addMore() {
   documentStore.selectedId = null
 }
+
+// Clear highlights when switching modes or pages
+watch(mode, () => {
+  highlightedElementIndex.value = -1
+  highlightedChunkBboxes.value = []
+})
+watch(currentPage, () => {
+  highlightedElementIndex.value = -1
+  highlightedChunkBboxes.value = []
+})
 
 // Auto-switch to verifier when analysis completes + refresh document data (pageCount)
 watch(() => analysisStore.currentAnalysis?.status, (status) => {

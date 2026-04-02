@@ -30,6 +30,7 @@ def _chunk_to_dict(c: ChunkResult) -> dict:
         "headings": c.headings,
         "sourcePage": c.source_page,
         "tokenCount": c.token_count,
+        "bboxes": [{"page": b.page, "bbox": b.bbox} for b in c.bboxes],
     }
 
 

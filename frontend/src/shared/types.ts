@@ -45,11 +45,17 @@ export interface ChunkingOptions {
   repeat_table_header?: boolean
 }
 
+export interface ChunkBbox {
+  page: number
+  bbox: [number, number, number, number]
+}
+
 export interface Chunk {
   text: string
   headings: string[]
   sourcePage: number | null
   tokenCount: number
+  bboxes: ChunkBbox[]
 }
 
 export interface PageElement {
