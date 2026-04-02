@@ -118,6 +118,7 @@ function draw(): void {
 
   const scale = computeScale(img.clientWidth, img.clientHeight, props.pageData.width, props.pageData.height)
 
+  const hasHighlight = props.highlightedIndex >= 0
   const hasChunkHighlight = props.highlightedBboxes.length > 0
 
   for (const el of visibleElements.value) {
@@ -125,10 +126,8 @@ function draw(): void {
     const color = ELEMENT_COLORS[el.type] || ELEMENT_COLORS.text
 
     const elContentIdx = contentElements.value.indexOf(el)
-    const isHighlighted = props.highlightedIndex >= 0 && elContentIdx === props.highlightedIndex
-
-    // Dim non-highlighted elements when a chunk is hovered
-    const dimmed = hasChunkHighlight && !isHighlighted
+    const isHighlighted = hasHighlight && elContentIdx === props.highlightedIndex
+    const dimmed = (hasHighlight || hasChunkHighlight) && !isHighlighted
 
     ctx.strokeStyle = dimmed ? color + '40' : color
     ctx.lineWidth = isHighlighted ? 3 : 2
