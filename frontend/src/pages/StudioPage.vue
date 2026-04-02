@@ -136,7 +136,7 @@
               @load="onPdfImageLoad"
             />
             <BboxOverlay
-              v-if="visualMode && hasAnalysisResults"
+              v-if="(visualMode || mode === 'preparer') && hasAnalysisResults"
               ref="bboxOverlayRef"
               :image-el="pdfImageRef"
               :page-data="currentPageData"
@@ -292,7 +292,7 @@
 
         <!-- PREPARER MODE (feature-flipped) -->
         <div v-if="mode === 'preparer' && chunkingEnabled" class="prepare-panel">
-          <ChunkPanel />
+          <ChunkPanel :current-page="currentPage" />
         </div>
       </div>
     </div>
@@ -1136,7 +1136,8 @@ onBeforeUnmount(() => {
 }
 
 /* Verify panel */
-.verify-panel {
+.verify-panel,
+.prepare-panel {
   height: 100%;
   overflow: hidden;
   display: flex;
