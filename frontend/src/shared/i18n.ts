@@ -233,7 +233,7 @@ export function useI18n() {
   function t(key: string, params: Record<string, string | number> = {}): string {
     let str = messages[settings.locale]?.[key] || messages['fr'][key] || key
     for (const [k, v] of Object.entries(params)) {
-      str = str.replace(`{${k}}`, String(v))
+      str = str.replaceAll(`{${k}}`, String(v))
     }
     return str
   }
