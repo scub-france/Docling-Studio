@@ -8,7 +8,7 @@ misaligned overlays in the UI.
 import pytest
 from docling_core.types.doc.base import BoundingBox, CoordOrigin
 
-from domain.bbox import EMPTY_BBOX, to_topleft_list
+from infra.bbox import EMPTY_BBOX, to_topleft_list
 
 # ---------------------------------------------------------------------------
 # Standard conversions

@@ -15,7 +15,7 @@ from docling_core.transforms.chunker import HierarchicalChunker
 from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 from docling_core.types.doc.document import DoclingDocument
 
-from domain.bbox import EMPTY_BBOX, to_topleft_list
+from infra.bbox import EMPTY_BBOX, to_topleft_list
 from domain.value_objects import ChunkBbox, ChunkingOptions, ChunkResult
 
 logger = logging.getLogger(__name__)

@@ -48,8 +48,8 @@ document-parser/
 ├── main.py                   # FastAPI app, CORS, lifespan
 ├── domain/                   # Pure domain — no HTTP, no DB
 │   ├── models.py             # Document, AnalysisJob dataclasses
-│   ├── parsing.py            # Docling conversion & page extraction
-│   └── bbox.py               # Bounding box coordinate normalization
+│   ├── ports.py              # Abstract protocols (converter, chunker)
+│   └── value_objects.py      # ConversionResult, PageDetail, ChunkResult
 ├── api/                      # HTTP layer (FastAPI routers)
 │   ├── schemas.py            # Pydantic DTOs (camelCase serialization)
 │   ├── documents.py          # /api/documents endpoints

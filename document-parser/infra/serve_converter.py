@@ -18,6 +18,7 @@ import mimetypes
 from pathlib import Path
 
 import httpx
+from docling_core.types.doc.base import BoundingBox, CoordOrigin
 
 from domain.value_objects import (
     ConversionOptions,
@@ -25,6 +26,7 @@ from domain.value_objects import (
     PageDetail,
     PageElement,
 )
+from infra.bbox import to_topleft_list
 
 logger = logging.getLogger(__name__)
 
@@ -222,21 +224,22 @@ def _add_element(item: dict, pages: dict[int, PageDetail]) -> None:
 
 
 def _extract_bbox(bbox_data: dict, page_height: float) -> list[float]:
-    """Extract and normalize bbox to TOPLEFT [l, t, r, b] format."""
+    """Extract and normalize bbox to TOPLEFT [l, t, r, b] format.
+
+    Delegates to the canonical to_topleft_list function via a docling-core
+    BoundingBox, ensuring consistent coordinate handling across all converters.
+    """
     if not isinstance(bbox_data, dict):
         return [0.0, 0.0, 0.0, 0.0]
 
-    left = bbox_data.get("l", 0.0)
-    top = bbox_data.get("t", 0.0)
-    right = bbox_data.get("r", 0.0)
-    bottom = bbox_data.get("b", 0.0)
-    coord_origin = bbox_data.get("coord_origin", "TOPLEFT")
+    origin_str = bbox_data.get("coord_origin", "TOPLEFT")
+    origin = CoordOrigin.BOTTOMLEFT if origin_str == "BOTTOMLEFT" else CoordOrigin.TOPLEFT
 
-    if coord_origin == "BOTTOMLEFT":
-        # In BOTTOMLEFT: top has higher y, bottom has lower y
-        # In TOPLEFT: flip both — new_top = page_height - old_top
-        new_top = page_height - top
-        new_bottom = page_height - bottom
-        top, bottom = new_top, new_bottom
-
-    return [left, top, right, bottom]
+    bbox = BoundingBox(
+        l=bbox_data.get("l", 0.0),
+        t=bbox_data.get("t", 0.0),
+        r=bbox_data.get("r", 0.0),
+        b=bbox_data.get("b", 0.0),
+        coord_origin=origin,
+    )
+    return to_topleft_list(bbox, page_height)

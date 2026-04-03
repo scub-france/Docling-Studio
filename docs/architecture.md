@@ -68,7 +68,7 @@ document-parser/
 
 | Layer | Role | Depends on |
 |-------|------|------------|
-| **domain** | Dataclasses, bbox math, Docling conversion | Nothing (pure Python) |
+| **domain** | Dataclasses, value objects, ports | Nothing (pure Python) |
 | **persistence** | SQLite CRUD, aiosqlite | domain (models) |
 | **services** | Orchestrate use cases, call Docling | domain + persistence |
 | **api** | HTTP endpoints, Pydantic DTOs, error handling | services |

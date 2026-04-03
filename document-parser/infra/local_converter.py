@@ -35,7 +35,7 @@ from docling_core.types.doc import (
     TitleItem,
 )
 
-from domain.bbox import to_topleft_list
+from infra.bbox import to_topleft_list
 from domain.value_objects import (
     ConversionOptions,
     ConversionResult,
