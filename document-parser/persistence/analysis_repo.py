@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from domain.models import AnalysisJob, AnalysisStatus
 from persistence.database import get_connection
@@ -29,7 +29,7 @@ def _row_to_job(row) -> AnalysisJob:
         error_message=row["error_message"],
         started_at=_parse_dt(row["started_at"]),
         completed_at=_parse_dt(row["completed_at"]),
-        created_at=_parse_dt(row["created_at"]) or datetime.now(),
+        created_at=_parse_dt(row["created_at"]) or datetime.now(UTC),
         document_filename=row["filename"] if "filename" in keys else None,
     )
 

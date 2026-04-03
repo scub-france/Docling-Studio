@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from domain.models import Document
 from persistence.database import get_connection
@@ -12,6 +12,8 @@ def _row_to_document(row) -> Document:
     created = row["created_at"]
     if isinstance(created, str):
         created = datetime.fromisoformat(created)
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=UTC)
     return Document(
         id=row["id"],
         filename=row["filename"],
