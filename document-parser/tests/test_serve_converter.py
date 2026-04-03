@@ -74,6 +74,7 @@ class TestParseResponse:
         assert result.content_html == "<h1>Hello</h1>"
         assert result.page_count == 1
         assert result.pages[0].width == 612.0
+        assert result.document_json is not None
 
     def test_response_with_elements(self):
         data = {
@@ -159,6 +160,7 @@ class TestParseResponse:
         assert result.content_markdown == "text"
         assert result.pages == []
         assert result.page_count == 1
+        assert result.document_json is None
 
     def test_json_content_as_string(self):
         json_doc = {

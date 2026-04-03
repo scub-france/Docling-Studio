@@ -152,11 +152,14 @@ def _parse_response(data: dict) -> ConversionResult:
 
     page_count = len(pages) if pages else 1
 
+    document_json = json.dumps(json_content) if json_content else None
+
     return ConversionResult(
         page_count=page_count,
         content_markdown=content_md,
         content_html=content_html,
         pages=pages,
+        document_json=document_json,
     )
 
 
