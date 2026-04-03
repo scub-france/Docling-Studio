@@ -12,6 +12,7 @@ Conversion engine is selected via CONVERSION_ENGINE env var:
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -19,8 +20,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.analyses import router as analyses_router
 from api.documents import router as documents_router
-from infra.settings import Settings
-from persistence.database import init_db
+from infra.rate_limiter import RateLimiterMiddleware
+from infra.settings import settings
+from persistence.database import get_connection, init_db
 from services.analysis_service import AnalysisService
 
 logging.basicConfig(
@@ -28,12 +30,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Settings & dependency wiring
-# ---------------------------------------------------------------------------
-
-settings = Settings.from_env()
 
 
 def _build_converter():
@@ -69,6 +65,7 @@ def _build_analysis_service() -> AnalysisService:
         converter=converter,
         chunker=chunker,
         conversion_timeout=settings.conversion_timeout,
+        max_concurrent=settings.max_concurrent_analyses,
     )
 
 
@@ -78,7 +75,7 @@ def _build_analysis_service() -> AnalysisService:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await init_db()
     app.state.analysis_service = _build_analysis_service()
     logger.info("Docling Studio backend ready (engine=%s)", settings.conversion_engine)
@@ -98,16 +95,27 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
+app.add_middleware(RateLimiterMiddleware, requests_per_window=100, window_seconds=60)
 
 app.include_router(documents_router)
 app.include_router(analyses_router)
 
 
 @app.get("/api/health")
-def health():
-    """Health check endpoint."""
+async def health() -> dict[str, str]:
+    """Health check endpoint — verifies database connectivity."""
+    db_status = "ok"
+    try:
+        async with get_connection() as db:
+            await db.execute("SELECT 1")
+    except Exception:
+        db_status = "error"
+        logger.warning("Health check: database unreachable", exc_info=True)
+
+    status = "ok" if db_status == "ok" else "degraded"
     return {
-        "status": "ok",
+        "status": status,
         "version": settings.app_version,
         "engine": settings.conversion_engine,
+        "database": db_status,
     }

@@ -53,6 +53,7 @@ class AnalysisJob:
     document_filename: str | None = None
 
     def mark_running(self) -> None:
+        """Transition to RUNNING and record the start timestamp."""
         self.status = AnalysisStatus.RUNNING
         self.started_at = _utcnow()
 
@@ -64,6 +65,7 @@ class AnalysisJob:
         document_json: str | None = None,
         chunks_json: str | None = None,
     ) -> None:
+        """Transition to COMPLETED with conversion results."""
         self.status = AnalysisStatus.COMPLETED
         self.content_markdown = markdown
         self.content_html = html
@@ -73,6 +75,7 @@ class AnalysisJob:
         self.completed_at = _utcnow()
 
     def mark_failed(self, error: str) -> None:
+        """Transition to FAILED with an error message."""
         self.status = AnalysisStatus.FAILED
         self.error_message = error
         self.completed_at = _utcnow()

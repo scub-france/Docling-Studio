@@ -1,13 +1,13 @@
-"""Tests for AnalysisService — focus on _on_task_done callback (bug #1 fix)."""
+"""Tests for AnalysisService — callbacks, concurrency, and orchestration."""
 
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.analysis_service import _on_task_done
+from services.analysis_service import AnalysisService, _on_task_done
 
 
 class TestOnTaskDone:
@@ -69,3 +69,46 @@ class TestOnTaskDone:
             await asyncio.sleep(0)
 
         mock_mark.assert_not_called()
+
+
+class TestAnalysisServiceConcurrency:
+    """Verify that the semaphore limits concurrent analysis jobs."""
+
+    def test_semaphore_initialized_with_max_concurrent(self):
+        converter = MagicMock()
+        service = AnalysisService(converter=converter, max_concurrent=5)
+        assert service._semaphore._value == 5
+
+    def test_default_max_concurrent(self):
+        converter = MagicMock()
+        service = AnalysisService(converter=converter)
+        assert service._semaphore._value == 3
+
+    @pytest.mark.asyncio
+    async def test_semaphore_limits_parallel_jobs(self):
+        """Only max_concurrent jobs should run in parallel; others must wait."""
+        call_order: list[str] = []
+        blocker = asyncio.Event()
+
+        converter = MagicMock()
+        service = AnalysisService(converter=converter, max_concurrent=1)
+
+        async def fake_inner(self, *args, **kwargs):
+            call_order.append("start")
+            await blocker.wait()
+            call_order.append("end")
+
+        with patch.object(AnalysisService, "_run_analysis_inner", fake_inner):
+            t1 = asyncio.create_task(service._run_analysis("j1", "/f", "f.pdf"))
+            t2 = asyncio.create_task(service._run_analysis("j2", "/f", "f.pdf"))
+            await asyncio.sleep(0.05)
+
+            # With max_concurrent=1, only one task should have started
+            assert call_order.count("start") == 1
+
+            blocker.set()
+            await asyncio.gather(t1, t2)
+
+            # Both should have completed
+            assert call_order.count("start") == 2
+            assert call_order.count("end") == 2

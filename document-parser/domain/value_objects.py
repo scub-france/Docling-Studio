@@ -39,6 +39,7 @@ class ConversionOptions:
     images_scale: float = 1.0
 
     def is_default(self) -> bool:
+        """Return True if all options match their defaults."""
         return self == ConversionOptions()
 
 
@@ -60,6 +61,7 @@ class ChunkingOptions:
     repeat_table_header: bool = True
 
     def is_default(self) -> bool:
+        """Return True if all options match their defaults."""
         return self == ChunkingOptions()
 
 

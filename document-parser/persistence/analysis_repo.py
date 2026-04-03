@@ -42,6 +42,7 @@ _SELECT_WITH_DOC = """
 
 
 async def insert(job: AnalysisJob) -> None:
+    """Persist a new analysis job record."""
     async with get_connection() as db:
         await db.execute(
             """INSERT INTO analysis_jobs (id, document_id, status, created_at)
@@ -52,6 +53,7 @@ async def insert(job: AnalysisJob) -> None:
 
 
 async def find_all(*, limit: int = 200, offset: int = 0) -> list[AnalysisJob]:
+    """Return analysis jobs with document info, newest first."""
     async with get_connection() as db:
         cursor = await db.execute(
             f"{_SELECT_WITH_DOC} ORDER BY aj.created_at DESC LIMIT ? OFFSET ?",
@@ -62,6 +64,7 @@ async def find_all(*, limit: int = 200, offset: int = 0) -> list[AnalysisJob]:
 
 
 async def find_by_id(job_id: str) -> AnalysisJob | None:
+    """Find an analysis job by ID (with document filename), or return None."""
     async with get_connection() as db:
         cursor = await db.execute(f"{_SELECT_WITH_DOC} WHERE aj.id = ?", (job_id,))
         row = await cursor.fetchone()
@@ -69,6 +72,7 @@ async def find_by_id(job_id: str) -> AnalysisJob | None:
 
 
 async def update_status(job: AnalysisJob) -> None:
+    """Persist all mutable fields of an analysis job (status, results, timestamps)."""
     async with get_connection() as db:
         await db.execute(
             """UPDATE analysis_jobs
@@ -104,6 +108,7 @@ async def update_chunks(job_id: str, chunks_json: str) -> bool:
 
 
 async def delete(job_id: str) -> bool:
+    """Delete an analysis job by ID. Returns True if a row was removed."""
     async with get_connection() as db:
         cursor = await db.execute("DELETE FROM analysis_jobs WHERE id = ?", (job_id,))
         await db.commit()

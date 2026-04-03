@@ -34,6 +34,10 @@ def _chunk_to_dict(c: ChunkResult) -> dict:
     }
 
 
+# Maximum number of concurrent analysis jobs to prevent resource exhaustion.
+_DEFAULT_MAX_CONCURRENT = 3
+
+
 class AnalysisService:
     """Orchestrates document analysis using an injected converter."""
 
@@ -42,10 +46,12 @@ class AnalysisService:
         converter: DocumentConverter,
         chunker: DocumentChunker | None = None,
         conversion_timeout: int = 600,
+        max_concurrent: int = _DEFAULT_MAX_CONCURRENT,
     ):
         self._converter = converter
         self._chunker = chunker
         self._conversion_timeout = conversion_timeout
+        self._semaphore = asyncio.Semaphore(max_concurrent)
 
     async def create(
         self,
@@ -77,12 +83,15 @@ class AnalysisService:
         return job
 
     async def find_all(self) -> list[AnalysisJob]:
+        """Return all analysis jobs, newest first."""
         return await analysis_repo.find_all()
 
     async def find_by_id(self, job_id: str) -> AnalysisJob | None:
+        """Find an analysis job by ID, or return None."""
         return await analysis_repo.find_by_id(job_id)
 
     async def delete(self, job_id: str) -> bool:
+        """Delete an analysis job. Returns True if it existed."""
         return await analysis_repo.delete(job_id)
 
     async def rechunk(self, job_id: str, chunking_options: dict) -> list[ChunkResult]:
@@ -113,7 +122,25 @@ class AnalysisService:
         pipeline_options: dict | None = None,
         chunking_options: dict | None = None,
     ) -> None:
-        """Background task: run conversion and optionally chunk."""
+        """Background task: run conversion and optionally chunk.
+
+        Acquires the concurrency semaphore to limit parallel conversions
+        and prevent CPU/memory exhaustion on modest hardware.
+        """
+        async with self._semaphore:
+            await self._run_analysis_inner(
+                job_id, file_path, filename, pipeline_options, chunking_options
+            )
+
+    async def _run_analysis_inner(
+        self,
+        job_id: str,
+        file_path: str,
+        filename: str,
+        pipeline_options: dict | None = None,
+        chunking_options: dict | None = None,
+    ) -> None:
+        """Inner analysis logic — called under the concurrency semaphore."""
         try:
             job = await analysis_repo.find_by_id(job_id)
             if not job:
@@ -192,5 +219,7 @@ async def _mark_failed(job_id: str, error: str) -> None:
         if job:
             job.mark_failed(error)
             await analysis_repo.update_status(job)
+    except OSError:
+        logger.exception("Database I/O error marking job %s as failed", job_id)
     except Exception:
-        logger.exception("Could not mark job %s as failed", job_id)
+        logger.exception("Unexpected error marking job %s as failed", job_id)

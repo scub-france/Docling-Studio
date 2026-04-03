@@ -35,13 +35,13 @@ from docling_core.types.doc import (
     TitleItem,
 )
 
-from infra.bbox import to_topleft_list
 from domain.value_objects import (
     ConversionOptions,
     ConversionResult,
     PageDetail,
     PageElement,
 )
+from infra.bbox import to_topleft_list
 
 logger = logging.getLogger(__name__)
 

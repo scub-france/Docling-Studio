@@ -13,6 +13,7 @@ class Settings:
     docling_serve_url: str = "http://localhost:5001"
     docling_serve_api_key: str | None = None
     conversion_timeout: int = 600
+    max_concurrent_analyses: int = 3
     upload_dir: str = "./uploads"
     db_path: str = "./data/docling_studio.db"
     cors_origins: list[str] = field(
@@ -21,6 +22,7 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> Settings:
+        """Build a Settings instance from environment variables."""
         cors_raw = os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
         return cls(
             app_version=os.environ.get("APP_VERSION", "dev"),
@@ -28,7 +30,12 @@ class Settings:
             docling_serve_url=os.environ.get("DOCLING_SERVE_URL", "http://localhost:5001"),
             docling_serve_api_key=os.environ.get("DOCLING_SERVE_API_KEY"),
             conversion_timeout=int(os.environ.get("CONVERSION_TIMEOUT", "600")),
+            max_concurrent_analyses=int(os.environ.get("MAX_CONCURRENT_ANALYSES", "3")),
             upload_dir=os.environ.get("UPLOAD_DIR", "./uploads"),
             db_path=os.environ.get("DB_PATH", "./data/docling_studio.db"),
             cors_origins=[o.strip() for o in cors_raw.split(",")],
         )
+
+
+# Module-level singleton — import this from other modules.
+settings = Settings.from_env()

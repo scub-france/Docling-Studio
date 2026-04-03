@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import aiosqlite
 
+from infra.settings import settings
+
 logger = logging.getLogger(__name__)
 
-DB_PATH = os.environ.get("DB_PATH", "./data/docling_studio.db")
+DB_PATH = settings.db_path
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS documents (
@@ -80,7 +83,7 @@ async def get_db() -> aiosqlite.Connection:
 
 
 @asynccontextmanager
-async def get_connection():
+async def get_connection() -> AsyncIterator[aiosqlite.Connection]:
     """Context manager that opens and auto-closes a database connection."""
     db = await get_db()
     try:
