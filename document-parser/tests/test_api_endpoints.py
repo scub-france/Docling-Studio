@@ -104,6 +104,19 @@ class TestDocumentEndpoints:
         )
         assert resp.status_code == 413
 
+    @patch("services.document_service.find_by_id", new_callable=AsyncMock)
+    def test_preview_page_out_of_range(self, mock_find, client):
+        mock_find.return_value = Document(
+            id="d1",
+            filename="test.pdf",
+            page_count=3,
+            storage_path="/tmp/test.pdf",
+        )
+
+        resp = client.get("/api/documents/d1/preview?page=10")
+        assert resp.status_code == 400
+        assert "out of range" in resp.json()["detail"]
+
     @patch("services.document_service.delete", new_callable=AsyncMock)
     def test_delete_document(self, mock_delete, client):
         mock_delete.return_value = True

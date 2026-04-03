@@ -84,6 +84,12 @@ async def preview(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
+    if doc.page_count and page > doc.page_count:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Page {page} out of range (document has {doc.page_count} pages)",
+        )
+
     try:
         with open(doc.storage_path, "rb") as f:
             file_content = f.read()
