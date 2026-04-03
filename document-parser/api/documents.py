@@ -25,8 +25,8 @@ def _to_response(doc) -> DocumentResponse:
     )
 
 
-@router.post("/upload", response_model=DocumentResponse)
-async def upload(file: UploadFile):
+@router.post("/upload", response_model=DocumentResponse, status_code=201)
+async def upload(file: UploadFile) -> DocumentResponse:
     """Upload a PDF document."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
@@ -50,14 +50,14 @@ async def upload(file: UploadFile):
 
 
 @router.get("", response_model=list[DocumentResponse])
-async def list_documents():
+async def list_documents() -> list[DocumentResponse]:
     """List all documents."""
     docs = await document_service.find_all()
     return [_to_response(d) for d in docs]
 
 
 @router.get("/{doc_id}", response_model=DocumentResponse)
-async def get_document(doc_id: str):
+async def get_document(doc_id: str) -> DocumentResponse:
     """Get a single document."""
     doc = await document_service.find_by_id(doc_id)
     if not doc:
@@ -66,7 +66,7 @@ async def get_document(doc_id: str):
 
 
 @router.delete("/{doc_id}", status_code=204)
-async def delete_document(doc_id: str):
+async def delete_document(doc_id: str) -> None:
     """Delete a document and its file."""
     deleted = await document_service.delete(doc_id)
     if not deleted:
@@ -78,7 +78,7 @@ async def preview(
     doc_id: str,
     page: int = Query(1, ge=1),
     dpi: int = Query(150, ge=72, le=300),
-):
+) -> Response:
     """Generate a PNG preview of a specific PDF page."""
     doc = await document_service.find_by_id(doc_id)
     if not doc:

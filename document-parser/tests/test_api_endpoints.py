@@ -89,7 +89,7 @@ class TestDocumentEndpoints:
             "/api/documents/upload",
             files={"file": ("uploaded.pdf", b"fake-pdf-content", "application/pdf")},
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 201
         data = resp.json()
         assert data["id"] == "new-1"
         assert data["filename"] == "uploaded.pdf"

@@ -12,6 +12,7 @@ Conversion engine is selected via CONVERSION_ENGINE env var:
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -72,7 +73,7 @@ def _build_analysis_service() -> AnalysisService:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await init_db()
     app.state.analysis_service = _build_analysis_service()
     logger.info("Docling Studio backend ready (engine=%s)", settings.conversion_engine)
@@ -98,7 +99,7 @@ app.include_router(analyses_router)
 
 
 @app.get("/api/health")
-def health():
+def health() -> dict[str, str]:
     """Health check endpoint."""
     return {
         "status": "ok",

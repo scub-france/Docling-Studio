@@ -46,7 +46,7 @@ def _to_response(job) -> AnalysisResponse:
 
 
 @router.post("", response_model=AnalysisResponse)
-async def create_analysis(body: CreateAnalysisRequest, service: ServiceDep):
+async def create_analysis(body: CreateAnalysisRequest, service: ServiceDep) -> AnalysisResponse:
     """Create a new analysis job for a document."""
     if not body.documentId or not body.documentId.strip():
         raise HTTPException(status_code=400, detail="documentId is required")
@@ -72,14 +72,14 @@ async def create_analysis(body: CreateAnalysisRequest, service: ServiceDep):
 
 
 @router.get("", response_model=list[AnalysisResponse])
-async def list_analyses(service: ServiceDep):
+async def list_analyses(service: ServiceDep) -> list[AnalysisResponse]:
     """List all analysis jobs."""
     jobs = await service.find_all()
     return [_to_response(j) for j in jobs]
 
 
 @router.get("/{job_id}", response_model=AnalysisResponse)
-async def get_analysis(job_id: str, service: ServiceDep):
+async def get_analysis(job_id: str, service: ServiceDep) -> AnalysisResponse:
     """Get a single analysis job."""
     job = await service.find_by_id(job_id)
     if not job:
@@ -88,7 +88,9 @@ async def get_analysis(job_id: str, service: ServiceDep):
 
 
 @router.post("/{job_id}/rechunk", response_model=list[ChunkResponse])
-async def rechunk_analysis(job_id: str, body: RechunkRequest, service: ServiceDep):
+async def rechunk_analysis(
+    job_id: str, body: RechunkRequest, service: ServiceDep
+) -> list[ChunkResponse]:
     """Re-chunk a completed analysis with new chunking options."""
     try:
         chunks = await service.rechunk(job_id, body.chunkingOptions.model_dump())
@@ -107,7 +109,7 @@ async def rechunk_analysis(job_id: str, body: RechunkRequest, service: ServiceDe
 
 
 @router.delete("/{job_id}", status_code=204)
-async def delete_analysis(job_id: str, service: ServiceDep):
+async def delete_analysis(job_id: str, service: ServiceDep) -> None:
     """Delete an analysis job."""
     deleted = await service.delete(job_id)
     if not deleted:

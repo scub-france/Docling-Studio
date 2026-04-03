@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 import aiosqlite
@@ -82,7 +83,7 @@ async def get_db() -> aiosqlite.Connection:
 
 
 @asynccontextmanager
-async def get_connection():
+async def get_connection() -> AsyncIterator[aiosqlite.Connection]:
     """Context manager that opens and auto-closes a database connection."""
     db = await get_db()
     try:
