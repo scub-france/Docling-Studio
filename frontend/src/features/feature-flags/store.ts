@@ -44,7 +44,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
 
   async function load(): Promise<void> {
     try {
-      const data = await apiFetch<HealthResponse>('/health')
+      const data = await apiFetch<HealthResponse>('/api/health')
       engine.value = data.engine
       loaded.value = true
       error.value = null
