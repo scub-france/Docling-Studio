@@ -22,7 +22,13 @@ Thank you for your interest in contributing to Docling Studio! This guide will h
 ```bash
 cd document-parser
 python -m venv .venv && source .venv/bin/activate
+
+# Remote mode (lightweight — delegates to Docling Serve)
 pip install -r requirements.txt
+
+# Local mode (full — runs Docling in-process)
+pip install -r requirements-local.txt
+
 pip install ruff pytest pytest-asyncio httpx  # dev tools
 uvicorn main:app --reload --port 8000
 ```
@@ -129,11 +135,16 @@ We use [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`.
 
 ### Docker Image Tags
 
+Each release produces two image variants:
+
 | Tag | Description |
 |-----|-------------|
-| `X.Y.Z` | Exact version |
-| `X.Y` | Latest patch of this minor |
-| `latest` | Latest stable release |
+| `X.Y.Z-remote` | Exact version — lightweight (Docling Serve) |
+| `X.Y.Z-local` | Exact version — full (in-process Docling) |
+| `X.Y-remote` | Latest patch of this minor — lightweight |
+| `X.Y-local` | Latest patch of this minor — full |
+| `latest-remote` | Latest stable — lightweight |
+| `latest-local` | Latest stable — full |
 
 ### Hotfix
 

@@ -26,7 +26,7 @@ def mock_analysis_service(client):
 
 class TestHealthEndpoint:
     def test_health(self, client):
-        resp = client.get("/health")
+        resp = client.get("/api/health")
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"

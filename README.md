@@ -85,22 +85,42 @@ frontend/src/
 
 ## Quick Start
 
-### Docker (fastest)
+Docling Studio ships two Docker image variants:
+
+| Variant | Image tag | Size | Description |
+|---------|-----------|------|-------------|
+| **remote** | `latest-remote` | ~270 MB | Lightweight — delegates to an external [Docling Serve](https://github.com/DS4SD/docling-serve) instance |
+| **local** | `latest-local` | ~1.9 GB | Full — runs Docling in-process, CPU-only (downloads ML models on first run) |
+
+### Docker — remote mode (fastest)
 
 ```bash
-docker run -p 3000:3000 ghcr.io/scub-france/docling-studio:latest
+docker run -p 3000:3000 \
+  -e DOCLING_SERVE_URL=http://your-docling-serve:5001 \
+  ghcr.io/scub-france/docling-studio:latest-remote
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+### Docker — local mode (self-contained)
+
+```bash
+docker run -p 3000:3000 ghcr.io/scub-france/docling-studio:latest-local
+```
 
 > **Note:** The first analysis takes longer as Docling downloads its ML models (~400 MB). Subsequent runs are fast.
+
+Open [http://localhost:3000](http://localhost:3000)
 
 ### Docker Compose (for development)
 
 ```bash
 git clone https://github.com/scub-france/Docling-Studio.git
 cd Docling-Studio
+
+# Local mode (default)
 docker compose up --build
+
+# Remote mode
+CONVERSION_MODE=remote DOCLING_SERVE_URL=http://your-docling-serve:5001 docker compose up --build
 ```
 
 ### Local Development
@@ -109,7 +129,13 @@ docker compose up --build
 ```bash
 cd document-parser
 python -m venv .venv && source .venv/bin/activate
+
+# Remote mode (lightweight)
 pip install -r requirements.txt
+
+# Local mode (with Docling)
+pip install -r requirements-local.txt
+
 uvicorn main:app --reload --port 8000
 ```
 
@@ -156,6 +182,9 @@ All configuration is done via environment variables. See [`.env.example`](.env.e
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `CONVERSION_ENGINE` | `local` | `local` (in-process Docling) or `remote` (Docling Serve) |
+| `DOCLING_SERVE_URL` | `http://localhost:5001` | Docling Serve endpoint (remote mode only) |
+| `DOCLING_SERVE_API_KEY` | — | API key for Docling Serve (optional) |
 | `CORS_ORIGINS` | `http://localhost:3000,...` | CORS allowed origins (comma-separated) |
 | `UPLOAD_DIR` | `./uploads` | File storage directory |
 | `DB_PATH` | `./data/docling_studio.db` | SQLite database path |
@@ -168,7 +197,7 @@ GitHub Actions pipelines (see [`.github/workflows/`](.github/workflows/)):
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
 | **CI** | push to `main`, pull requests | Lint + type check + Backend tests + Frontend tests + build |
-| **Release** | push tag `v*` | Build & push multi-arch Docker image to `ghcr.io` |
+| **Release** | push tag `v*` | Build & push **two** multi-arch Docker images (`remote` + `local`) to `ghcr.io` |
 | **Docs** | push to `main` (docs changes) | Build & deploy MkDocs to GitHub Pages |
 
 We follow [Semantic Versioning](https://semver.org/) with a simplified Git Flow. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full release process.
@@ -183,12 +212,11 @@ We follow [Semantic Versioning](https://semver.org/) with a simplified Git Flow.
 
 ### Docker Desktop settings
 
-The document parser needs **at least 4 GB of RAM**:
-
-| Resource | Minimum | Recommended |
-|----------|---------|-------------|
-| Memory   | 6 GB    | 8 GB+       |
-| CPUs     | 4       | 8+          |
+| | Remote image | Local image |
+|---|---|---|
+| **Image size** | ~270 MB | ~1.9 GB |
+| **Memory** | 2 GB | 6 GB (recommended 8 GB+) |
+| **CPUs** | 2 | 4 (recommended 8+) |
 
 ### Platform support
 

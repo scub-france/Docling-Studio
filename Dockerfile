@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 # =============================================================================
-# Docling Studio — single-image build (frontend + backend)
+# Docling Studio — single-image build (frontend + backend, multi-target)
 #
 # Usage:
-#   docker build -t docling-studio .
-#   docker run -p 3000:3000 docling-studio
+#   docker build --target remote -t docling-studio:remote .
+#   docker build --target local  -t docling-studio:local  .
 # =============================================================================
 
 # --- Stage 1: Build frontend assets ---
@@ -18,21 +18,19 @@ RUN npm ci
 COPY frontend/ .
 RUN VITE_APP_VERSION=${APP_VERSION} npm run build
 
-# --- Stage 2: Runtime (Python + Nginx) ---
-FROM python:3.12-slim
+# --- Stage 2: Base runtime (Python + Nginx) ---
+FROM python:3.12-slim AS base
 
 ARG APP_VERSION=dev
 ENV APP_VERSION=${APP_VERSION}
 
-# System deps: poppler (pdf2image), nginx, and OpenCV runtime libs
+# System deps: poppler (pdf2image), nginx
 RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
-    libgl1 \
-    libglib2.0-0 \
     nginx \
     && rm -rf /var/lib/apt/lists/*
 
-# Python deps
+# Python deps (common)
 WORKDIR /app
 COPY document-parser/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
@@ -57,5 +55,24 @@ ENV DB_PATH=/app/data/docling_studio.db
 
 EXPOSE 3000
 
-# nginx needs to run as root for port binding, then drops to appuser for uvicorn
 CMD ["sh", "-c", "nginx && exec su appuser -c 'uvicorn main:app --host 127.0.0.1 --port 8000'"]
+
+# --- Remote: lightweight, delegates to Docling Serve ---
+FROM base AS remote
+ENV CONVERSION_ENGINE=remote
+
+# --- Local: full Docling in-process ---
+FROM base AS local
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY document-parser/requirements-local.txt .
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r requirements-local.txt
+
+RUN chown -R appuser:appuser /app \
+    && chown -R appuser:appuser /usr/local/lib/python3.12/site-packages/rapidocr/models
+ENV CONVERSION_ENGINE=local

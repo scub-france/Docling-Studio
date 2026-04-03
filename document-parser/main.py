@@ -103,7 +103,7 @@ app.include_router(documents_router)
 app.include_router(analyses_router)
 
 
-@app.get("/health")
+@app.get("/api/health")
 def health():
     """Health check endpoint."""
     return {
