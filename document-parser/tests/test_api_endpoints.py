@@ -90,7 +90,7 @@ class TestDocumentEndpoints:
             "/api/documents/upload",
             files={"file": ("uploaded.pdf", b"fake-pdf-content", "application/pdf")},
         )
-        assert resp.status_code == 201
+        assert resp.status_code == 200
         data = resp.json()
         assert data["id"] == "new-1"
         assert data["filename"] == "uploaded.pdf"
@@ -103,7 +103,7 @@ class TestDocumentEndpoints:
             "/api/documents/upload",
             files={"file": ("big.pdf", b"x", "application/pdf")},
         )
-        assert resp.status_code == 413
+        assert resp.status_code == 400
 
     @patch("services.document_service.find_by_id", new_callable=AsyncMock)
     def test_preview_page_out_of_range(self, mock_find, client):

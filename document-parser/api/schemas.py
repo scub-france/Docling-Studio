@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 def _to_camel(name: str) -> str:
@@ -29,6 +29,7 @@ class _CamelModel(BaseModel):
 class DocumentResponse(_CamelModel):
     id: str
     filename: str
+    status: str = "uploaded"  # Document status (always "uploaded" for now)
     content_type: str | None = None
     file_size: int | None = None
     page_count: int | None = None
@@ -54,16 +55,39 @@ class AnalysisResponse(_CamelModel):
 class PipelineOptionsRequest(BaseModel):
     """Docling pipeline configuration options."""
 
-    do_ocr: bool = True
-    do_table_structure: bool = True
-    table_mode: str = "accurate"  # "accurate" or "fast"
-    do_code_enrichment: bool = False
-    do_formula_enrichment: bool = False
-    do_picture_classification: bool = False
-    do_picture_description: bool = False
-    generate_picture_images: bool = False
-    generate_page_images: bool = False
-    images_scale: float = 1.0
+    model_config = ConfigDict(populate_by_name=True)
+
+    do_ocr: bool = Field(default=True, validation_alias=AliasChoices("do_ocr", "doOcr"))
+    do_table_structure: bool = Field(
+        default=True, validation_alias=AliasChoices("do_table_structure", "doTableStructure")
+    )
+    table_mode: str = Field(
+        default="accurate", validation_alias=AliasChoices("table_mode", "tableMode")
+    )
+    do_code_enrichment: bool = Field(
+        default=False, validation_alias=AliasChoices("do_code_enrichment", "doCodeEnrichment")
+    )
+    do_formula_enrichment: bool = Field(
+        default=False, validation_alias=AliasChoices("do_formula_enrichment", "doFormulaEnrichment")
+    )
+    do_picture_classification: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("do_picture_classification", "doPictureClassification"),
+    )
+    do_picture_description: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("do_picture_description", "doPictureDescription"),
+    )
+    generate_picture_images: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("generate_picture_images", "generatePictureImages"),
+    )
+    generate_page_images: bool = Field(
+        default=False, validation_alias=AliasChoices("generate_page_images", "generatePageImages")
+    )
+    images_scale: float = Field(
+        default=1.0, validation_alias=AliasChoices("images_scale", "imagesScale")
+    )
 
     @field_validator("table_mode")
     @classmethod
@@ -83,10 +107,18 @@ class PipelineOptionsRequest(BaseModel):
 class ChunkingOptionsRequest(BaseModel):
     """Docling chunking configuration options."""
 
-    chunker_type: str = "hybrid"  # "hybrid", "hierarchical"
-    max_tokens: int = 512
-    merge_peers: bool = True
-    repeat_table_header: bool = True
+    model_config = ConfigDict(populate_by_name=True)
+
+    chunker_type: str = Field(
+        default="hybrid", validation_alias=AliasChoices("chunker_type", "chunkerType")
+    )
+    max_tokens: int = Field(default=512, validation_alias=AliasChoices("max_tokens", "maxTokens"))
+    merge_peers: bool = Field(
+        default=True, validation_alias=AliasChoices("merge_peers", "mergePeers")
+    )
+    repeat_table_header: bool = Field(
+        default=True, validation_alias=AliasChoices("repeat_table_header", "repeatTableHeader")
+    )
 
     @field_validator("chunker_type")
     @classmethod
@@ -117,10 +149,16 @@ class ChunkResponse(_CamelModel):
 
 
 class CreateAnalysisRequest(BaseModel):
-    documentId: str  # camelCase to match existing frontend contract
-    pipelineOptions: PipelineOptionsRequest | None = None
-    chunkingOptions: ChunkingOptionsRequest | None = None
+    documentId: str = Field(validation_alias=AliasChoices("documentId", "document_id"))
+    pipelineOptions: PipelineOptionsRequest | None = Field(
+        default=None, validation_alias=AliasChoices("pipelineOptions", "pipeline_options")
+    )
+    chunkingOptions: ChunkingOptionsRequest | None = Field(
+        default=None, validation_alias=AliasChoices("chunkingOptions", "chunking_options")
+    )
 
 
 class RechunkRequest(BaseModel):
-    chunkingOptions: ChunkingOptionsRequest
+    chunkingOptions: ChunkingOptionsRequest = Field(
+        validation_alias=AliasChoices("chunkingOptions", "chunking_options")
+    )

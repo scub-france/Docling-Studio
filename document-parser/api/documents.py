@@ -27,7 +27,7 @@ def _to_response(doc) -> DocumentResponse:
     )
 
 
-@router.post("/upload", response_model=DocumentResponse, status_code=201)
+@router.post("/upload", response_model=DocumentResponse, status_code=200)
 async def upload(file: UploadFile) -> DocumentResponse:
     """Upload a PDF document."""
     if not file.filename:
@@ -54,7 +54,7 @@ async def upload(file: UploadFile) -> DocumentResponse:
             file_content=content,
         )
     except ValueError as e:
-        raise HTTPException(status_code=413, detail=str(e)) from e
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     return _to_response(doc)
 
