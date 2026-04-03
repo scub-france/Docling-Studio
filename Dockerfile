@@ -73,5 +73,6 @@ COPY document-parser/requirements-local.txt .
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
     && pip install --no-cache-dir -r requirements-local.txt
 
-RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appuser /app \
+    && chown -R appuser:appuser /usr/local/lib/python3.12/site-packages/rapidocr/models
 ENV CONVERSION_ENGINE=local
