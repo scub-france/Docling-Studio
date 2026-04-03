@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -15,6 +16,12 @@ from infra.serve_converter import (
     _extract_bbox,
     _parse_response,
 )
+
+
+def _has_docling() -> bool:
+    """Return True if the heavy docling library is available."""
+    return importlib.util.find_spec("docling") is not None
+
 
 # ---------------------------------------------------------------------------
 # Unit tests — form data building
@@ -452,6 +459,10 @@ class TestServeConverterConvert:
 
 
 class TestConverterWiring:
+    @pytest.mark.skipif(
+        not _has_docling(),
+        reason="docling library not installed",
+    )
     def test_local_engine_builds_local_converter(self):
         from infra.local_converter import LocalConverter
         from infra.settings import Settings
