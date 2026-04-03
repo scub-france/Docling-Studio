@@ -44,12 +44,11 @@
         @mouseleave="hoveredElement = null"
       />
       <!-- Tooltip -->
-      <div
-        v-if="hoveredElement"
-        class="tooltip"
-        :style="tooltipStyle"
-      >
-        <span class="tooltip-type" :style="{ color: ELEMENT_COLORS[hoveredElement.type] || ELEMENT_COLORS.text }">
+      <div v-if="hoveredElement" class="tooltip" :style="tooltipStyle">
+        <span
+          class="tooltip-type"
+          :style="{ color: ELEMENT_COLORS[hoveredElement.type] || ELEMENT_COLORS.text }"
+        >
           {{ hoveredElement.type }}
         </span>
         <span class="tooltip-content">{{ hoveredElement.content?.substring(0, 150) }}</span>
@@ -71,12 +70,12 @@ const ELEMENT_COLORS: Record<string, string> = {
   picture: '#22C55E',
   list: '#06B6D4',
   formula: '#EC4899',
-  caption: '#EAB308'
+  caption: '#EAB308',
 }
 
 const props = defineProps({
   pages: { type: Array as () => Page[], default: () => [] },
-  documentId: String
+  documentId: String,
 })
 
 const selectedPage = ref(1)
@@ -89,12 +88,12 @@ const tooltipStyle = ref<Record<string, string>>({})
 const imageSize = ref({ width: 0, height: 0 })
 
 const currentPageData = computed(() => {
-  return props.pages.find(p => p.page_number === selectedPage.value)
+  return props.pages.find((p) => p.page_number === selectedPage.value)
 })
 
 const visibleElements = computed(() => {
   if (!currentPageData.value) return []
-  return currentPageData.value.elements.filter(e => !hiddenTypes.has(e.type))
+  return currentPageData.value.elements.filter((e) => !hiddenTypes.has(e.type))
 })
 
 const previewUrl = computed(() => {
@@ -110,7 +109,7 @@ function toggleType(type: string) {
 
 function countElements(type: string) {
   if (!currentPageData.value) return 0
-  return currentPageData.value.elements.filter(e => e.type === type).length
+  return currentPageData.value.elements.filter((e) => e.type === type).length
 }
 
 function onImageLoad() {
@@ -174,7 +173,7 @@ function onMouseMove(e: MouseEvent) {
   if (found) {
     tooltipStyle.value = {
       left: `${Math.min(mx + 12, canvas.width - 250)}px`,
-      top: `${my + 12}px`
+      top: `${my + 12}px`,
     }
   }
 }
@@ -213,7 +212,9 @@ watch([() => props.pages, selectedPage, hiddenTypes], () => {
   transition: all var(--transition);
 }
 
-.page-btn:hover { background: var(--bg-hover); }
+.page-btn:hover {
+  background: var(--bg-hover);
+}
 .page-btn.active {
   background: var(--accent-muted);
   border-color: var(--accent);
@@ -240,8 +241,12 @@ watch([() => props.pages, selectedPage, hiddenTypes], () => {
   transition: all var(--transition);
 }
 
-.legend-item:hover { background: var(--bg-hover); }
-.legend-item.dimmed { opacity: 0.4; }
+.legend-item:hover {
+  background: var(--bg-hover);
+}
+.legend-item.dimmed {
+  opacity: 0.4;
+}
 
 .legend-dot {
   width: 8px;
@@ -286,7 +291,7 @@ watch([() => props.pages, selectedPage, hiddenTypes], () => {
   max-width: 250px;
   pointer-events: none;
   z-index: 10;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .tooltip-type {

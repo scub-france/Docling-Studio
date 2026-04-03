@@ -19,10 +19,7 @@ export function createAnalysis(
   })
 }
 
-export function rechunkAnalysis(
-  jobId: string,
-  chunkingOptions: ChunkingOptions,
-): Promise<Chunk[]> {
+export function rechunkAnalysis(jobId: string, chunkingOptions: ChunkingOptions): Promise<Chunk[]> {
   return apiFetch<Chunk[]>(`/api/analyses/${jobId}/rechunk`, {
     method: 'POST',
     body: JSON.stringify({ chunkingOptions }),

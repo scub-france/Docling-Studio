@@ -20,7 +20,8 @@ const messages: Messages = {
 
     // Home
     'home.title': 'Docling Studio',
-    'home.subtitle': 'Analysez, explorez et validez la structure de vos documents PDF grâce à Docling.',
+    'home.subtitle':
+      'Analysez, explorez et validez la structure de vos documents PDF grâce à Docling.',
     'home.documents': 'Documents',
     'home.analyses': 'Analyses',
     'home.recentDocs': 'Documents récents',
@@ -45,26 +46,34 @@ const messages: Messages = {
     'config.model': 'Modèle',
     'config.pipeline': 'Pipeline',
     'config.ocr': 'OCR',
-    'config.ocrHint': "Applique la reconnaissance optique de caractères sur les pages scannées ou les images intégrées. Indispensable pour les PDF non-natifs.",
+    'config.ocrHint':
+      'Applique la reconnaissance optique de caractères sur les pages scannées ou les images intégrées. Indispensable pour les PDF non-natifs.',
     'config.tableStructure': 'Extraction des tableaux',
-    'config.tableStructureHint': "Détecte les tableaux dans le document et reconstruit leur structure lignes/colonnes via le modèle TableFormer, avec correspondance des cellules.",
+    'config.tableStructureHint':
+      'Détecte les tableaux dans le document et reconstruit leur structure lignes/colonnes via le modèle TableFormer, avec correspondance des cellules.',
     'config.tableMode': 'Mode tableaux',
     'config.tableModeAccurate': 'Précis',
     'config.tableModeFast': 'Rapide',
     'config.enrichment': 'Enrichissement',
     'config.codeEnrichment': 'Code',
-    'config.codeEnrichmentHint': "Active un modèle OCR spécialisé pour les blocs de code, préservant l'indentation et la syntaxe.",
+    'config.codeEnrichmentHint':
+      "Active un modèle OCR spécialisé pour les blocs de code, préservant l'indentation et la syntaxe.",
     'config.formulaEnrichment': 'Formules',
-    'config.formulaEnrichmentHint': "Reconnaît les formules mathématiques et les convertit en LaTeX via un modèle dédié.",
+    'config.formulaEnrichmentHint':
+      'Reconnaît les formules mathématiques et les convertit en LaTeX via un modèle dédié.',
     'config.pictures': 'Images',
     'config.pictureClassification': 'Classification',
-    'config.pictureClassificationHint': "Classe chaque image détectée par type (graphique, photo, diagramme, logo…) via un modèle de classification.",
+    'config.pictureClassificationHint':
+      'Classe chaque image détectée par type (graphique, photo, diagramme, logo…) via un modèle de classification.',
     'config.pictureDescription': 'Description',
-    'config.pictureDescriptionHint': "Génère une description textuelle de chaque image via un Vision Language Model (VLM). Utile pour l'accessibilité et l'indexation.",
+    'config.pictureDescriptionHint':
+      "Génère une description textuelle de chaque image via un Vision Language Model (VLM). Utile pour l'accessibilité et l'indexation.",
     'config.generatePictureImages': 'Extraire les images',
-    'config.generatePictureImagesHint': "Extrait les images détectées du document et les sauvegarde en tant que fichiers séparés. Nécessaire pour l'export d'images.",
+    'config.generatePictureImagesHint':
+      "Extrait les images détectées du document et les sauvegarde en tant que fichiers séparés. Nécessaire pour l'export d'images.",
     'config.generatePageImages': 'Images de pages',
-    'config.generatePageImagesHint': "Rasterise chaque page du PDF en image. Utile pour la visualisation ou le post-traitement visuel.",
+    'config.generatePageImagesHint':
+      'Rasterise chaque page du PDF en image. Utile pour la visualisation ou le post-traitement visuel.',
     'config.imagesScale': 'Échelle images',
     'config.documents': 'Documents',
 
@@ -133,7 +142,8 @@ const messages: Messages = {
     'topbar.newAnalysis': 'New analysis',
 
     'home.title': 'Docling Studio',
-    'home.subtitle': 'Analyze, explore and validate the structure of your PDF documents with Docling.',
+    'home.subtitle':
+      'Analyze, explore and validate the structure of your PDF documents with Docling.',
     'home.documents': 'Documents',
     'home.analyses': 'Analyses',
     'home.recentDocs': 'Recent documents',
@@ -155,26 +165,34 @@ const messages: Messages = {
     'config.model': 'Model',
     'config.pipeline': 'Pipeline',
     'config.ocr': 'OCR',
-    'config.ocrHint': 'Applies Optical Character Recognition on scanned pages or embedded images. Essential for non-native PDFs.',
+    'config.ocrHint':
+      'Applies Optical Character Recognition on scanned pages or embedded images. Essential for non-native PDFs.',
     'config.tableStructure': 'Table extraction',
-    'config.tableStructureHint': 'Detects tables in the document and reconstructs their row/column structure using the TableFormer model, with cell matching.',
+    'config.tableStructureHint':
+      'Detects tables in the document and reconstructs their row/column structure using the TableFormer model, with cell matching.',
     'config.tableMode': 'Table mode',
     'config.tableModeAccurate': 'Accurate',
     'config.tableModeFast': 'Fast',
     'config.enrichment': 'Enrichment',
     'config.codeEnrichment': 'Code',
-    'config.codeEnrichmentHint': 'Activates a specialized OCR model for code blocks, preserving indentation and syntax.',
+    'config.codeEnrichmentHint':
+      'Activates a specialized OCR model for code blocks, preserving indentation and syntax.',
     'config.formulaEnrichment': 'Formulas',
-    'config.formulaEnrichmentHint': 'Recognizes mathematical formulas and converts them to LaTeX using a dedicated model.',
+    'config.formulaEnrichmentHint':
+      'Recognizes mathematical formulas and converts them to LaTeX using a dedicated model.',
     'config.pictures': 'Pictures',
     'config.pictureClassification': 'Classification',
-    'config.pictureClassificationHint': 'Classifies each detected image by type (chart, photo, diagram, logo…) using a classification model.',
+    'config.pictureClassificationHint':
+      'Classifies each detected image by type (chart, photo, diagram, logo…) using a classification model.',
     'config.pictureDescription': 'Description',
-    'config.pictureDescriptionHint': 'Generates a text description for each image using a Vision Language Model (VLM). Useful for accessibility and indexing.',
+    'config.pictureDescriptionHint':
+      'Generates a text description for each image using a Vision Language Model (VLM). Useful for accessibility and indexing.',
     'config.generatePictureImages': 'Extract pictures',
-    'config.generatePictureImagesHint': 'Extracts detected images from the document and saves them as separate files. Required for image export.',
+    'config.generatePictureImagesHint':
+      'Extracts detected images from the document and saves them as separate files. Required for image export.',
     'config.generatePageImages': 'Page images',
-    'config.generatePageImagesHint': 'Rasterizes each PDF page as an image. Useful for visual preview or post-processing.',
+    'config.generatePageImagesHint':
+      'Rasterizes each PDF page as an image. Useful for visual preview or post-processing.',
     'config.imagesScale': 'Images scale',
     'config.documents': 'Documents',
 

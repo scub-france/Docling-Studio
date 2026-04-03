@@ -13,7 +13,13 @@
       <span>{{ t('upload.uploading') }}</span>
     </div>
     <div v-else class="upload-state">
-      <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <svg
+        class="upload-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
         <path d="M12 16V4m0 0L8 8m4-4l4 4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2" />
       </svg>
       <span class="upload-text">{{ t('upload.drop') }}</span>
@@ -42,10 +48,7 @@ function openFilePicker() {
 async function onFileSelect(e: Event) {
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
-  if (
-    file &&
-    (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))
-  ) {
+  if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
     try {
       store.clearError()
       const doc = await store.upload(file)
@@ -133,6 +136,8 @@ async function onDrop(e: DragEvent) {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

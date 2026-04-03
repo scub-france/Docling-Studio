@@ -15,9 +15,12 @@ describe('apiFetch', () => {
 
     await apiFetch('/api/test')
 
-    expect(spy).toHaveBeenCalledWith('/api/test', expect.objectContaining({
-      headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
-    }))
+    expect(spy).toHaveBeenCalledWith(
+      '/api/test',
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
+      }),
+    )
   })
 
   it('skips Content-Type when skipContentType is true', async () => {
@@ -73,10 +76,13 @@ describe('apiFetch', () => {
     const body = JSON.stringify({ documentId: '42' })
     await apiFetch('/api/analyses', { method: 'POST', body })
 
-    expect(spy).toHaveBeenCalledWith('/api/analyses', expect.objectContaining({
-      method: 'POST',
-      body,
-    }))
+    expect(spy).toHaveBeenCalledWith(
+      '/api/analyses',
+      expect.objectContaining({
+        method: 'POST',
+        body,
+      }),
+    )
   })
 
   it('merges custom headers with Content-Type', async () => {

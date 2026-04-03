@@ -20,14 +20,16 @@
       ref="canvasRef"
       class="overlay-canvas"
       @mousemove="onMouseMove"
-      @mouseleave="hoveredElement = null; emit('highlight-element', -1)"
+      @mouseleave="
+        hoveredElement = null
+        emit('highlight-element', -1)
+      "
     />
-    <div
-      v-if="hoveredElement"
-      class="tooltip"
-      :style="tooltipStyle"
-    >
-      <span class="tooltip-type" :style="{ color: ELEMENT_COLORS[hoveredElement.type] || ELEMENT_COLORS.text }">
+    <div v-if="hoveredElement" class="tooltip" :style="tooltipStyle">
+      <span
+        class="tooltip-type"
+        :style="{ color: ELEMENT_COLORS[hoveredElement.type] || ELEMENT_COLORS.text }"
+      >
         {{ hoveredElement.type }}
       </span>
       <span class="tooltip-content">{{ hoveredElement.content?.substring(0, 150) }}</span>
@@ -49,7 +51,7 @@ const ELEMENT_COLORS: Record<string, string> = {
   list: '#06B6D4',
   formula: '#EC4899',
   code: '#14B8A6',
-  caption: '#EAB308'
+  caption: '#EAB308',
 }
 
 const props = withDefaults(
@@ -116,7 +118,12 @@ function draw(): void {
 
   if (!props.pageData) return
 
-  const scale = computeScale(img.clientWidth, img.clientHeight, props.pageData.width, props.pageData.height)
+  const scale = computeScale(
+    img.clientWidth,
+    img.clientHeight,
+    props.pageData.width,
+    props.pageData.height,
+  )
 
   const hasHighlight = props.highlightedIndex >= 0
   const hasChunkHighlight = props.highlightedBboxes.length > 0
@@ -160,7 +167,12 @@ function onMouseMove(e: MouseEvent): void {
   const mx = e.clientX - canvasRect.left
   const my = e.clientY - canvasRect.top
 
-  const scale = computeScale(img.clientWidth, img.clientHeight, props.pageData.width, props.pageData.height)
+  const scale = computeScale(
+    img.clientWidth,
+    img.clientHeight,
+    props.pageData.width,
+    props.pageData.height,
+  )
 
   let found: PageElement | null = null
   let foundIdx = -1
@@ -177,7 +189,7 @@ function onMouseMove(e: MouseEvent): void {
   if (found) {
     tooltipStyle.value = {
       left: `${Math.min(mx + 12, canvas.width - 250)}px`,
-      top: `${my + 12}px`
+      top: `${my + 12}px`,
     }
   }
 }
@@ -194,9 +206,18 @@ onBeforeUnmount(() => {
 })
 
 // Redraw when data or image changes
-watch([() => props.pageData, () => props.imageEl, () => props.highlightedIndex, () => props.highlightedBboxes, hiddenTypes], () => {
-  nextTick(draw)
-})
+watch(
+  [
+    () => props.pageData,
+    () => props.imageEl,
+    () => props.highlightedIndex,
+    () => props.highlightedBboxes,
+    hiddenTypes,
+  ],
+  () => {
+    nextTick(draw)
+  },
+)
 
 // Expose draw so parent can call it after image load
 defineExpose({ draw })
@@ -240,8 +261,13 @@ defineExpose({ draw })
   opacity: 0.9;
 }
 
-.legend-chip:hover { opacity: 1; background: var(--bg-hover); }
-.legend-chip.dimmed { opacity: 0.35; }
+.legend-chip:hover {
+  opacity: 1;
+  background: var(--bg-hover);
+}
+.legend-chip.dimmed {
+  opacity: 0.35;
+}
 
 .legend-dot {
   width: 6px;
@@ -273,7 +299,7 @@ defineExpose({ draw })
   max-width: 250px;
   pointer-events: none;
   z-index: 10;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .tooltip-type {

@@ -20,7 +20,6 @@ import * as api from './api'
 // ---------------------------------------------------------------------------
 
 describe('createAnalysis — pipeline options body construction', () => {
-
   beforeEach(() => {
     vi.clearAllMocks()
     // Reset the real module to get the unmocked version
@@ -106,7 +105,6 @@ describe('createAnalysis — pipeline options body construction', () => {
     expect(sentBody.pipelineOptions).toEqual({})
   })
 })
-
 
 // ---------------------------------------------------------------------------
 // Store → API integration — pipeline options forwarding

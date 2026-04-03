@@ -68,9 +68,7 @@
 
     <!-- Chunks list -->
     <div class="chunk-results" v-if="pageChunks.length">
-      <div class="chunk-summary">
-        {{ pagination.totalItems.value }} {{ t('chunking.chunks') }}
-      </div>
+      <div class="chunk-summary">{{ pagination.totalItems.value }} {{ t('chunking.chunks') }}</div>
       <div class="chunk-list">
         <div
           class="chunk-card"
@@ -85,9 +83,7 @@
             <span class="chunk-tokens" v-if="chunk.tokenCount">
               {{ chunk.tokenCount }} tokens
             </span>
-            <span class="chunk-page" v-if="chunk.sourcePage">
-              p.{{ chunk.sourcePage }}
-            </span>
+            <span class="chunk-page" v-if="chunk.sourcePage"> p.{{ chunk.sourcePage }} </span>
           </div>
           <div class="chunk-headings" v-if="chunk.headings.length">
             <span class="chunk-heading" v-for="h in chunk.headings" :key="h">{{ h }}</span>
@@ -100,9 +96,7 @@
     <div class="chunk-empty" v-else-if="!analysisStore.rechunking">
       <p>
         {{
-          analysisStore.currentChunks.length
-            ? t('chunking.noChunksOnPage')
-            : t('chunking.noChunks')
+          analysisStore.currentChunks.length ? t('chunking.noChunksOnPage') : t('chunking.noChunks')
         }}
       </p>
     </div>
@@ -356,15 +350,17 @@ async function doRechunk() {
   border-radius: var(--radius);
   padding: 10px 12px;
   cursor: default;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 .chunk-card:hover {
-  border-color: #F59E0B;
+  border-color: #f59e0b;
 }
 
 .chunk-card.highlighted {
-  border-color: #F59E0B;
+  border-color: #f59e0b;
   background: rgba(245, 158, 11, 0.08);
 }
 

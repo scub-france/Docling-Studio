@@ -1,9 +1,17 @@
 <template>
   <div class="app-layout">
     <header class="topbar">
-      <button class="burger-btn" @click="sidebarOpen = !sidebarOpen" :title="sidebarOpen ? t('nav.collapse') : t('nav.expand')">
+      <button
+        class="burger-btn"
+        @click="sidebarOpen = !sidebarOpen"
+        :title="sidebarOpen ? t('nav.collapse') : t('nav.expand')"
+      >
         <svg viewBox="0 0 20 20" fill="currentColor" class="burger-icon">
-          <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
+          <path
+            fill-rule="evenodd"
+            d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+            clip-rule="evenodd"
+          />
         </svg>
       </button>
       <div class="topbar-logo">
@@ -12,7 +20,11 @@
       </div>
       <div class="topbar-spacer" />
       <button class="new-analysis-btn" @click="newAnalysis">
-        <svg viewBox="0 0 20 20" fill="currentColor" class="new-analysis-icon"><path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/></svg>
+        <svg viewBox="0 0 20 20" fill="currentColor" class="new-analysis-icon">
+          <path
+            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+          />
+        </svg>
         {{ t('topbar.newAnalysis') }}
       </button>
     </header>
@@ -52,26 +64,26 @@ function newAnalysis() {
 
 :root {
   /* Dark mode palette - MistralAI Studio inspired */
-  --bg: #0A0A0B;
+  --bg: #0a0a0b;
   --bg-surface: #111113;
-  --bg-elevated: #1A1A1D;
+  --bg-elevated: #1a1a1d;
   --bg-hover: #222226;
 
-  --accent: #F97316;
-  --accent-hover: #FB923C;
+  --accent: #f97316;
+  --accent-hover: #fb923c;
   --accent-muted: rgba(249, 115, 22, 0.15);
 
-  --text: #ECECEF;
-  --text-secondary: #A1A1AA;
-  --text-muted: #63636E;
+  --text: #ececef;
+  --text-secondary: #a1a1aa;
+  --text-muted: #63636e;
 
-  --border: #27272A;
-  --border-light: #3F3F46;
+  --border: #27272a;
+  --border-light: #3f3f46;
 
-  --success: #22C55E;
-  --error: #EF4444;
-  --warning: #EAB308;
-  --info: #3B82F6;
+  --success: #22c55e;
+  --error: #ef4444;
+  --warning: #eab308;
+  --info: #3b82f6;
 
   --radius: 8px;
   --radius-sm: 6px;
@@ -83,32 +95,40 @@ function newAnalysis() {
 }
 
 html.light {
-  --bg: #FAFAFA;
-  --bg-surface: #FFFFFF;
-  --bg-elevated: #F4F4F5;
-  --bg-hover: #E4E4E7;
+  --bg: #fafafa;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f4f4f5;
+  --bg-hover: #e4e4e7;
 
-  --accent: #F97316;
-  --accent-hover: #EA580C;
-  --accent-muted: rgba(249, 115, 22, 0.10);
+  --accent: #f97316;
+  --accent-hover: #ea580c;
+  --accent-muted: rgba(249, 115, 22, 0.1);
 
-  --text: #18181B;
-  --text-secondary: #52525B;
-  --text-muted: #A1A1AA;
+  --text: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #a1a1aa;
 
-  --border: #E4E4E7;
-  --border-light: #D4D4D8;
+  --border: #e4e4e7;
+  --border-light: #d4d4d8;
 
-  --success: #16A34A;
-  --error: #DC2626;
-  --warning: #CA8A04;
-  --info: #2563EB;
+  --success: #16a34a;
+  --error: #dc2626;
+  --warning: #ca8a04;
+  --info: #2563eb;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;

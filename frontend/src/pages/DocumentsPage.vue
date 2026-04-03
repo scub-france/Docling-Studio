@@ -8,14 +8,14 @@
         {{ t('history.emptyDocs') }}
       </div>
       <div v-else class="doc-items">
-        <div
-          v-for="doc in docStore.documents"
-          :key="doc.id"
-          class="doc-row"
-        >
+        <div v-for="doc in docStore.documents" :key="doc.id" class="doc-row">
           <div class="doc-row-info">
             <svg class="doc-row-icon" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+              <path
+                fill-rule="evenodd"
+                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                clip-rule="evenodd"
+              />
             </svg>
             <div class="doc-row-meta">
               <span class="doc-row-name">{{ doc.filename }}</span>
@@ -27,7 +27,13 @@
             </div>
           </div>
           <button class="doc-row-delete" @click="docStore.remove(doc.id)">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fill-rule="evenodd"
+                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                clip-rule="evenodd"
+              />
+            </svg>
           </button>
         </div>
       </div>
@@ -158,7 +164,15 @@ onMounted(() => {
   transition: all var(--transition);
 }
 
-.doc-row:hover .doc-row-delete { opacity: 1; }
-.doc-row-delete:hover { color: var(--error); background: rgba(239, 68, 68, 0.1); }
-.doc-row-delete svg { width: 16px; height: 16px; }
+.doc-row:hover .doc-row-delete {
+  opacity: 1;
+}
+.doc-row-delete:hover {
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+}
+.doc-row-delete svg {
+  width: 16px;
+  height: 16px;
+}
 </style>

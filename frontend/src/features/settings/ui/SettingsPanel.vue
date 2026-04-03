@@ -15,8 +15,12 @@
     <div class="setting-group">
       <label class="setting-label">{{ t('settings.language') }}</label>
       <div class="setting-toggle">
-        <button :class="{ active: store.locale === 'fr' }" @click="store.setLocale('fr')">FR</button>
-        <button :class="{ active: store.locale === 'en' }" @click="store.setLocale('en')">EN</button>
+        <button :class="{ active: store.locale === 'fr' }" @click="store.setLocale('fr')">
+          FR
+        </button>
+        <button :class="{ active: store.locale === 'en' }" @click="store.setLocale('en')">
+          EN
+        </button>
       </div>
     </div>
 

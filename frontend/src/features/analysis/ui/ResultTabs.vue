@@ -14,7 +14,9 @@
 
     <!-- Page chip -->
     <div class="page-indicator" v-if="totalPages > 0">
-      <span class="page-chip">{{ t('results.pageOf', { current: currentPage, total: totalPages }) }}</span>
+      <span class="page-chip">{{
+        t('results.pageOf', { current: currentPage, total: totalPages })
+      }}</span>
     </div>
 
     <div class="tab-content">
@@ -32,7 +34,10 @@
           @mouseleave="$emit('highlight-element', -1)"
         >
           <div class="element-header">
-            <span class="element-type" :style="{ color: ELEMENT_COLORS[el.type] || ELEMENT_COLORS.text }">
+            <span
+              class="element-type"
+              :style="{ color: ELEMENT_COLORS[el.type] || ELEMENT_COLORS.text }"
+            >
               {{ el.type }}
             </span>
             <span class="element-level" v-if="el.level">L{{ el.level }}</span>
@@ -42,12 +47,23 @@
               :title="t('results.copy')"
               @click.stop="copyElement(idx, el.content)"
             >
-              <svg v-if="!copiedElements[idx]" viewBox="0 0 20 20" fill="currentColor" class="copy-icon">
-                <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z"/>
-                <path d="M3 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v6h-4.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L10.414 13H15v3a2 2 0 01-2 2H5a2 2 0 01-2-2V5zM15 11h2a1 1 0 110 2h-2v-2z"/>
+              <svg
+                v-if="!copiedElements[idx]"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="copy-icon"
+              >
+                <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z" />
+                <path
+                  d="M3 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v6h-4.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L10.414 13H15v3a2 2 0 01-2 2H5a2 2 0 01-2-2V5zM15 11h2a1 1 0 110 2h-2v-2z"
+                />
               </svg>
               <svg v-else viewBox="0 0 20 20" fill="currentColor" class="copy-icon copied">
-                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                <path
+                  fill-rule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clip-rule="evenodd"
+                />
               </svg>
             </button>
           </div>
@@ -57,7 +73,7 @@
             <span v-else>{{ el.content }}</span>
           </div>
           <div class="element-bbox">
-            {{ el.bbox.map(v => Math.round(v)).join(', ') }}
+            {{ el.bbox.map((v) => Math.round(v)).join(', ') }}
           </div>
         </div>
       </div>
@@ -66,11 +82,17 @@
       <div v-else-if="activeTab === 'markdown'" class="raw-markdown">
         <button class="copy-btn copy-btn-block" :title="t('results.copy')" @click="copyMarkdown">
           <svg v-if="!copiedMarkdown" viewBox="0 0 20 20" fill="currentColor" class="copy-icon">
-            <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z"/>
-            <path d="M3 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v6h-4.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L10.414 13H15v3a2 2 0 01-2 2H5a2 2 0 01-2-2V5zM15 11h2a1 1 0 110 2h-2v-2z"/>
+            <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z" />
+            <path
+              d="M3 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v6h-4.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L10.414 13H15v3a2 2 0 01-2 2H5a2 2 0 01-2-2V5zM15 11h2a1 1 0 110 2h-2v-2z"
+            />
           </svg>
           <svg v-else viewBox="0 0 20 20" fill="currentColor" class="copy-icon copied">
-            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            <path
+              fill-rule="evenodd"
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            />
           </svg>
         </button>
         <pre class="raw-content">{{ pageMarkdown }}</pre>
@@ -85,12 +107,26 @@
     <span>{{ t('studio.analysisRunning') }}</span>
   </div>
   <div v-else-if="store.currentAnalysis?.status === 'FAILED'" class="result-placeholder error">
-    <svg viewBox="0 0 20 20" fill="currentColor" class="error-icon"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+    <svg viewBox="0 0 20 20" fill="currentColor" class="error-icon">
+      <path
+        fill-rule="evenodd"
+        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+        clip-rule="evenodd"
+      />
+    </svg>
     <span>{{ store.currentAnalysis.errorMessage || t('results.analysisFailed') }}</span>
   </div>
   <div v-else class="result-placeholder">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
-      <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      class="empty-icon"
+    >
+      <path
+        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"
+      />
     </svg>
     <span>{{ t('results.runAnalysis') }}</span>
   </div>
@@ -113,12 +149,12 @@ const ELEMENT_COLORS: Record<string, string> = {
   list: '#06B6D4',
   formula: '#EC4899',
   code: '#14B8A6',
-  caption: '#EAB308'
+  caption: '#EAB308',
 }
 
 const props = defineProps({
   currentPage: { type: Number, default: 1 },
-  highlightedIndex: { type: Number, default: -1 }
+  highlightedIndex: { type: Number, default: -1 },
 })
 
 defineEmits(['highlight-element'])
@@ -130,17 +166,17 @@ const activeTab = ref('elements')
 const tabs = computed(() => [
   { id: 'elements', label: t('results.elements') },
   { id: 'markdown', label: t('results.markdown') },
-  { id: 'images', label: t('results.images') }
+  { id: 'images', label: t('results.images') },
 ])
 
 const totalPages = computed(() => store.currentPages.length)
 
 const currentPageData = computed(() => {
-  return store.currentPages.find(p => p.page_number === props.currentPage) || null
+  return store.currentPages.find((p) => p.page_number === props.currentPage) || null
 })
 
 const currentElements = computed(() => {
-  return (currentPageData.value?.elements || []).filter(el => el.content)
+  return (currentPageData.value?.elements || []).filter((el) => el.content)
 })
 
 const currentPageAsArray = computed(() => {
@@ -153,7 +189,7 @@ const pageMarkdown = computed(() => {
   if (!page) return ''
 
   return (page.elements || [])
-    .map(el => formatElement(el))
+    .map((el) => formatElement(el))
     .filter(Boolean)
     .join('\n\n')
 })
@@ -191,16 +227,24 @@ async function copyMarkdown() {
   try {
     await navigator.clipboard.writeText(pageMarkdown.value)
     copiedMarkdown.value = true
-    setTimeout(() => { copiedMarkdown.value = false }, 1500)
-  } catch { /* clipboard not available */ }
+    setTimeout(() => {
+      copiedMarkdown.value = false
+    }, 1500)
+  } catch {
+    /* clipboard not available */
+  }
 }
 
 async function copyElement(idx: number, content: string) {
   try {
     await navigator.clipboard.writeText(content)
     copiedElements[idx] = true
-    setTimeout(() => { copiedElements[idx] = false }, 1500)
-  } catch { /* clipboard not available */ }
+    setTimeout(() => {
+      copiedElements[idx] = false
+    }, 1500)
+  } catch {
+    /* clipboard not available */
+  }
 }
 </script>
 
@@ -234,7 +278,9 @@ async function copyElement(idx: number, content: string) {
   white-space: nowrap;
 }
 
-.tab-btn:hover { color: var(--text-secondary); }
+.tab-btn:hover {
+  color: var(--text-secondary);
+}
 .tab-btn.active {
   color: var(--accent);
   border-bottom-color: var(--accent);
@@ -368,8 +414,13 @@ async function copyElement(idx: number, content: string) {
   background: var(--accent-muted);
 }
 
-.copy-icon { width: 14px; height: 14px; }
-.copy-icon.copied { color: var(--success); }
+.copy-icon {
+  width: 14px;
+  height: 14px;
+}
+.copy-icon.copied {
+  color: var(--success);
+}
 
 .copy-btn-element {
   margin-left: auto;
@@ -377,7 +428,9 @@ async function copyElement(idx: number, content: string) {
   transition: opacity var(--transition);
 }
 
-.element-card:hover .copy-btn-element { opacity: 1; }
+.element-card:hover .copy-btn-element {
+  opacity: 1;
+}
 
 .copy-btn-block {
   position: absolute;
@@ -389,7 +442,9 @@ async function copyElement(idx: number, content: string) {
   transition: opacity var(--transition);
 }
 
-.raw-markdown:hover .copy-btn-block { opacity: 1; }
+.raw-markdown:hover .copy-btn-block {
+  opacity: 1;
+}
 
 /* --- Raw markdown --- */
 .raw-markdown {
@@ -423,9 +478,18 @@ async function copyElement(idx: number, content: string) {
   font-size: 14px;
 }
 
-.result-placeholder.error { color: var(--error); }
-.error-icon { width: 32px; height: 32px; }
-.empty-icon { width: 48px; height: 48px; color: var(--border-light); }
+.result-placeholder.error {
+  color: var(--error);
+}
+.error-icon {
+  width: 32px;
+  height: 32px;
+}
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--border-light);
+}
 
 .spinner-large {
   width: 32px;
@@ -436,5 +500,9 @@ async function copyElement(idx: number, content: string) {
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>

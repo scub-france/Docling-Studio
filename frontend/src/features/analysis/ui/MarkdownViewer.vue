@@ -33,11 +33,19 @@ const rendered = computed(() => {
   font-weight: 600;
 }
 
-.markdown-viewer :deep(h1) { font-size: 24px; }
-.markdown-viewer :deep(h2) { font-size: 20px; }
-.markdown-viewer :deep(h3) { font-size: 16px; }
+.markdown-viewer :deep(h1) {
+  font-size: 24px;
+}
+.markdown-viewer :deep(h2) {
+  font-size: 20px;
+}
+.markdown-viewer :deep(h3) {
+  font-size: 16px;
+}
 
-.markdown-viewer :deep(p) { margin: 8px 0; }
+.markdown-viewer :deep(p) {
+  margin: 8px 0;
+}
 
 .markdown-viewer :deep(code) {
   background: var(--bg-elevated);

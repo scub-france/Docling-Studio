@@ -25,7 +25,13 @@
             :class="{ active: mode === 'configurer' }"
             @click="mode = 'configurer'"
           >
-            <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+            <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fill-rule="evenodd"
+                d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                clip-rule="evenodd"
+              />
+            </svg>
             {{ t('studio.configure') }}
           </button>
           <button
@@ -34,7 +40,13 @@
             @click="mode = 'verifier'"
             :disabled="!analysisStore.currentAnalysis"
           >
-            <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fill-rule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clip-rule="evenodd"
+              />
+            </svg>
             {{ t('studio.verify') }}
           </button>
           <button
@@ -44,14 +56,22 @@
             @click="mode = 'preparer'"
             :disabled="!analysisStore.currentAnalysis"
           >
-            <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+            <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+              />
+            </svg>
             {{ t('studio.prepare') }}
           </button>
         </div>
       </div>
       <div class="topbar-actions">
         <button class="topbar-btn" @click="addMore">
-          <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon"><path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/></svg>
+          <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+            <path
+              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+            />
+          </svg>
           {{ t('studio.addFiles') }}
         </button>
         <button
@@ -61,7 +81,13 @@
           v-if="mode === 'configurer'"
         >
           <div v-if="analysisStore.running" class="spinner-sm" />
-          <svg v-else viewBox="0 0 20 20" fill="currentColor" class="btn-icon"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+          <svg v-else viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+              clip-rule="evenodd"
+            />
+          </svg>
           {{ analysisStore.running ? t('studio.analyzing') : t('studio.run') }}
         </button>
       </div>
@@ -70,7 +96,13 @@
     <!-- Document info bar -->
     <div class="doc-infobar">
       <div class="doc-info-left">
-        <svg class="doc-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+        <svg class="doc-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path
+            fill-rule="evenodd"
+            d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+            clip-rule="evenodd"
+          />
+        </svg>
         <span class="doc-filename">{{ selectedDoc.filename }}</span>
         <span class="doc-status-chip loaded">{{ t('studio.loaded') }}</span>
       </div>
@@ -96,7 +128,13 @@
       <div class="pdf-viewer-panel">
         <div class="pdf-nav-bar">
           <button class="pdf-nav-btn" :disabled="currentPage <= 1" @click="currentPage--">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fill-rule="evenodd"
+                d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                clip-rule="evenodd"
+              />
+            </svg>
           </button>
           <div class="pdf-page-input-wrap">
             <input
@@ -109,8 +147,18 @@
             />
           </div>
           <span class="pdf-page-total">/ {{ selectedDoc.pageCount || '?' }}</span>
-          <button class="pdf-nav-btn" :disabled="!selectedDoc.pageCount || currentPage >= selectedDoc.pageCount" @click="currentPage++">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+          <button
+            class="pdf-nav-btn"
+            :disabled="!selectedDoc.pageCount || currentPage >= selectedDoc.pageCount"
+            @click="currentPage++"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fill-rule="evenodd"
+                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                clip-rule="evenodd"
+              />
+            </svg>
           </button>
           <span class="pdf-separator" />
           <span class="pdf-zoom">100%</span>
@@ -121,7 +169,14 @@
               :class="{ active: visualMode }"
               @click="visualMode = !visualMode"
             >
-              <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+              <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                <path
+                  fill-rule="evenodd"
+                  d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
               {{ t('studio.visual') }}
             </button>
           </template>
@@ -150,10 +205,7 @@
       </div>
 
       <!-- Resize handle -->
-      <div
-        class="resize-handle"
-        @mousedown="onResizeStart"
-      >
+      <div class="resize-handle" @mousedown="onResizeStart">
         <div class="resize-grip" />
       </div>
 
@@ -181,16 +233,26 @@
                 <span class="toggle-switch" />
                 <span class="toggle-text">{{ t('config.ocr') }}</span>
               </label>
-              <span class="config-hint"><span class="config-tooltip">{{ t('config.ocrHint') }}</span>?</span>
+              <span class="config-hint"
+                ><span class="config-tooltip">{{ t('config.ocrHint') }}</span
+                >?</span
+              >
             </div>
 
             <div class="config-toggle-row">
               <label class="toggle-label">
-                <input type="checkbox" v-model="pipelineOptions.do_table_structure" class="toggle-input" />
+                <input
+                  type="checkbox"
+                  v-model="pipelineOptions.do_table_structure"
+                  class="toggle-input"
+                />
                 <span class="toggle-switch" />
                 <span class="toggle-text">{{ t('config.tableStructure') }}</span>
               </label>
-              <span class="config-hint"><span class="config-tooltip">{{ t('config.tableStructureHint') }}</span>?</span>
+              <span class="config-hint"
+                ><span class="config-tooltip">{{ t('config.tableStructureHint') }}</span
+                >?</span
+              >
             </div>
 
             <div class="config-sub-option" v-if="pipelineOptions.do_table_structure">
@@ -208,20 +270,34 @@
 
             <div class="config-toggle-row">
               <label class="toggle-label">
-                <input type="checkbox" v-model="pipelineOptions.do_code_enrichment" class="toggle-input" />
+                <input
+                  type="checkbox"
+                  v-model="pipelineOptions.do_code_enrichment"
+                  class="toggle-input"
+                />
                 <span class="toggle-switch" />
                 <span class="toggle-text">{{ t('config.codeEnrichment') }}</span>
               </label>
-              <span class="config-hint"><span class="config-tooltip">{{ t('config.codeEnrichmentHint') }}</span>?</span>
+              <span class="config-hint"
+                ><span class="config-tooltip">{{ t('config.codeEnrichmentHint') }}</span
+                >?</span
+              >
             </div>
 
             <div class="config-toggle-row">
               <label class="toggle-label">
-                <input type="checkbox" v-model="pipelineOptions.do_formula_enrichment" class="toggle-input" />
+                <input
+                  type="checkbox"
+                  v-model="pipelineOptions.do_formula_enrichment"
+                  class="toggle-input"
+                />
                 <span class="toggle-switch" />
                 <span class="toggle-text">{{ t('config.formulaEnrichment') }}</span>
               </label>
-              <span class="config-hint"><span class="config-tooltip">{{ t('config.formulaEnrichmentHint') }}</span>?</span>
+              <span class="config-hint"
+                ><span class="config-tooltip">{{ t('config.formulaEnrichmentHint') }}</span
+                >?</span
+              >
             </div>
           </div>
 
@@ -231,41 +307,72 @@
 
             <div class="config-toggle-row">
               <label class="toggle-label">
-                <input type="checkbox" v-model="pipelineOptions.do_picture_classification" class="toggle-input" />
+                <input
+                  type="checkbox"
+                  v-model="pipelineOptions.do_picture_classification"
+                  class="toggle-input"
+                />
                 <span class="toggle-switch" />
                 <span class="toggle-text">{{ t('config.pictureClassification') }}</span>
               </label>
-              <span class="config-hint"><span class="config-tooltip">{{ t('config.pictureClassificationHint') }}</span>?</span>
+              <span class="config-hint"
+                ><span class="config-tooltip">{{ t('config.pictureClassificationHint') }}</span
+                >?</span
+              >
             </div>
 
             <div class="config-toggle-row">
               <label class="toggle-label">
-                <input type="checkbox" v-model="pipelineOptions.do_picture_description" class="toggle-input" />
+                <input
+                  type="checkbox"
+                  v-model="pipelineOptions.do_picture_description"
+                  class="toggle-input"
+                />
                 <span class="toggle-switch" />
                 <span class="toggle-text">{{ t('config.pictureDescription') }}</span>
               </label>
-              <span class="config-hint"><span class="config-tooltip">{{ t('config.pictureDescriptionHint') }}</span>?</span>
+              <span class="config-hint"
+                ><span class="config-tooltip">{{ t('config.pictureDescriptionHint') }}</span
+                >?</span
+              >
             </div>
 
             <div class="config-toggle-row">
               <label class="toggle-label">
-                <input type="checkbox" v-model="pipelineOptions.generate_picture_images" class="toggle-input" />
+                <input
+                  type="checkbox"
+                  v-model="pipelineOptions.generate_picture_images"
+                  class="toggle-input"
+                />
                 <span class="toggle-switch" />
                 <span class="toggle-text">{{ t('config.generatePictureImages') }}</span>
               </label>
-              <span class="config-hint"><span class="config-tooltip">{{ t('config.generatePictureImagesHint') }}</span>?</span>
+              <span class="config-hint"
+                ><span class="config-tooltip">{{ t('config.generatePictureImagesHint') }}</span
+                >?</span
+              >
             </div>
 
             <div class="config-toggle-row">
               <label class="toggle-label">
-                <input type="checkbox" v-model="pipelineOptions.generate_page_images" class="toggle-input" />
+                <input
+                  type="checkbox"
+                  v-model="pipelineOptions.generate_page_images"
+                  class="toggle-input"
+                />
                 <span class="toggle-switch" />
                 <span class="toggle-text">{{ t('config.generatePageImages') }}</span>
               </label>
-              <span class="config-hint"><span class="config-tooltip">{{ t('config.generatePageImagesHint') }}</span>?</span>
+              <span class="config-hint"
+                ><span class="config-tooltip">{{ t('config.generatePageImagesHint') }}</span
+                >?</span
+              >
             </div>
 
-            <div class="config-sub-option" v-if="pipelineOptions.generate_picture_images || pipelineOptions.generate_page_images">
+            <div
+              class="config-sub-option"
+              v-if="pipelineOptions.generate_picture_images || pipelineOptions.generate_page_images"
+            >
               <label class="config-label-sm">{{ t('config.imagesScale') }}</label>
               <select class="config-select" v-model.number="pipelineOptions.images_scale">
                 <option :value="0.5">0.5x</option>
@@ -379,12 +486,14 @@ const pipelineOptions = reactive<PipelineOptions>({
 })
 
 const hasAnalysisResults = computed(() => {
-  return analysisStore.currentAnalysis?.status === 'COMPLETED' && analysisStore.currentPages?.length > 0
+  return (
+    analysisStore.currentAnalysis?.status === 'COMPLETED' && analysisStore.currentPages?.length > 0
+  )
 })
 
 const currentPageData = computed(() => {
   if (!analysisStore.currentPages) return null
-  return analysisStore.currentPages.find(p => p.page_number === currentPage.value) || null
+  return analysisStore.currentPages.find((p) => p.page_number === currentPage.value) || null
 })
 
 function onPdfImageLoad() {
@@ -392,7 +501,7 @@ function onPdfImageLoad() {
 }
 
 const selectedDoc = computed(() => {
-  return documentStore.documents.find(d => d.id === documentStore.selectedId)
+  return documentStore.documents.find((d) => d.id === documentStore.selectedId)
 })
 
 const previewUrl = computed(() => {
@@ -427,12 +536,15 @@ watch(currentPage, () => {
 })
 
 // Auto-switch to verifier when analysis completes + refresh document data (pageCount)
-watch(() => analysisStore.currentAnalysis?.status, (status) => {
-  if (status === 'COMPLETED') {
-    mode.value = 'verifier'
-    documentStore.load()
-  }
-})
+watch(
+  () => analysisStore.currentAnalysis?.status,
+  (status) => {
+    if (status === 'COMPLETED') {
+      mode.value = 'verifier'
+      documentStore.load()
+    }
+  },
+)
 
 onMounted(async () => {
   await documentStore.load()
@@ -658,7 +770,7 @@ onBeforeUnmount(() => {
 .spinner-sm {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
@@ -730,8 +842,12 @@ onBeforeUnmount(() => {
   border-radius: 50%;
 }
 
-.info-dot.success { background: var(--success); }
-.info-dot.error { background: var(--error); }
+.info-dot.success {
+  background: var(--success);
+}
+.info-dot.error {
+  background: var(--error);
+}
 
 .spinner-xs {
   width: 12px;
@@ -830,9 +946,18 @@ onBeforeUnmount(() => {
   transition: all var(--transition);
 }
 
-.pdf-nav-btn:hover:not(:disabled) { background: var(--bg-hover); color: var(--text); }
-.pdf-nav-btn:disabled { opacity: 0.3; cursor: default; }
-.pdf-nav-btn svg { width: 16px; height: 16px; }
+.pdf-nav-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.pdf-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.pdf-nav-btn svg {
+  width: 16px;
+  height: 16px;
+}
 
 .pdf-page-input-wrap {
   display: flex;
@@ -931,7 +1056,7 @@ onBeforeUnmount(() => {
   max-width: 100%;
   height: auto;
   display: block;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
   border-radius: 2px;
 }
 
@@ -1178,5 +1303,9 @@ onBeforeUnmount(() => {
   flex-direction: column;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>

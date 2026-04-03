@@ -4,11 +4,7 @@
       {{ t('results.noImages') }}
     </div>
     <div v-else class="gallery-grid">
-      <div
-        v-for="(img, idx) in images"
-        :key="idx"
-        class="gallery-card"
-      >
+      <div v-for="(img, idx) in images" :key="idx" class="gallery-card">
         <div class="card-header">
           <span class="card-type">Picture</span>
           <span class="card-page">{{ t('results.page') }} {{ img.page }}</span>
@@ -18,7 +14,7 @@
         </div>
         <div class="card-bbox">
           <span class="bbox-label">bbox:</span>
-          <span class="bbox-value">{{ img.bbox.map(v => Math.round(v)).join(', ') }}</span>
+          <span class="bbox-value">{{ img.bbox.map((v) => Math.round(v)).join(', ') }}</span>
         </div>
       </div>
     </div>
@@ -33,13 +29,13 @@ import type { Page, PageElement } from '../../../shared/types'
 const { t } = useI18n()
 
 const props = defineProps({
-  pages: { type: Array as () => Page[], default: () => [] }
+  pages: { type: Array as () => Page[], default: () => [] },
 })
 
 const images = computed(() => {
   const result: (PageElement & { page: number })[] = []
   for (const page of props.pages) {
-    for (const el of (page.elements || [])) {
+    for (const el of page.elements || []) {
       if (el.type === 'picture') {
         result.push({ ...el, page: page.page_number })
       }
@@ -109,5 +105,7 @@ const images = computed(() => {
   color: var(--text-muted);
 }
 
-.bbox-label { margin-right: 4px; }
+.bbox-label {
+  margin-right: 4px;
+}
 </style>
