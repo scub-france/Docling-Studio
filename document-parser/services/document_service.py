@@ -63,10 +63,12 @@ async def upload(filename: str, content_type: str, file_content: bytes) -> Docum
 
 
 async def find_all() -> list[Document]:
+    """Return all documents, newest first."""
     return await document_repo.find_all()
 
 
 async def find_by_id(doc_id: str) -> Document | None:
+    """Find a document by its ID, or return None."""
     return await document_repo.find_by_id(doc_id)
 
 

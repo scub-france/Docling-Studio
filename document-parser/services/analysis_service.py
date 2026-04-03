@@ -83,12 +83,15 @@ class AnalysisService:
         return job
 
     async def find_all(self) -> list[AnalysisJob]:
+        """Return all analysis jobs, newest first."""
         return await analysis_repo.find_all()
 
     async def find_by_id(self, job_id: str) -> AnalysisJob | None:
+        """Find an analysis job by ID, or return None."""
         return await analysis_repo.find_by_id(job_id)
 
     async def delete(self, job_id: str) -> bool:
+        """Delete an analysis job. Returns True if it existed."""
         return await analysis_repo.delete(job_id)
 
     async def rechunk(self, job_id: str, chunking_options: dict) -> list[ChunkResult]:
