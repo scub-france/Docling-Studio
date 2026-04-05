@@ -61,7 +61,7 @@ document-parser/
 ├── services/                 # Use case orchestration
 │   ├── document_service.py   # Upload, delete, preview
 │   └── analysis_service.py   # Async Docling processing
-└── tests/                    # 99 tests (pytest)
+└── tests/                    # 199 tests (pytest)
 ```
 
 ### Frontend structure (feature-based)
