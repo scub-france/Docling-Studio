@@ -132,7 +132,7 @@ const messages: Messages = {
 
     // Disclaimer
     'disclaimer.banner':
-      'Instance de d\u00e9monstration \u2014 les documents upload\u00e9s sont partag\u00e9s et temporaires. Ne pas envoyer de fichiers confidentiels.',
+      'Instance de d\u00e9monstration \u2014 les documents upload\u00e9s sont partag\u00e9s et temporaires (max 50 Mo). Ne pas envoyer de fichiers confidentiels.',
   },
   en: {
     'nav.home': 'Home',
@@ -249,7 +249,7 @@ const messages: Messages = {
 
     // Disclaimer
     'disclaimer.banner':
-      'Demo instance \u2014 uploaded documents are shared and temporary. Do not upload confidential files.',
+      'Demo instance \u2014 uploaded documents are shared and temporary (max 50 MB). Do not upload confidential files.',
   },
 }
 
