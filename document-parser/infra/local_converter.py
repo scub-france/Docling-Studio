@@ -222,7 +222,12 @@ def _convert_sync(file_path: str, options: ConversionOptions) -> ConversionResul
         )
     try:
         conv = _select_converter(options)
-        result = conv.convert(file_path)
+        kwargs: dict = {}
+        if settings.max_page_count > 0:
+            kwargs["max_num_pages"] = settings.max_page_count
+        if settings.max_file_size > 0:
+            kwargs["max_file_size"] = settings.max_file_size
+        result = conv.convert(file_path, **kwargs)
     finally:
         _converter_lock.release()
 
