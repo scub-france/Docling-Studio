@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 from domain.models import AnalysisJob, AnalysisStatus
 from domain.value_objects import ChunkingOptions, ChunkResult, ConversionOptions, ConversionResult
+from infra.settings import settings
 
 if TYPE_CHECKING:
     from domain.ports import DocumentChunker, DocumentConverter
@@ -151,7 +152,10 @@ class AnalysisService:
             await analysis_repo.update_status(job)
             logger.info("Analysis started: %s (file: %s)", job_id, filename)
 
-            options = ConversionOptions(**(pipeline_options or {}))
+            opts_dict = pipeline_options or {}
+            if "table_mode" not in opts_dict:
+                opts_dict = {**opts_dict, "table_mode": settings.default_table_mode}
+            options = ConversionOptions(**opts_dict)
 
             result: ConversionResult = await asyncio.wait_for(
                 self._converter.convert(file_path, options),

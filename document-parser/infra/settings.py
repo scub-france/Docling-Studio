@@ -16,6 +16,7 @@ class Settings:
     conversion_timeout: int = 900
     document_timeout: float = 120.0  # Docling-level per-document timeout (seconds)
     max_concurrent_analyses: int = 3
+    default_table_mode: str = "accurate"  # "accurate" or "fast"
     max_page_count: int = 0  # 0 = unlimited (upload validation)
     max_file_size: int = 0  # 0 = unlimited (Docling-level, bytes)
     upload_dir: str = "./uploads"
@@ -37,6 +38,7 @@ class Settings:
             conversion_timeout=int(os.environ.get("CONVERSION_TIMEOUT", "900")),
             document_timeout=float(os.environ.get("DOCUMENT_TIMEOUT", "120.0")),
             max_concurrent_analyses=int(os.environ.get("MAX_CONCURRENT_ANALYSES", "3")),
+            default_table_mode=os.environ.get("DEFAULT_TABLE_MODE", "accurate"),
             max_page_count=int(os.environ.get("MAX_PAGE_COUNT", "0")),
             max_file_size=int(os.environ.get("MAX_FILE_SIZE", "0")),
             upload_dir=os.environ.get("UPLOAD_DIR", "./uploads"),
