@@ -165,15 +165,11 @@ docling = pytest.importorskip("docling", reason="docling library not installed")
 
 from docling.datamodel.base_models import InputFormat  # noqa: E402
 
-from infra.local_converter import (  # noqa: E402
-    _build_docling_converter as build_converter,
-)
-from infra.local_converter import (  # noqa: E402
-    _convert_sync as convert_sync,
-)
-from infra.local_converter import (  # noqa: E402
-    _get_default_converter as get_default_converter,
-)
+import infra.local_converter as lc_mod  # noqa: E402
+
+build_converter = lc_mod._build_docling_converter
+convert_sync = lc_mod._convert_sync
+get_default_converter = lc_mod._get_default_converter
 
 # ---------------------------------------------------------------------------
 # C1 — document_timeout in PdfPipelineOptions
@@ -335,23 +331,19 @@ class TestGetDefaultConverterReset:
 
     @pytest.fixture(autouse=True)
     def reset_default_converter(self):
-        import infra.local_converter as mod
-
-        original = mod._default_converter
-        mod._default_converter = None
+        original = lc_mod._default_converter
+        lc_mod._default_converter = None
         yield
-        mod._default_converter = original
+        lc_mod._default_converter = original
 
     @patch("infra.local_converter._build_docling_converter")
     def test_init_failure_resets_to_none(self, mock_build):
-        import infra.local_converter as mod
-
         mock_build.side_effect = RuntimeError("torch not found")
 
         with pytest.raises(RuntimeError, match="torch not found"):
             get_default_converter()
 
-        assert mod._default_converter is None
+        assert lc_mod._default_converter is None
 
     @patch("infra.local_converter._build_docling_converter")
     def test_retry_after_failure_succeeds(self, mock_build):
