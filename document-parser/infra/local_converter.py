@@ -42,6 +42,7 @@ from domain.value_objects import (
     PageElement,
 )
 from infra.bbox import to_topleft_list
+from infra.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,7 @@ def _build_docling_converter(options: ConversionOptions) -> DoclingConverter:
         generate_page_images=options.generate_page_images,
         generate_picture_images=options.generate_picture_images,
         images_scale=options.images_scale,
+        document_timeout=settings.document_timeout,
     )
 
     return DoclingConverter(

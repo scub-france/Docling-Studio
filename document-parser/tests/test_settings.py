@@ -14,6 +14,7 @@ class TestSettingsDefaults:
         assert s.docling_serve_url == "http://localhost:5001"
         assert s.docling_serve_api_key is None
         assert s.conversion_timeout == 900
+        assert s.document_timeout == 120.0
         assert s.max_page_count == 0
         assert s.upload_dir == "./uploads"
         assert s.db_path == "./data/docling_studio.db"
@@ -36,6 +37,7 @@ class TestSettingsFromEnv:
         monkeypatch.setenv("DOCLING_SERVE_URL", "http://serve:9000")
         monkeypatch.setenv("DOCLING_SERVE_API_KEY", "secret-key")
         monkeypatch.setenv("CONVERSION_TIMEOUT", "120")
+        monkeypatch.setenv("DOCUMENT_TIMEOUT", "60.0")
         monkeypatch.setenv("MAX_PAGE_COUNT", "20")
         monkeypatch.setenv("UPLOAD_DIR", "/data/uploads")
         monkeypatch.setenv("DB_PATH", "/data/test.db")
@@ -49,6 +51,7 @@ class TestSettingsFromEnv:
         assert s.docling_serve_url == "http://serve:9000"
         assert s.docling_serve_api_key == "secret-key"
         assert s.conversion_timeout == 120
+        assert s.document_timeout == 60.0
         assert s.max_page_count == 20
         assert s.upload_dir == "/data/uploads"
         assert s.db_path == "/data/test.db"
