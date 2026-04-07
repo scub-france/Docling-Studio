@@ -11,6 +11,8 @@ site/
 .vscode/
 .run/
 .claude/
+CLAUDE.md
+**/CLAUDE.md
 *.iml
 
 # OS
@@ -31,6 +33,9 @@ __pycache__/
 *.pyc
 .venv/
 *.egg-info/
+
+# Excalidraw working files
+docs/excalidraw/
 
 # Logs
 *.log

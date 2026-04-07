@@ -20,7 +20,13 @@
     ```bash
     cd document-parser
     python -m venv .venv && source .venv/bin/activate
+
+    # Remote mode (lightweight — delegates to Docling Serve)
     pip install -r requirements.txt
+
+    # Local mode (full — runs Docling in-process)
+    pip install -r requirements-local.txt
+
     pip install ruff pytest pytest-asyncio httpx
     uvicorn main:app --reload --port 8000
     ```

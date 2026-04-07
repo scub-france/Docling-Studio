@@ -38,7 +38,7 @@ The frontend converts PDF points to CSS pixels, then the canvas renders at `devi
 
 ## Transformation 1 — `to_topleft_list()`
 
-**File:** `document-parser/domain/bbox.py`
+**File:** `document-parser/infra/bbox.py`
 
 Normalizes any Docling bbox to `[left, top, right, bottom]` in TOPLEFT coordinates.
 

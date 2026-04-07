@@ -9,6 +9,9 @@ export default [
   {
     files: ['src/**/*.{ts,js,vue}'],
     languageOptions: {
+      globals: {
+        __APP_VERSION__: 'readonly',
+      },
       parserOptions: {
         parser: tseslint.parser,
       },

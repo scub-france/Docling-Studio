@@ -8,11 +8,12 @@ misaligned overlays in the UI.
 import pytest
 from docling_core.types.doc.base import BoundingBox, CoordOrigin
 
-from domain.bbox import EMPTY_BBOX, to_topleft_list
+from infra.bbox import EMPTY_BBOX, to_topleft_list
 
 # ---------------------------------------------------------------------------
 # Standard conversions
 # ---------------------------------------------------------------------------
+
 
 class TestToTopleftListStandard:
     """Normal bbox conversions (happy path)."""
@@ -29,10 +30,10 @@ class TestToTopleftListStandard:
         result = to_topleft_list(bbox, page_height=792.0)
 
         # After conversion: new_t = 792 - 700 = 92, new_b = 792 - 600 = 192
-        assert result[0] == 50       # l unchanged
-        assert result[1] == pytest.approx(92.0)   # t = page_height - old_t
-        assert result[2] == 200      # r unchanged
-        assert result[3] == pytest.approx(192.0)   # b = page_height - old_b
+        assert result[0] == 50  # l unchanged
+        assert result[1] == pytest.approx(92.0)  # t = page_height - old_t
+        assert result[2] == 200  # r unchanged
+        assert result[3] == pytest.approx(192.0)  # b = page_height - old_b
 
     def test_result_has_positive_dimensions(self):
         """Converted bbox should always have b > t (positive height)."""
@@ -59,6 +60,7 @@ class TestToTopleftListStandard:
 # ---------------------------------------------------------------------------
 # Page format variations
 # ---------------------------------------------------------------------------
+
 
 class TestPageFormats:
     """Verify correct conversion across different page sizes."""
@@ -105,6 +107,7 @@ class TestPageFormats:
 # Degenerate / edge-case bboxes
 # ---------------------------------------------------------------------------
 
+
 class TestDegenerateBboxes:
     """Bboxes that are invalid or degenerate should return EMPTY_BBOX."""
 
@@ -150,6 +153,7 @@ class TestDegenerateBboxes:
 # ---------------------------------------------------------------------------
 # Precision and boundary values
 # ---------------------------------------------------------------------------
+
 
 class TestPrecision:
     """Floating-point precision and edge values."""

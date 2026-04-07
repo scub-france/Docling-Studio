@@ -20,14 +20,14 @@
     </div>
 
     <div class="panel-actions" v-if="selectedDoc">
-      <button
-        class="btn-analyze"
-        :disabled="analysisStore.running"
-        @click="runAnalysis"
-      >
+      <button class="btn-analyze" :disabled="analysisStore.running" @click="runAnalysis">
         <div v-if="analysisStore.running" class="spinner" />
         <svg v-else viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+            clip-rule="evenodd"
+          />
         </svg>
         {{ analysisStore.running ? 'Analyzing...' : 'Analyze' }}
       </button>
@@ -55,7 +55,7 @@ const analysisStore = useAnalysisStore()
 const currentPage = ref(1)
 
 const selectedDoc = computed(() => {
-  return documentStore.documents.find(d => d.id === documentStore.selectedId)
+  return documentStore.documents.find((d) => d.id === documentStore.selectedId)
 })
 
 const statusClass = computed(() => {
@@ -64,7 +64,7 @@ const statusClass = computed(() => {
     'status-pending': status === 'PENDING',
     'status-running': status === 'RUNNING',
     'status-completed': status === 'COMPLETED',
-    'status-failed': status === 'FAILED'
+    'status-failed': status === 'FAILED',
   }
 })
 
@@ -115,20 +115,32 @@ async function runAnalysis() {
   transition: background var(--transition);
 }
 
-.btn-analyze:hover:not(:disabled) { background: var(--accent-hover); }
-.btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-icon { width: 18px; height: 18px; }
+.btn-analyze:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.btn-analyze:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.btn-icon {
+  width: 18px;
+  height: 18px;
+}
 
 .spinner {
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 .status-row {
   display: flex;
@@ -143,8 +155,20 @@ async function runAnalysis() {
   border-radius: 12px;
 }
 
-.status-pending { background: rgba(234, 179, 8, 0.15); color: var(--warning); }
-.status-running { background: rgba(59, 130, 246, 0.15); color: var(--info); }
-.status-completed { background: rgba(34, 197, 94, 0.15); color: var(--success); }
-.status-failed { background: rgba(239, 68, 68, 0.15); color: var(--error); }
+.status-pending {
+  background: rgba(234, 179, 8, 0.15);
+  color: var(--warning);
+}
+.status-running {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--info);
+}
+.status-completed {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+.status-failed {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
+}
 </style>

@@ -1,6 +1,5 @@
 """Tests for API schemas — camelCase serialization and validation."""
 
-
 import pytest
 
 from api.schemas import (
@@ -97,7 +96,10 @@ class TestPipelineOptionsRequest:
 
     def test_custom_values(self):
         opts = PipelineOptionsRequest(
-            do_ocr=False, table_mode="fast", do_code_enrichment=True, images_scale=2.0,
+            do_ocr=False,
+            table_mode="fast",
+            do_code_enrichment=True,
+            images_scale=2.0,
         )
         assert opts.do_ocr is False
         assert opts.table_mode == "fast"

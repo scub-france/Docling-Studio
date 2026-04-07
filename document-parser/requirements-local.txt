@@ -1,0 +1,2 @@
+-r requirements.txt
+docling>=2.80.0,<3.0.0

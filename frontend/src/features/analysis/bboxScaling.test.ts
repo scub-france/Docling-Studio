@@ -19,9 +19,10 @@ describe('computeScale', () => {
   })
 
   it('sx equals sy when aspect ratio is preserved', () => {
-    const pageW = 612, pageH = 792
+    const pageW = 612,
+      pageH = 792
     const displayW = 700
-    const displayH = displayW * pageH / pageW
+    const displayH = (displayW * pageH) / pageW
     const s = computeScale(displayW, displayH, pageW, pageH)
     expect(s.sx).toBeCloseTo(s.sy, 5)
   })
@@ -165,17 +166,17 @@ describe('pointInRect', () => {
   })
 
   it('returns true for point on edge', () => {
-    expect(pointInRect(10, 20, rect)).toBe(true)    // top-left
-    expect(pointInRect(110, 80, rect)).toBe(true)   // bottom-right
-    expect(pointInRect(10, 80, rect)).toBe(true)    // bottom-left
-    expect(pointInRect(110, 20, rect)).toBe(true)   // top-right
+    expect(pointInRect(10, 20, rect)).toBe(true) // top-left
+    expect(pointInRect(110, 80, rect)).toBe(true) // bottom-right
+    expect(pointInRect(10, 80, rect)).toBe(true) // bottom-left
+    expect(pointInRect(110, 20, rect)).toBe(true) // top-right
   })
 
   it('returns false for point outside', () => {
-    expect(pointInRect(5, 50, rect)).toBe(false)    // left
-    expect(pointInRect(50, 15, rect)).toBe(false)   // above
-    expect(pointInRect(115, 50, rect)).toBe(false)  // right
-    expect(pointInRect(50, 85, rect)).toBe(false)   // below
+    expect(pointInRect(5, 50, rect)).toBe(false) // left
+    expect(pointInRect(50, 15, rect)).toBe(false) // above
+    expect(pointInRect(115, 50, rect)).toBe(false) // right
+    expect(pointInRect(50, 85, rect)).toBe(false) // below
   })
 
   it('returns false for EMPTY_RECT (degenerate bbox not hoverable)', () => {
@@ -203,8 +204,10 @@ describe('pointInRect', () => {
 describe('integration: bbox pipeline', () => {
   it('full A4 page: element is clickable at correct position', () => {
     // Simulate: A4 page rendered at 700px wide
-    const pageW = 595.28, pageH = 841.89
-    const displayW = 700, displayH = 700 * pageH / pageW
+    const pageW = 595.28,
+      pageH = 841.89
+    const displayW = 700,
+      displayH = (700 * pageH) / pageW
 
     const scale = computeScale(displayW, displayH, pageW, pageH)
     // Element at center of page in PDF points
@@ -212,8 +215,8 @@ describe('integration: bbox pipeline', () => {
     const rect = bboxToRect(bbox, scale)
 
     // Center of the element in display pixels
-    const cx = (200 + 400) / 2 * scale.sx
-    const cy = (350 + 500) / 2 * scale.sy
+    const cx = ((200 + 400) / 2) * scale.sx
+    const cy = ((350 + 500) / 2) * scale.sy
 
     expect(pointInRect(cx, cy, rect)).toBe(true)
   })

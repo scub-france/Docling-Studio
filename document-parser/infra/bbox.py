@@ -43,7 +43,11 @@ def to_topleft_list(bbox: BoundingBox, page_height: float) -> list[float]:
     if right <= left or bottom <= top:
         logger.debug(
             "Degenerate bbox skipped: [%.1f, %.1f, %.1f, %.1f] (page_height=%.1f)",
-            left, top, right, bottom, page_height,
+            left,
+            top,
+            right,
+            bottom,
+            page_height,
         )
         return list(EMPTY_BBOX)
 

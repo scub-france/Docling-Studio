@@ -24,7 +24,10 @@ describe('useDocumentStore', () => {
   })
 
   it('load() fetches and sets documents', async () => {
-    const docs = [{ id: '1', filename: 'a.pdf' }, { id: '2', filename: 'b.pdf' }]
+    const docs = [
+      { id: '1', filename: 'a.pdf' },
+      { id: '2', filename: 'b.pdf' },
+    ]
     api.fetchDocuments.mockResolvedValue(docs)
 
     const store = useDocumentStore()
@@ -61,7 +64,12 @@ describe('useDocumentStore', () => {
 
   it('upload() sets uploading to true during upload', async () => {
     let resolveUpload
-    api.uploadDocument.mockImplementation(() => new Promise(r => { resolveUpload = r }))
+    api.uploadDocument.mockImplementation(
+      () =>
+        new Promise((r) => {
+          resolveUpload = r
+        }),
+    )
 
     const store = useDocumentStore()
     const promise = store.upload(new File([], 'test.pdf'))

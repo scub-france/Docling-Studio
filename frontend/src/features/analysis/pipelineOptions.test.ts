@@ -20,7 +20,6 @@ import * as api from './api'
 // ---------------------------------------------------------------------------
 
 describe('createAnalysis — pipeline options body construction', () => {
-
   beforeEach(() => {
     vi.clearAllMocks()
     // Reset the real module to get the unmocked version
@@ -107,7 +106,6 @@ describe('createAnalysis — pipeline options body construction', () => {
   })
 })
 
-
 // ---------------------------------------------------------------------------
 // Store → API integration — pipeline options forwarding
 // ---------------------------------------------------------------------------
@@ -131,7 +129,7 @@ describe('useAnalysisStore — pipeline options forwarding', () => {
     const store = useAnalysisStore()
     await store.run('d1')
 
-    expect(api.createAnalysis).toHaveBeenCalledWith('d1', null)
+    expect(api.createAnalysis).toHaveBeenCalledWith('d1', null, null)
     store.stopPolling()
   })
 
@@ -155,7 +153,7 @@ describe('useAnalysisStore — pipeline options forwarding', () => {
     }
     await store.run('d1', opts)
 
-    expect(api.createAnalysis).toHaveBeenCalledWith('d1', opts)
+    expect(api.createAnalysis).toHaveBeenCalledWith('d1', opts, null)
     store.stopPolling()
   })
 
@@ -168,7 +166,7 @@ describe('useAnalysisStore — pipeline options forwarding', () => {
     const opts = { do_ocr: false }
     await store.run('d1', opts)
 
-    expect(api.createAnalysis).toHaveBeenCalledWith('d1', { do_ocr: false })
+    expect(api.createAnalysis).toHaveBeenCalledWith('d1', { do_ocr: false }, null)
     store.stopPolling()
   })
 

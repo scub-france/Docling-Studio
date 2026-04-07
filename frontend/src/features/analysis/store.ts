@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Analysis, Page, PipelineOptions } from '../../shared/types'
+import type { Analysis, Chunk, ChunkingOptions, Page, PipelineOptions } from '../../shared/types'
 import * as api from './api'
 
 export const useAnalysisStore = defineStore('analysis', () => {
@@ -9,6 +9,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
   const running = ref(false)
   const error = ref<string | null>(null)
   const pollingInterval = ref<ReturnType<typeof setInterval> | null>(null)
+  const pollingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+  const MAX_POLLING_DURATION = 10 * 60 * 1000 // 10 minutes
 
   const currentPages = computed<Page[]>(() => {
     if (!currentAnalysis.value?.pagesJson) return []
@@ -33,14 +35,44 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
   }
 
+  const currentChunks = computed<Chunk[]>(() => {
+    if (!currentAnalysis.value?.chunksJson) return []
+    try {
+      return JSON.parse(currentAnalysis.value.chunksJson) as Chunk[]
+    } catch {
+      return []
+    }
+  })
+
+  const rechunking = ref(false)
+
+  async function rechunk(jobId: string, chunkingOptions: ChunkingOptions): Promise<Chunk[]> {
+    rechunking.value = true
+    error.value = null
+    try {
+      const chunks = await api.rechunkAnalysis(jobId, chunkingOptions)
+      if (currentAnalysis.value?.id === jobId) {
+        currentAnalysis.value = await api.fetchAnalysis(jobId)
+      }
+      return chunks
+    } catch (e) {
+      error.value = (e as Error).message || 'Failed to rechunk'
+      console.error('Failed to rechunk', e)
+      throw e
+    } finally {
+      rechunking.value = false
+    }
+  }
+
   async function run(
     documentId: string,
     pipelineOptions: PipelineOptions | null = null,
+    chunkingOptions: ChunkingOptions | null = null,
   ): Promise<Analysis> {
     running.value = true
     error.value = null
     try {
-      const analysis = await api.createAnalysis(documentId, pipelineOptions)
+      const analysis = await api.createAnalysis(documentId, pipelineOptions, chunkingOptions)
       currentAnalysis.value = analysis
       analyses.value.unshift(analysis)
       startPolling(analysis.id)
@@ -72,12 +104,23 @@ export const useAnalysisStore = defineStore('analysis', () => {
         running.value = false
       }
     }, 2000)
+    pollingTimeout.value = setTimeout(() => {
+      if (pollingInterval.value) {
+        error.value = 'Analysis timed out'
+        stopPolling()
+        running.value = false
+      }
+    }, MAX_POLLING_DURATION)
   }
 
   function stopPolling(): void {
     if (pollingInterval.value) {
       clearInterval(pollingInterval.value)
       pollingInterval.value = null
+    }
+    if (pollingTimeout.value) {
+      clearTimeout(pollingTimeout.value)
+      pollingTimeout.value = null
     }
   }
 
@@ -105,11 +148,14 @@ export const useAnalysisStore = defineStore('analysis', () => {
     analyses,
     currentAnalysis,
     currentPages,
+    currentChunks,
     running,
+    rechunking,
     error,
     clearError,
     load,
     run,
+    rechunk,
     select,
     remove,
     stopPolling,

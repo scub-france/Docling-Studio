@@ -15,14 +15,18 @@
     <div class="setting-group">
       <label class="setting-label">{{ t('settings.language') }}</label>
       <div class="setting-toggle">
-        <button :class="{ active: store.locale === 'fr' }" @click="store.setLocale('fr')">FR</button>
-        <button :class="{ active: store.locale === 'en' }" @click="store.setLocale('en')">EN</button>
+        <button :class="{ active: store.locale === 'fr' }" @click="store.setLocale('fr')">
+          FR
+        </button>
+        <button :class="{ active: store.locale === 'en' }" @click="store.setLocale('en')">
+          EN
+        </button>
       </div>
     </div>
 
     <div class="setting-group">
       <label class="setting-label">{{ t('settings.version') }}</label>
-      <span class="setting-value">0.1.0</span>
+      <span class="setting-value">{{ version }}</span>
     </div>
   </div>
 </template>
@@ -31,6 +35,7 @@
 import { useSettingsStore } from '../store'
 import { useI18n } from '../../../shared/i18n'
 
+const version = __APP_VERSION__
 const store = useSettingsStore()
 const { t } = useI18n()
 </script>
@@ -39,14 +44,14 @@ const { t } = useI18n()
 .settings-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  max-width: 500px;
+  gap: 24px;
+  max-width: 320px;
 }
 
 .setting-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .setting-label {
@@ -58,33 +63,36 @@ const { t } = useI18n()
 }
 
 .setting-toggle {
-  display: flex;
+  display: inline-flex;
+  gap: 2px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  overflow: hidden;
+  padding: 3px;
+  width: fit-content;
 }
 
 .setting-toggle button {
-  flex: 1;
-  padding: 8px 16px;
+  padding: 6px 16px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   background: transparent;
   border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: all 200ms ease;
 }
 
 .setting-toggle button:hover {
-  color: var(--text);
+  color: var(--text-secondary);
   background: var(--bg-hover);
 }
 
 .setting-toggle button.active {
   background: var(--accent-muted);
   color: var(--accent);
+  font-weight: 600;
 }
 
 .setting-input {

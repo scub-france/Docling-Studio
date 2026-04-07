@@ -30,10 +30,32 @@ export interface Analysis {
   contentMarkdown: string | null
   contentHtml: string | null
   pagesJson: string | null
+  chunksJson: string | null
+  hasDocumentJson: boolean
   errorMessage: string | null
   startedAt: string | null
   completedAt: string | null
   createdAt: string
+}
+
+export interface ChunkingOptions {
+  chunker_type?: 'hybrid' | 'hierarchical'
+  max_tokens?: number
+  merge_peers?: boolean
+  repeat_table_header?: boolean
+}
+
+export interface ChunkBbox {
+  page: number
+  bbox: [number, number, number, number]
+}
+
+export interface Chunk {
+  text: string
+  headings: string[]
+  sourcePage: number | null
+  tokenCount: number
+  bboxes: ChunkBbox[]
 }
 
 export interface PageElement {

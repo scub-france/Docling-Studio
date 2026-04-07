@@ -13,11 +13,18 @@
       <span>{{ t('upload.uploading') }}</span>
     </div>
     <div v-else class="upload-state">
-      <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <svg
+        class="upload-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
         <path d="M12 16V4m0 0L8 8m4-4l4 4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2" />
       </svg>
       <span class="upload-text">{{ t('upload.drop') }}</span>
       <span class="upload-hint">{{ t('upload.maxSize') }}</span>
+      <span v-if="store.error" class="upload-error">{{ store.error }}</span>
     </div>
   </div>
 </template>
@@ -41,9 +48,14 @@ function openFilePicker() {
 async function onFileSelect(e: Event) {
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
-  if (file) {
-    const doc = await store.upload(file)
-    if (doc) emit('uploaded', doc.id)
+  if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
+    try {
+      store.clearError()
+      const doc = await store.upload(file)
+      if (doc) emit('uploaded', doc.id)
+    } catch {
+      // error is already set in store.upload
+    }
   }
   target.value = ''
 }
@@ -51,9 +63,14 @@ async function onFileSelect(e: Event) {
 async function onDrop(e: DragEvent) {
   dragging.value = false
   const file = e.dataTransfer?.files?.[0]
-  if (file && file.type === 'application/pdf') {
-    const doc = await store.upload(file)
-    if (doc) emit('uploaded', doc.id)
+  if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
+    try {
+      store.clearError()
+      const doc = await store.upload(file)
+      if (doc) emit('uploaded', doc.id)
+    } catch {
+      // error is already set in store.upload
+    }
   }
 }
 </script>
@@ -103,6 +120,12 @@ async function onDrop(e: DragEvent) {
   color: var(--text-muted);
 }
 
+.upload-error {
+  font-size: 13px;
+  color: var(--error, #e53e3e);
+  font-weight: 500;
+}
+
 .spinner {
   width: 24px;
   height: 24px;
@@ -113,6 +136,8 @@ async function onDrop(e: DragEvent) {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

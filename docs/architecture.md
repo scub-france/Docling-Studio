@@ -2,7 +2,7 @@
 
 ## Overview
 
-![Docling Studio architecture](images/archi.png){ width="700" }
+![Docling Studio architecture](images/global.png){ width="700" }
 
 Two services communicating via REST. The frontend is a Vue 3 SPA served by Nginx in production. The backend is a FastAPI app that wraps Docling's document conversion engine.
 
@@ -40,37 +40,47 @@ The backend follows a strict layered architecture. Dependencies flow inward: API
 
 ```
 document-parser/
-├── main.py                   # FastAPI app, CORS, lifespan
+├── main.py                   # FastAPI app, CORS, lifespan, health endpoint
 │
 ├── domain/                   # Pure domain — no HTTP, no DB
 │   ├── models.py             # Document, AnalysisJob dataclasses
-│   ├── parsing.py            # Docling conversion & page extraction
+│   ├── ports.py              # Abstract protocols (DocumentConverter, DocumentChunker)
+│   ├── value_objects.py      # ConversionResult, ChunkingOptions, ChunkResult
 │   └── bbox.py               # Bounding box coordinate normalization
 │
 ├── api/                      # HTTP layer (FastAPI routers)
 │   ├── schemas.py            # Pydantic DTOs (camelCase serialization)
 │   ├── documents.py          # /api/documents endpoints
-│   └── analyses.py           # /api/analyses endpoints
+│   └── analyses.py           # /api/analyses endpoints (create, rechunk, delete)
 │
 ├── persistence/              # Data layer (SQLite via aiosqlite)
 │   ├── database.py           # Connection management, schema init
 │   ├── document_repo.py      # Document CRUD
 │   └── analysis_repo.py      # AnalysisJob CRUD
 │
+├── infra/                    # Infrastructure adapters
+│   ├── settings.py           # Environment-based configuration
+│   ├── local_converter.py    # In-process Docling converter (local mode)
+│   ├── serve_converter.py    # HTTP client for Docling Serve (remote mode)
+│   ├── local_chunker.py      # In-process chunking (HierarchicalChunker, HybridChunker)
+│   ├── rate_limiter.py       # Sliding-window rate limiting middleware
+│   └── bbox.py               # Bbox coordinate normalization helpers
+│
 ├── services/                 # Use case orchestration
 │   ├── document_service.py   # Upload, delete, preview
-│   └── analysis_service.py   # Async Docling processing
+│   └── analysis_service.py   # Async Docling processing + chunking
 │
-└── tests/                    # pytest
+└── tests/                    # pytest (199 tests)
 ```
 
 ### Layer responsibilities
 
 | Layer | Role | Depends on |
 |-------|------|------------|
-| **domain** | Dataclasses, bbox math, Docling conversion | Nothing (pure Python) |
+| **domain** | Dataclasses, value objects, abstract ports | Nothing (pure Python) |
 | **persistence** | SQLite CRUD, aiosqlite | domain (models) |
-| **services** | Orchestrate use cases, call Docling | domain + persistence |
+| **infra** | Adapters: converters, chunker, rate limiter, settings | domain (ports, value objects) |
+| **services** | Orchestrate use cases, call converters/chunkers | domain + persistence + infra |
 | **api** | HTTP endpoints, Pydantic DTOs, error handling | services |
 
 ### API contract
@@ -101,7 +111,9 @@ frontend/src/
 │   │       ├── AnalysisPanel.vue
 │   │       ├── StructureViewer.vue
 │   │       └── ...
+│   ├── chunking/             # Chunk panel UI + rechunk action
 │   ├── document/             # Document store, API, upload
+│   ├── feature-flags/        # Feature flag store (reads /api/health)
 │   ├── history/              # History store, navigation
 │   └── settings/             # Theme, locale, API URL
 │
@@ -126,3 +138,73 @@ Backend response → Pinia store state → Vue reactivity → UI update
 - **TypeScript strict mode** with shared interfaces in `shared/types.ts`.
 - **No component library** — custom CSS with CSS variables for theming.
 - **vue-tsc** in CI to catch type errors before merge.
+
+## Feature Flags
+
+The frontend adapts its UI based on the backend's capabilities. On startup, the feature flag store fetches `/api/health` and reads the `engine` and `deploymentMode` fields.
+
+| Flag | Condition | Effect |
+|------|-----------|--------|
+| `chunking` | `engine === 'local'` | Shows chunking options in the analysis panel |
+| `disclaimer` | `deploymentMode === 'huggingface'` | Shows a disclaimer banner at the top of the app |
+
+This allows the same frontend build to work with both local and remote backends without conditional compilation.
+
+## Rate Limiting
+
+The backend applies a sliding-window rate limiter as middleware:
+
+- **60 requests** per **60 seconds** per client IP
+- The `/api/health` endpoint is excluded
+- When the limit is exceeded, the API returns `429 Too Many Requests` with a `Retry-After` header
+
+## Analysis Lifecycle
+
+An analysis job follows this state machine:
+
+```
+PENDING → RUNNING → COMPLETED
+                  → FAILED
+```
+
+| Status | Description |
+|--------|-------------|
+| `PENDING` | Job created, waiting for a processing slot |
+| `RUNNING` | Docling conversion in progress |
+| `COMPLETED` | Conversion finished — results available (markdown, HTML, pages, chunks) |
+| `FAILED` | Conversion error — `error_message` contains details |
+
+The backend limits parallel jobs via `MAX_CONCURRENT_ANALYSES` (default: 3) to avoid overloading the CPU during Docling processing.
+
+## Local vs Remote Mode
+
+The backend supports two conversion engines, selected via the `CONVERSION_ENGINE` environment variable:
+
+| | Local | Remote |
+|---|---|---|
+| **Engine** | In-process Docling (PyTorch) | HTTP client to [Docling Serve](https://github.com/DS4SD/docling-serve) |
+| **Chunking** | Available (in-process) | Not available |
+| **Docker image** | `latest-local` (~1.9 GB) | `latest-remote` (~270 MB) |
+| **ML models** | Downloaded on first run (~400 MB) | Managed by Docling Serve |
+| **CPU/RAM** | 4+ CPUs, 6+ GB RAM | 2 CPUs, 2 GB RAM |
+
+The converter is selected at startup in `main.py` via `_build_converter()`. The chunker (`_build_chunker()`) is only instantiated in local mode — in remote mode, the chunking feature flag is disabled and the UI hides the chunking panel.
+
+## Health Endpoint
+
+`GET /api/health` returns the backend status:
+
+```json
+{
+  "status": "ok",
+  "engine": "local",
+  "version": "0.3.0",
+  "deploymentMode": "self-hosted"
+}
+```
+
+The frontend uses this response to:
+
+1. Verify the backend is reachable
+2. Evaluate feature flags (chunking, disclaimer)
+3. Display the app version

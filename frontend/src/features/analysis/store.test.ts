@@ -70,7 +70,7 @@ describe('useAnalysisStore', () => {
     expect(store.currentAnalysis).toEqual(job)
     expect(store.analyses[0]).toEqual(job)
     expect(store.running).toBe(true)
-    expect(api.createAnalysis).toHaveBeenCalledWith('d1', null)
+    expect(api.createAnalysis).toHaveBeenCalledWith('d1', null, null)
 
     // Advance timer to trigger polling
     await vi.advanceTimersByTimeAsync(2000)
@@ -90,7 +90,7 @@ describe('useAnalysisStore', () => {
     const options = { do_ocr: false, table_mode: 'fast' }
     await store.run('d1', options)
 
-    expect(api.createAnalysis).toHaveBeenCalledWith('d1', options)
+    expect(api.createAnalysis).toHaveBeenCalledWith('d1', options, null)
 
     store.stopPolling()
   })

@@ -1,6 +1,5 @@
 """Tests for persistence repositories using a temporary SQLite database."""
 
-
 import pytest
 
 from domain.models import AnalysisJob, AnalysisStatus, Document

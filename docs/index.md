@@ -4,18 +4,23 @@ A visual document analysis studio powered by [Docling](https://github.com/DS4SD/
 
 Upload a PDF, configure the extraction pipeline, and visualize the results — text, tables, images, formulas, bounding boxes — all from your browser.
 
-![Docling Studio architecture](images/archi.png){ width="600" }
+![Docling Studio architecture](images/global.png){ width="600" }
 
 ![Docling Studio — Execution Result](screenshots/DS-execution-result.png)
 
 ## Features
 
 - **PDF viewer** with page navigation, bounding box overlay, and resizable results panel
-- **Configurable Docling pipeline** — OCR, table extraction, code/formula enrichment, picture classification & description
+- **Configurable Docling pipeline** — OCR, table extraction, code/formula enrichment, picture classification & description, image generation
 - **Bounding box visualization** — color-coded element overlay directly on the PDF
+- **Chunking** — split extracted content into semantic chunks (hierarchical, hybrid, or page-based) with configurable token limits
 - **Markdown & HTML export** of extracted content
 - **Document management** — upload, list, delete
 - **Analysis history** — re-visit and open past analyses
+- **Feature flags** — capabilities adapt to the conversion engine (local vs remote)
+- **Rate limiting** — 60 requests per minute per IP to protect the backend
+- **Deployment modes** — self-hosted (default) or HuggingFace Spaces (with disclaimer banner)
+- **Health endpoint** — `/api/health` reports engine type, deployment mode, and database status
 - **Dark / Light theme** and **FR / EN** localization
 
 ## Tech Stack
@@ -31,7 +36,7 @@ Upload a PDF, configure the extraction pipeline, and visualize the results — t
 
 ```bash
 # Docker (fastest)
-docker run -p 3000:3000 ghcr.io/scub-france/docling-studio:latest
+docker run -p 3000:3000 ghcr.io/scub-france/docling-studio:latest-local
 ```
 
 Open [http://localhost:3000](http://localhost:3000) and upload a PDF.

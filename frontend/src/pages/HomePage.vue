@@ -2,9 +2,7 @@
   <div class="home-page">
     <div class="home-center">
       <div class="hero">
-        <div class="hero-icon">
-          <span class="hero-d">D</span>
-        </div>
+        <img src="/logo.png" alt="Docling Studio" class="hero-logo" />
         <h1 class="hero-title">{{ t('home.title') }}</h1>
         <p class="hero-subtitle">{{ t('home.subtitle') }}</p>
       </div>
@@ -17,10 +15,24 @@
       <!-- Stats -->
       <div class="home-stats" v-if="docCount > 0 || analysisCount > 0">
         <div class="stat-card" @click="$router.push('/documents')">
+          <svg class="stat-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+              clip-rule="evenodd"
+            />
+          </svg>
           <div class="stat-value">{{ docCount }}</div>
           <div class="stat-label">{{ t('home.documents') }}</div>
         </div>
         <div class="stat-card" @click="$router.push('/history')">
+          <svg class="stat-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+              clip-rule="evenodd"
+            />
+          </svg>
           <div class="stat-value">{{ analysisCount }}</div>
           <div class="stat-label">{{ t('home.analyses') }}</div>
         </div>
@@ -37,14 +49,22 @@
             @click="openInStudio(doc)"
           >
             <svg class="recent-icon" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+              <path
+                fill-rule="evenodd"
+                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"
+                clip-rule="evenodd"
+              />
             </svg>
             <div class="recent-meta">
               <span class="recent-name">{{ doc.filename }}</span>
               <span class="recent-detail">{{ doc.pageCount ? doc.pageCount + ' pages' : '' }}</span>
             </div>
             <svg class="recent-arrow" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+              <path
+                fill-rule="evenodd"
+                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                clip-rule="evenodd"
+              />
             </svg>
           </button>
         </div>
@@ -114,21 +134,12 @@ onMounted(() => {
   text-align: center;
 }
 
-.hero-icon {
+.hero-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
   margin-bottom: 4px;
-}
-
-.hero-d {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  background: var(--accent);
-  color: white;
   border-radius: var(--radius-lg);
-  font-weight: 700;
-  font-size: 26px;
 }
 
 .hero-title {
@@ -171,8 +182,19 @@ onMounted(() => {
 }
 
 .stat-card:hover {
-  border-color: var(--border-light);
+  border-color: var(--accent);
   background: var(--bg-elevated);
+}
+
+.stat-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.stat-card:hover .stat-icon {
+  color: var(--accent);
 }
 
 .stat-value {

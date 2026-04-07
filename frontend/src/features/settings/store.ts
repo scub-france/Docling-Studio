@@ -2,13 +2,29 @@ import { defineStore } from 'pinia'
 import { ref, watch, watchEffect } from 'vue'
 import type { Locale, Theme } from '../../shared/types'
 
+function safeGetItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function safeSetItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // localStorage unavailable (private browsing, quota exceeded)
+  }
+}
+
 export const useSettingsStore = defineStore('settings', () => {
   const apiUrl = ref('http://localhost:8000')
-  const theme = ref<Theme>((localStorage.getItem('docling-theme') as Theme) || 'dark')
-  const locale = ref<Locale>((localStorage.getItem('docling-locale') as Locale) || 'fr')
+  const theme = ref<Theme>((safeGetItem('docling-theme') as Theme) || 'dark')
+  const locale = ref<Locale>((safeGetItem('docling-locale') as Locale) || 'fr')
 
-  watch(theme, (v) => localStorage.setItem('docling-theme', v))
-  watch(locale, (v) => localStorage.setItem('docling-locale', v))
+  watch(theme, (v) => safeSetItem('docling-theme', v))
+  watch(locale, (v) => safeSetItem('docling-locale', v))
 
   watchEffect(() => {
     document.documentElement.classList.toggle('light', theme.value === 'light')
