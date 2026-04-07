@@ -5,6 +5,7 @@
 ![Node](https://img.shields.io/badge/node-20+-green)
 ![Docling](https://img.shields.io/badge/powered%20by-Docling-orange)
 ![CI](https://github.com/scub-france/Docling-Studio/actions/workflows/ci.yml/badge.svg)
+[![GitHub Stars](https://img.shields.io/github/stars/scub-france/Docling-Studio?style=flat-square&logo=github&label=Stars)](https://github.com/scub-france/Docling-Studio)
 
 A visual document analysis studio powered by [Docling](https://github.com/DS4SD/docling).
 Upload a PDF, configure the extraction pipeline, and visualize the results — text, tables, images, formulas, bounding boxes — all from your browser.

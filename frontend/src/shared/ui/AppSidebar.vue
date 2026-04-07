@@ -54,6 +54,18 @@
     </nav>
 
     <div class="sidebar-footer">
+      <a
+        class="github-badge"
+        href="https://github.com/scub-france/Docling-Studio"
+        target="_blank"
+        rel="noopener"
+      >
+        <img
+          src="https://img.shields.io/github/stars/scub-france/Docling-Studio?style=social"
+          alt="GitHub Stars"
+          height="20"
+        />
+      </a>
       <span class="version">v{{ version }}</span>
     </div>
   </aside>
@@ -138,6 +150,17 @@ defineProps({
   border-top: 1px solid var(--border);
   white-space: nowrap;
   overflow: hidden;
+}
+
+.github-badge {
+  display: block;
+  margin-bottom: 8px;
+  opacity: 0.7;
+  transition: opacity var(--transition);
+}
+
+.github-badge:hover {
+  opacity: 1;
 }
 
 .version {
