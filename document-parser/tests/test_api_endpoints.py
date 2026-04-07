@@ -97,7 +97,7 @@ class TestDocumentEndpoints:
 
     @patch("services.document_service.upload", new_callable=AsyncMock)
     def test_upload_too_large(self, mock_upload, client):
-        mock_upload.side_effect = ValueError("File too large (max 50 MB)")
+        mock_upload.side_effect = ValueError("File too large (max 5 MB)")
 
         resp = client.post(
             "/api/documents/upload",

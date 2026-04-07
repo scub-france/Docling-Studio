@@ -9,6 +9,7 @@ interface HealthResponse {
   status: string
   engine: ConversionEngine
   deploymentMode?: DeploymentMode
+  maxPageCount?: number
 }
 
 export type FeatureFlag = 'chunking' | 'disclaimer'
@@ -37,6 +38,7 @@ const featureRegistry: Record<FeatureFlag, FeatureFlagDef> = {
 export const useFeatureFlagStore = defineStore('feature-flags', () => {
   const engine = ref<ConversionEngine | null>(null)
   const deploymentMode = ref<DeploymentMode | null>(null)
+  const maxPageCount = ref<number>(0)
   const loaded = ref(false)
   const error = ref<string | null>(null)
 
@@ -56,6 +58,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
       const data = await apiFetch<HealthResponse>('/api/health')
       engine.value = data.engine
       deploymentMode.value = data.deploymentMode ?? 'self-hosted'
+      maxPageCount.value = data.maxPageCount ?? 0
       loaded.value = true
       error.value = null
     } catch (e) {
@@ -64,5 +67,5 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
     }
   }
 
-  return { engine, deploymentMode, loaded, error, isEnabled, load }
+  return { engine, deploymentMode, maxPageCount, loaded, error, isEnabled, load }
 })

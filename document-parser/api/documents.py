@@ -35,7 +35,7 @@ async def upload(file: UploadFile) -> DocumentResponse:
 
     # Reject early if Content-Length exceeds limit (before reading body)
     if file.size and file.size > document_service.MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="File too large (max 50 MB)")
+        raise HTTPException(status_code=413, detail="File too large (max 5 MB)")
 
     # Read in chunks to avoid holding the full upload in a single allocation
     chunks: list[bytes] = []
@@ -43,7 +43,7 @@ async def upload(file: UploadFile) -> DocumentResponse:
     while chunk := await file.read(_READ_CHUNK_SIZE):
         total += len(chunk)
         if total > document_service.MAX_FILE_SIZE:
-            raise HTTPException(status_code=413, detail="File too large (max 50 MB)")
+            raise HTTPException(status_code=413, detail="File too large (max 5 MB)")
         chunks.append(chunk)
     content = b"".join(chunks)
 

@@ -113,10 +113,13 @@ async def health() -> dict[str, str]:
         logger.warning("Health check: database unreachable", exc_info=True)
 
     status = "ok" if db_status == "ok" else "degraded"
-    return {
+    result: dict[str, str | int] = {
         "status": status,
         "version": settings.app_version,
         "engine": settings.conversion_engine,
         "deploymentMode": settings.deployment_mode,
         "database": db_status,
     }
+    if settings.max_page_count > 0:
+        result["maxPageCount"] = settings.max_page_count
+    return result

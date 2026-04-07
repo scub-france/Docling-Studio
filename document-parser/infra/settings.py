@@ -13,8 +13,9 @@ class Settings:
     deployment_mode: str = "self-hosted"  # "self-hosted" or "huggingface"
     docling_serve_url: str = "http://localhost:5001"
     docling_serve_api_key: str | None = None
-    conversion_timeout: int = 600
+    conversion_timeout: int = 900
     max_concurrent_analyses: int = 3
+    max_page_count: int = 0  # 0 = unlimited
     upload_dir: str = "./uploads"
     db_path: str = "./data/docling_studio.db"
     cors_origins: list[str] = field(
@@ -31,8 +32,9 @@ class Settings:
             deployment_mode=os.environ.get("DEPLOYMENT_MODE", "self-hosted"),
             docling_serve_url=os.environ.get("DOCLING_SERVE_URL", "http://localhost:5001"),
             docling_serve_api_key=os.environ.get("DOCLING_SERVE_API_KEY"),
-            conversion_timeout=int(os.environ.get("CONVERSION_TIMEOUT", "600")),
+            conversion_timeout=int(os.environ.get("CONVERSION_TIMEOUT", "900")),
             max_concurrent_analyses=int(os.environ.get("MAX_CONCURRENT_ANALYSES", "3")),
+            max_page_count=int(os.environ.get("MAX_PAGE_COUNT", "0")),
             upload_dir=os.environ.get("UPLOAD_DIR", "./uploads"),
             db_path=os.environ.get("DB_PATH", "./data/docling_studio.db"),
             cors_origins=[o.strip() for o in cors_raw.split(",")],

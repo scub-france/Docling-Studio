@@ -16,7 +16,8 @@ from persistence import analysis_repo, document_repo
 logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = settings.upload_dir
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+MAX_PAGE_COUNT = settings.max_page_count  # 0 = unlimited
 
 
 # PDF magic bytes: %PDF
@@ -32,7 +33,7 @@ async def upload(filename: str, content_type: str, file_content: bytes) -> Docum
     Writes the file in fixed-size chunks to keep peak memory usage low.
     """
     if len(file_content) > MAX_FILE_SIZE:
-        raise ValueError("File too large (max 50 MB)")
+        raise ValueError("File too large (max 5 MB)")
 
     if not file_content[:4].startswith(_PDF_MAGIC):
         raise ValueError("Invalid file: not a PDF document")
@@ -50,6 +51,10 @@ async def upload(filename: str, content_type: str, file_content: bytes) -> Docum
 
     # Count PDF pages
     page_count = _count_pages(file_content)
+
+    if MAX_PAGE_COUNT > 0 and page_count is not None and page_count > MAX_PAGE_COUNT:
+        os.unlink(file_path)
+        raise ValueError(f"Too many pages ({page_count}). Maximum allowed: {MAX_PAGE_COUNT}")
 
     doc = Document(
         filename=filename,

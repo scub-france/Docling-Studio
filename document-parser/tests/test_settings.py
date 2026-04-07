@@ -13,7 +13,8 @@ class TestSettingsDefaults:
         assert s.deployment_mode == "self-hosted"
         assert s.docling_serve_url == "http://localhost:5001"
         assert s.docling_serve_api_key is None
-        assert s.conversion_timeout == 600
+        assert s.conversion_timeout == 900
+        assert s.max_page_count == 0
         assert s.upload_dir == "./uploads"
         assert s.db_path == "./data/docling_studio.db"
         assert "http://localhost:3000" in s.cors_origins
@@ -35,6 +36,7 @@ class TestSettingsFromEnv:
         monkeypatch.setenv("DOCLING_SERVE_URL", "http://serve:9000")
         monkeypatch.setenv("DOCLING_SERVE_API_KEY", "secret-key")
         monkeypatch.setenv("CONVERSION_TIMEOUT", "120")
+        monkeypatch.setenv("MAX_PAGE_COUNT", "20")
         monkeypatch.setenv("UPLOAD_DIR", "/data/uploads")
         monkeypatch.setenv("DB_PATH", "/data/test.db")
         monkeypatch.setenv("CORS_ORIGINS", "http://a.com, http://b.com")
@@ -47,6 +49,7 @@ class TestSettingsFromEnv:
         assert s.docling_serve_url == "http://serve:9000"
         assert s.docling_serve_api_key == "secret-key"
         assert s.conversion_timeout == 120
+        assert s.max_page_count == 20
         assert s.upload_dir == "/data/uploads"
         assert s.db_path == "/data/test.db"
         assert s.cors_origins == ["http://a.com", "http://b.com"]
@@ -60,6 +63,7 @@ class TestSettingsFromEnv:
             "DOCLING_SERVE_URL",
             "DOCLING_SERVE_API_KEY",
             "CONVERSION_TIMEOUT",
+            "MAX_PAGE_COUNT",
             "UPLOAD_DIR",
             "DB_PATH",
             "CORS_ORIGINS",
@@ -70,7 +74,8 @@ class TestSettingsFromEnv:
 
         assert s.app_version == "dev"
         assert s.conversion_engine == "local"
-        assert s.conversion_timeout == 600
+        assert s.conversion_timeout == 900
+        assert s.max_page_count == 0
 
     def test_cors_origins_split(self, monkeypatch):
         monkeypatch.setenv("CORS_ORIGINS", "http://a.com,http://b.com,http://c.com")

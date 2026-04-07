@@ -25,6 +25,50 @@ class TestUploadValidation:
             await document_service.upload("fake.pdf", "application/pdf", content)
 
     @pytest.mark.asyncio
+    async def test_rejects_too_many_pages(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(document_service, "UPLOAD_DIR", str(tmp_path))
+        monkeypatch.setattr(document_service, "MAX_PAGE_COUNT", 20)
+
+        with patch.object(document_service, "_count_pages", return_value=40):
+            content = b"%PDF-1.4 fake pdf content"
+            with pytest.raises(ValueError, match="Too many pages"):
+                await document_service.upload("big.pdf", "application/pdf", content)
+
+        # Verify temp file was cleaned up
+        assert len(os.listdir(tmp_path)) == 0
+
+    @pytest.mark.asyncio
+    async def test_allows_pdf_under_page_limit(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(document_service, "UPLOAD_DIR", str(tmp_path))
+        monkeypatch.setattr(document_service, "MAX_PAGE_COUNT", 20)
+
+        mock_insert = AsyncMock()
+        with (
+            patch("persistence.document_repo.insert", mock_insert),
+            patch.object(document_service, "_count_pages", return_value=15),
+        ):
+            content = b"%PDF-1.4 fake pdf content"
+            doc = await document_service.upload("ok.pdf", "application/pdf", content)
+
+        assert doc.page_count == 15
+        mock_insert.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_unlimited_pages_when_zero(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(document_service, "UPLOAD_DIR", str(tmp_path))
+        monkeypatch.setattr(document_service, "MAX_PAGE_COUNT", 0)
+
+        mock_insert = AsyncMock()
+        with (
+            patch("persistence.document_repo.insert", mock_insert),
+            patch.object(document_service, "_count_pages", return_value=100),
+        ):
+            content = b"%PDF-1.4 fake pdf content"
+            doc = await document_service.upload("big.pdf", "application/pdf", content)
+
+        assert doc.page_count == 100
+
+    @pytest.mark.asyncio
     async def test_accepts_valid_pdf(self, tmp_path, monkeypatch):
         monkeypatch.setattr(document_service, "UPLOAD_DIR", str(tmp_path))
 

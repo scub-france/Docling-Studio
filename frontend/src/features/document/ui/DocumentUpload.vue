@@ -23,55 +23,67 @@
         <path d="M12 16V4m0 0L8 8m4-4l4 4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2" />
       </svg>
       <span class="upload-text">{{ t('upload.drop') }}</span>
-      <span class="upload-hint">{{ t('upload.maxSize') }}</span>
+      <span class="upload-hint">{{ uploadHint }}</span>
       <span v-if="store.error" class="upload-error">{{ store.error }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useDocumentStore } from '../store'
+import { useFeatureFlagStore } from '../../feature-flags/store'
 import { useI18n } from '../../../shared/i18n'
 
 const emit = defineEmits<{ uploaded: [docId: string] }>()
 
 const store = useDocumentStore()
+const flags = useFeatureFlagStore()
 const { t } = useI18n()
 const fileInput = ref<HTMLInputElement | null>(null)
 const dragging = ref(false)
+
+const uploadHint = computed(() => {
+  const size = t('upload.maxSize')
+  if (flags.maxPageCount > 0) {
+    return `${size} · ${t('upload.maxPages').replace('{n}', String(flags.maxPageCount))}`
+  }
+  return size
+})
 
 function openFilePicker() {
   fileInput.value?.click()
 }
 
+function isPdf(file: File): boolean {
+  return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+}
+
+async function handleFile(file: File) {
+  store.clearError()
+  if (!isPdf(file)) {
+    store.error = t('upload.invalidFormat')
+    return
+  }
+  try {
+    const doc = await store.upload(file)
+    if (doc) emit('uploaded', doc.id)
+  } catch {
+    // error is already set in store.upload
+  }
+}
+
 async function onFileSelect(e: Event) {
   const target = e.target as HTMLInputElement
   const file = target.files?.[0]
-  if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
-    try {
-      store.clearError()
-      const doc = await store.upload(file)
-      if (doc) emit('uploaded', doc.id)
-    } catch {
-      // error is already set in store.upload
-    }
-  }
+  if (file) await handleFile(file)
   target.value = ''
 }
 
 async function onDrop(e: DragEvent) {
   dragging.value = false
   const file = e.dataTransfer?.files?.[0]
-  if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
-    try {
-      store.clearError()
-      const doc = await store.upload(file)
-      if (doc) emit('uploaded', doc.id)
-    } catch {
-      // error is already set in store.upload
-    }
-  }
+  if (file) await handleFile(file)
 }
 </script>
 

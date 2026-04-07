@@ -94,7 +94,10 @@ const messages: Messages = {
     // Upload
     'upload.drop': 'Déposez un PDF ici ou cliquez pour importer',
     'upload.uploading': 'Import en cours...',
-    'upload.maxSize': 'Max 50Mo',
+    'upload.maxSize': 'Max 5Mo',
+    'upload.invalidFormat': 'Format invalide — seuls les fichiers PDF sont acceptés.',
+    'upload.tooLarge': 'Fichier trop volumineux (max 5 Mo).',
+    'upload.maxPages': 'Max {n} pages',
 
     // History
     'history.title': 'Historique',
@@ -132,7 +135,7 @@ const messages: Messages = {
 
     // Disclaimer
     'disclaimer.banner':
-      'Instance de d\u00e9monstration \u2014 les documents upload\u00e9s sont partag\u00e9s et temporaires (max 50 Mo). Ne pas envoyer de fichiers confidentiels.',
+      'Instance de d\u00e9monstration \u2014 les documents upload\u00e9s sont partag\u00e9s et temporaires (max 5 Mo). Ne pas envoyer de fichiers confidentiels.',
   },
   en: {
     'nav.home': 'Home',
@@ -215,7 +218,10 @@ const messages: Messages = {
 
     'upload.drop': 'Drop a PDF here or click to upload',
     'upload.uploading': 'Uploading...',
-    'upload.maxSize': 'Max 50MB',
+    'upload.maxSize': 'Max 5MB',
+    'upload.invalidFormat': 'Invalid format — only PDF files are accepted.',
+    'upload.tooLarge': 'File too large (max 5 MB).',
+    'upload.maxPages': 'Max {n} pages',
 
     'history.title': 'History',
     'history.tabAnalyses': 'Analyses',
@@ -249,7 +255,7 @@ const messages: Messages = {
 
     // Disclaimer
     'disclaimer.banner':
-      'Demo instance \u2014 uploaded documents are shared and temporary (max 50 MB). Do not upload confidential files.',
+      'Demo instance \u2014 uploaded documents are shared and temporary (max 5 MB). Do not upload confidential files.',
   },
 }
 

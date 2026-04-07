@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import type { Document } from '../../shared/types'
 import * as api from './api'
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50 MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
 
 export const useDocumentStore = defineStore('document', () => {
   const documents = ref<Document[]>([])
@@ -27,7 +27,7 @@ export const useDocumentStore = defineStore('document', () => {
 
   async function upload(file: File): Promise<Document> {
     if (file.size > MAX_FILE_SIZE) {
-      error.value = 'File too large (max 50 MB)'
+      error.value = 'File too large (max 5 MB)'
       throw new Error(error.value)
     }
     uploading.value = true
