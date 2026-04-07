@@ -25,6 +25,27 @@ class Settings:
         default_factory=lambda: ["http://localhost:3000", "http://localhost:5173"]
     )
 
+    def __post_init__(self) -> None:
+        errors: list[str] = []
+        if self.document_timeout <= 0:
+            errors.append(f"document_timeout must be > 0 (got {self.document_timeout})")
+        if self.conversion_timeout <= 0:
+            errors.append(f"conversion_timeout must be > 0 (got {self.conversion_timeout})")
+        if self.max_concurrent_analyses < 1:
+            errors.append(
+                f"max_concurrent_analyses must be >= 1 (got {self.max_concurrent_analyses})"
+            )
+        if self.max_page_count < 0:
+            errors.append(f"max_page_count must be >= 0 (got {self.max_page_count})")
+        if self.max_file_size < 0:
+            errors.append(f"max_file_size must be >= 0 (got {self.max_file_size})")
+        if self.default_table_mode not in ("accurate", "fast"):
+            errors.append(
+                f"default_table_mode must be 'accurate' or 'fast' (got '{self.default_table_mode}')"
+            )
+        if errors:
+            raise ValueError("Invalid settings:\n  " + "\n  ".join(errors))
+
     @classmethod
     def from_env(cls) -> Settings:
         """Build a Settings instance from environment variables."""

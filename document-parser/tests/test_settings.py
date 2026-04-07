@@ -29,6 +29,57 @@ class TestSettingsDefaults:
             s.upload_dir = "/other"  # type: ignore[misc]
 
 
+class TestSettingsValidation:
+    def test_negative_document_timeout_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="document_timeout must be > 0"):
+            Settings(document_timeout=-1.0)
+
+    def test_zero_document_timeout_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="document_timeout must be > 0"):
+            Settings(document_timeout=0)
+
+    def test_negative_conversion_timeout_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="conversion_timeout must be > 0"):
+            Settings(conversion_timeout=-1)
+
+    def test_zero_max_concurrent_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="max_concurrent_analyses must be >= 1"):
+            Settings(max_concurrent_analyses=0)
+
+    def test_negative_max_page_count_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="max_page_count must be >= 0"):
+            Settings(max_page_count=-1)
+
+    def test_negative_max_file_size_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="max_file_size must be >= 0"):
+            Settings(max_file_size=-1)
+
+    def test_invalid_table_mode_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="default_table_mode must be"):
+            Settings(default_table_mode="turbo")
+
+    def test_multiple_errors_reported(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="document_timeout") as exc_info:
+            Settings(document_timeout=-1, conversion_timeout=-1)
+        assert "conversion_timeout" in str(exc_info.value)
+
+
 class TestSettingsFromEnv:
     def test_reads_env_vars(self, monkeypatch):
         monkeypatch.setenv("APP_VERSION", "1.2.3")
