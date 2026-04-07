@@ -15,6 +15,7 @@ class TestSettingsDefaults:
         assert s.docling_serve_api_key is None
         assert s.conversion_timeout == 900
         assert s.document_timeout == 120.0
+        assert s.lock_timeout == 300
         assert s.max_page_count == 0
         assert s.upload_dir == "./uploads"
         assert s.db_path == "./data/docling_studio.db"
@@ -29,6 +30,79 @@ class TestSettingsDefaults:
             s.upload_dir = "/other"  # type: ignore[misc]
 
 
+class TestSettingsValidation:
+    def test_negative_document_timeout_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="document_timeout must be > 0"):
+            Settings(document_timeout=-1.0)
+
+    def test_zero_document_timeout_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="document_timeout must be > 0"):
+            Settings(document_timeout=0)
+
+    def test_negative_conversion_timeout_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="conversion_timeout must be > 0"):
+            Settings(conversion_timeout=-1)
+
+    def test_zero_max_concurrent_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="max_concurrent_analyses must be >= 1"):
+            Settings(max_concurrent_analyses=0)
+
+    def test_negative_max_page_count_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="max_page_count must be >= 0"):
+            Settings(max_page_count=-1)
+
+    def test_negative_max_file_size_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="max_file_size must be >= 0"):
+            Settings(max_file_size=-1)
+
+    def test_zero_lock_timeout_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="lock_timeout must be > 0"):
+            Settings(lock_timeout=0)
+
+    def test_invalid_table_mode_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="default_table_mode must be"):
+            Settings(default_table_mode="turbo")
+
+    def test_cascade_document_ge_lock_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match=r"document_timeout.*< lock_timeout"):
+            Settings(document_timeout=400.0, lock_timeout=300, conversion_timeout=900)
+
+    def test_cascade_lock_ge_conversion_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match=r"lock_timeout.*< conversion_timeout"):
+            Settings(document_timeout=100.0, lock_timeout=900, conversion_timeout=900)
+
+    def test_cascade_valid_ordering_accepted(self):
+        s = Settings(document_timeout=60.0, lock_timeout=300, conversion_timeout=900)
+        assert s.document_timeout < s.lock_timeout < s.conversion_timeout
+
+    def test_multiple_errors_reported(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="document_timeout") as exc_info:
+            Settings(document_timeout=-1, conversion_timeout=-1)
+        assert "conversion_timeout" in str(exc_info.value)
+
+
 class TestSettingsFromEnv:
     def test_reads_env_vars(self, monkeypatch):
         monkeypatch.setenv("APP_VERSION", "1.2.3")
@@ -36,8 +110,9 @@ class TestSettingsFromEnv:
         monkeypatch.setenv("DEPLOYMENT_MODE", "huggingface")
         monkeypatch.setenv("DOCLING_SERVE_URL", "http://serve:9000")
         monkeypatch.setenv("DOCLING_SERVE_API_KEY", "secret-key")
-        monkeypatch.setenv("CONVERSION_TIMEOUT", "120")
+        monkeypatch.setenv("CONVERSION_TIMEOUT", "1200")
         monkeypatch.setenv("DOCUMENT_TIMEOUT", "60.0")
+        monkeypatch.setenv("LOCK_TIMEOUT", "600")
         monkeypatch.setenv("MAX_PAGE_COUNT", "20")
         monkeypatch.setenv("UPLOAD_DIR", "/data/uploads")
         monkeypatch.setenv("DB_PATH", "/data/test.db")
@@ -50,7 +125,8 @@ class TestSettingsFromEnv:
         assert s.deployment_mode == "huggingface"
         assert s.docling_serve_url == "http://serve:9000"
         assert s.docling_serve_api_key == "secret-key"
-        assert s.conversion_timeout == 120
+        assert s.conversion_timeout == 1200
+        assert s.lock_timeout == 600
         assert s.document_timeout == 60.0
         assert s.max_page_count == 20
         assert s.upload_dir == "/data/uploads"

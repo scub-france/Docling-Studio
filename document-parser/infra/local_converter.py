@@ -49,7 +49,6 @@ logger = logging.getLogger(__name__)
 # Thread lock — DoclingConverter is not thread-safe.
 # Uses a timeout to prevent a frozen conversion from blocking all others.
 _converter_lock = threading.Lock()
-_LOCK_TIMEOUT = 300  # seconds — fail fast rather than wait forever
 
 # US Letter page dimensions (points) — fallback when page size is unknown
 _DEFAULT_PAGE_WIDTH = 612.0
@@ -218,10 +217,10 @@ def _process_content_item(
 
 
 def _convert_sync(file_path: str, options: ConversionOptions) -> ConversionResult:
-    acquired = _converter_lock.acquire(timeout=_LOCK_TIMEOUT)
+    acquired = _converter_lock.acquire(timeout=settings.lock_timeout)
     if not acquired:
         raise TimeoutError(
-            f"Could not acquire converter lock within {_LOCK_TIMEOUT}s — "
+            f"Could not acquire converter lock within {settings.lock_timeout}s — "
             "a previous conversion may be frozen"
         )
     try:

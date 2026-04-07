@@ -15,6 +15,7 @@ class Settings:
     docling_serve_api_key: str | None = None
     conversion_timeout: int = 900
     document_timeout: float = 120.0  # Docling-level per-document timeout (seconds)
+    lock_timeout: int = 300  # converter lock acquisition timeout (seconds)
     max_concurrent_analyses: int = 3
     default_table_mode: str = "accurate"  # "accurate" or "fast"
     max_page_count: int = 0  # 0 = unlimited (upload validation)
@@ -24,6 +25,41 @@ class Settings:
     cors_origins: list[str] = field(
         default_factory=lambda: ["http://localhost:3000", "http://localhost:5173"]
     )
+
+    def __post_init__(self) -> None:
+        errors: list[str] = []
+        if self.document_timeout <= 0:
+            errors.append(f"document_timeout must be > 0 (got {self.document_timeout})")
+        if self.conversion_timeout <= 0:
+            errors.append(f"conversion_timeout must be > 0 (got {self.conversion_timeout})")
+        if self.lock_timeout <= 0:
+            errors.append(f"lock_timeout must be > 0 (got {self.lock_timeout})")
+        if self.max_concurrent_analyses < 1:
+            errors.append(
+                f"max_concurrent_analyses must be >= 1 (got {self.max_concurrent_analyses})"
+            )
+        if self.max_page_count < 0:
+            errors.append(f"max_page_count must be >= 0 (got {self.max_page_count})")
+        if self.max_file_size < 0:
+            errors.append(f"max_file_size must be >= 0 (got {self.max_file_size})")
+        if self.default_table_mode not in ("accurate", "fast"):
+            errors.append(
+                f"default_table_mode must be 'accurate' or 'fast' (got '{self.default_table_mode}')"
+            )
+        # Timeout cascade: document_timeout < lock_timeout < conversion_timeout
+        if self.document_timeout > 0 and self.lock_timeout > 0 and self.conversion_timeout > 0:
+            if self.document_timeout >= self.lock_timeout:
+                errors.append(
+                    f"document_timeout ({self.document_timeout}s) must be "
+                    f"< lock_timeout ({self.lock_timeout}s)"
+                )
+            if self.lock_timeout >= self.conversion_timeout:
+                errors.append(
+                    f"lock_timeout ({self.lock_timeout}s) must be "
+                    f"< conversion_timeout ({self.conversion_timeout}s)"
+                )
+        if errors:
+            raise ValueError("Invalid settings:\n  " + "\n  ".join(errors))
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -37,6 +73,7 @@ class Settings:
             docling_serve_api_key=os.environ.get("DOCLING_SERVE_API_KEY"),
             conversion_timeout=int(os.environ.get("CONVERSION_TIMEOUT", "900")),
             document_timeout=float(os.environ.get("DOCUMENT_TIMEOUT", "120.0")),
+            lock_timeout=int(os.environ.get("LOCK_TIMEOUT", "300")),
             max_concurrent_analyses=int(os.environ.get("MAX_CONCURRENT_ANALYSES", "3")),
             default_table_mode=os.environ.get("DEFAULT_TABLE_MODE", "accurate"),
             max_page_count=int(os.environ.get("MAX_PAGE_COUNT", "0")),

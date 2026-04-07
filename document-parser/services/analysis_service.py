@@ -53,6 +53,7 @@ class AnalysisService:
         self._chunker = chunker
         self._conversion_timeout = conversion_timeout
         self._semaphore = asyncio.Semaphore(max_concurrent)
+        self._running_tasks: dict[str, asyncio.Task] = {}
 
     async def create(
         self,
@@ -79,7 +80,8 @@ class AnalysisService:
                 chunking_options,
             )
         )
-        task.add_done_callback(functools.partial(_on_task_done, job_id=job.id))
+        self._running_tasks[job.id] = task
+        task.add_done_callback(functools.partial(self._on_task_done, job_id=job.id))
 
         return job
 
@@ -92,7 +94,11 @@ class AnalysisService:
         return await analysis_repo.find_by_id(job_id)
 
     async def delete(self, job_id: str) -> bool:
-        """Delete an analysis job. Returns True if it existed."""
+        """Delete an analysis job, cancelling any running task. Returns True if it existed."""
+        task = self._running_tasks.pop(job_id, None)
+        if task and not task.done():
+            task.cancel()
+            logger.info("Cancelled running task for job %s", job_id)
         return await analysis_repo.delete(job_id)
 
     async def rechunk(self, job_id: str, chunking_options: dict) -> list[ChunkResult]:
@@ -114,6 +120,11 @@ class AnalysisService:
         await analysis_repo.update_chunks(job_id, chunks_json)
 
         return chunks
+
+    def _on_task_done(self, task: asyncio.Task, *, job_id: str) -> None:
+        """Cleanup running tasks and delegate to module-level handler."""
+        self._running_tasks.pop(job_id, None)
+        _on_task_done(task, job_id=job_id)
 
     async def _run_analysis(
         self,
@@ -232,7 +243,10 @@ def _on_task_done(task: asyncio.Task, *, job_id: str) -> None:
     exc = task.exception()
     if exc:
         logger.error("Unhandled exception in analysis task %s: %s", job_id, exc, exc_info=True)
-        _schedule_mark_failed(job_id, str(exc))
+        _schedule_mark_failed(job_id, _classify_error(exc))
+
+
+# Keep the module-level function as the default, but AnalysisService uses its own method.
 
 
 def _schedule_mark_failed(job_id: str, error: str) -> None:
