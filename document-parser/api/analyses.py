@@ -39,6 +39,8 @@ def _to_response(job) -> AnalysisResponse:
         chunks_json=job.chunks_json,
         has_document_json=job.document_json is not None,
         error_message=job.error_message,
+        progress_current=job.progress_current,
+        progress_total=job.progress_total,
         started_at=str(job.started_at) if job.started_at else None,
         completed_at=str(job.completed_at) if job.completed_at else None,
         created_at=str(job.created_at),

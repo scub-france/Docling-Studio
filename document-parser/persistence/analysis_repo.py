@@ -27,6 +27,8 @@ def _row_to_job(row) -> AnalysisJob:
         document_json=row["document_json"] if "document_json" in keys else None,
         chunks_json=row["chunks_json"] if "chunks_json" in keys else None,
         error_message=row["error_message"],
+        progress_current=row["progress_current"] if "progress_current" in keys else None,
+        progress_total=row["progress_total"] if "progress_total" in keys else None,
         started_at=_parse_dt(row["started_at"]),
         completed_at=_parse_dt(row["completed_at"]),
         created_at=_parse_dt(row["created_at"]) or datetime.now(UTC),
@@ -78,7 +80,8 @@ async def update_status(job: AnalysisJob) -> None:
             """UPDATE analysis_jobs
                SET status = ?, content_markdown = ?, content_html = ?,
                    pages_json = ?, document_json = ?, chunks_json = ?,
-                   error_message = ?, started_at = ?, completed_at = ?
+                   error_message = ?, progress_current = ?, progress_total = ?,
+                   started_at = ?, completed_at = ?
                WHERE id = ?""",
             (
                 job.status.value,
@@ -88,10 +91,22 @@ async def update_status(job: AnalysisJob) -> None:
                 job.document_json,
                 job.chunks_json,
                 job.error_message,
+                job.progress_current,
+                job.progress_total,
                 str(job.started_at) if job.started_at else None,
                 str(job.completed_at) if job.completed_at else None,
                 job.id,
             ),
+        )
+        await db.commit()
+
+
+async def update_progress(job_id: str, current: int, total: int) -> None:
+    """Update only the progress columns for a running analysis."""
+    async with get_connection() as db:
+        await db.execute(
+            "UPDATE analysis_jobs SET progress_current = ?, progress_total = ? WHERE id = ?",
+            (current, total, job_id),
         )
         await db.commit()
 

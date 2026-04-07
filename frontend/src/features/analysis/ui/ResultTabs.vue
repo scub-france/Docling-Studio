@@ -105,6 +105,18 @@
   <div v-else-if="store.currentAnalysis?.status === 'RUNNING'" class="result-placeholder">
     <div class="spinner-large" />
     <span>{{ t('studio.analysisRunning') }}</span>
+    <div
+      v-if="store.currentAnalysis.progressTotal && store.currentAnalysis.progressTotal > 0"
+      class="batch-progress"
+    >
+      <div class="progress-bar">
+        <div class="progress-fill" :style="{ width: progressPercent + '%' }" />
+      </div>
+      <span class="progress-text">
+        Pages {{ store.currentAnalysis.progressCurrent ?? 0 }} /
+        {{ store.currentAnalysis.progressTotal }}
+      </span>
+    </div>
   </div>
   <div v-else-if="store.currentAnalysis?.status === 'FAILED'" class="result-placeholder error">
     <svg viewBox="0 0 20 20" fill="currentColor" class="error-icon">
@@ -170,6 +182,12 @@ const tabs = computed(() => [
 ])
 
 const totalPages = computed(() => store.currentPages.length)
+
+const progressPercent = computed(() => {
+  const a = store.currentAnalysis
+  if (!a?.progressTotal || a.progressTotal <= 0) return 0
+  return Math.min(100, Math.round(((a.progressCurrent ?? 0) / a.progressTotal) * 100))
+})
 
 const currentPageData = computed(() => {
   return store.currentPages.find((p) => p.page_number === props.currentPage) || null
@@ -504,5 +522,31 @@ async function copyElement(idx: number, content: string) {
   to {
     transform: rotate(360deg);
   }
+}
+
+.batch-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  width: 200px;
+}
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--border-light);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.progress-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
 }
 </style>

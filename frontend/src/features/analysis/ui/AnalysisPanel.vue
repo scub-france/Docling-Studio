@@ -38,6 +38,18 @@
       <div class="status-row">
         <span class="status-badge" :class="statusClass">
           {{ analysisStore.currentAnalysis.status }}
+          <template
+            v-if="
+              analysisStore.currentAnalysis.status === 'RUNNING' &&
+              analysisStore.currentAnalysis.progressTotal &&
+              analysisStore.currentAnalysis.progressTotal > 0
+            "
+          >
+            ({{ analysisStore.currentAnalysis.progressCurrent ?? 0 }}/{{
+              analysisStore.currentAnalysis.progressTotal
+            }}
+            pages)
+          </template>
         </span>
       </div>
     </div>

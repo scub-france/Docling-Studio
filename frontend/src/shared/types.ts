@@ -33,6 +33,8 @@ export interface Analysis {
   chunksJson: string | null
   hasDocumentJson: boolean
   errorMessage: string | null
+  progressCurrent: number | null
+  progressTotal: number | null
   startedAt: string | null
   completedAt: string | null
   createdAt: string

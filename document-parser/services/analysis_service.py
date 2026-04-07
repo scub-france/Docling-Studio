@@ -10,11 +10,21 @@ import asyncio
 import functools
 import json
 import logging
+import math
+import re
 from dataclasses import asdict
 from typing import TYPE_CHECKING
 
+import pypdfium2 as pdfium
+
 from domain.models import AnalysisJob, AnalysisStatus
-from domain.value_objects import ChunkingOptions, ChunkResult, ConversionOptions, ConversionResult
+from domain.value_objects import (
+    ChunkingOptions,
+    ChunkResult,
+    ConversionOptions,
+    ConversionResult,
+    PageDetail,
+)
 from infra.settings import settings
 
 if TYPE_CHECKING:
@@ -37,6 +47,67 @@ def _chunk_to_dict(c: ChunkResult) -> dict:
 
 # Maximum number of concurrent analysis jobs to prevent resource exhaustion.
 _DEFAULT_MAX_CONCURRENT = 3
+
+# Regex to extract <body> content from Docling's well-formed HTML output.
+_BODY_RE = re.compile(r"<body[^>]*>(.*)</body>", re.DOTALL | re.IGNORECASE)
+
+
+def _count_pdf_pages(file_path: str) -> int:
+    """Count pages in a PDF. Returns 0 if the file is not a valid PDF."""
+    try:
+        pdf = pdfium.PdfDocument(file_path)
+        count = len(pdf)
+        pdf.close()
+        return count
+    except Exception:
+        logger.debug("Cannot open %s as PDF, batching disabled", file_path)
+        return 0
+
+
+def _extract_html_body(html: str) -> str:
+    """Extract content between <body> tags.
+
+    Docling produces well-formed HTML — regex is safe for this controlled output.
+    Returns raw html as fallback if no <body> tag is found.
+    """
+    match = _BODY_RE.search(html)
+    return match.group(1).strip() if match else html
+
+
+def _merge_results(results: list[ConversionResult]) -> ConversionResult:
+    """Merge multiple batch ConversionResults into a single consolidated result.
+
+    document_json is intentionally set to None: merging DoclingDocument's internal
+    tree structure across batches is error-prone. Re-chunking is disabled for
+    batched conversions (robustness decision for 0.3.1).
+    """
+    if not results:
+        return ConversionResult(page_count=0, content_markdown="", content_html="", pages=[])
+
+    all_pages: list[PageDetail] = []
+    all_md: list[str] = []
+    html_bodies: list[str] = []
+    total_skipped = 0
+
+    for r in results:
+        all_pages.extend(r.pages)
+        all_md.append(r.content_markdown)
+        html_bodies.append(_extract_html_body(r.content_html))
+        total_skipped += r.skipped_items
+
+    merged_body = "\n".join(html_bodies)
+    merged_html = (
+        f'<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>{merged_body}</body></html>'
+    )
+
+    return ConversionResult(
+        page_count=sum(r.page_count for r in results),
+        content_markdown="\n\n".join(all_md),
+        content_html=merged_html,
+        pages=all_pages,
+        skipped_items=total_skipped,
+        document_json=None,
+    )
 
 
 class AnalysisService:
@@ -121,6 +192,66 @@ class AnalysisService:
 
         return chunks
 
+    async def _run_batched_conversion(
+        self,
+        job_id: str,
+        file_path: str,
+        options: ConversionOptions,
+        total_pages: int,
+        batch_size: int,
+    ) -> ConversionResult | None:
+        """Convert a document in batches using page_range.
+
+        Returns None if the job was deleted mid-batch (caller should abort).
+        Raises on batch failure (fail-fast: entire job fails).
+        """
+        num_batches = math.ceil(total_pages / batch_size)
+        await analysis_repo.update_progress(job_id, 0, total_pages)
+        logger.info(
+            "Batched conversion: %d pages in %d batches of %d for job %s",
+            total_pages,
+            num_batches,
+            batch_size,
+            job_id,
+        )
+
+        results: list[ConversionResult] = []
+        for batch_idx in range(num_batches):
+            start = batch_idx * batch_size + 1
+            end = min(start + batch_size - 1, total_pages)
+
+            if not await analysis_repo.find_by_id(job_id):
+                logger.info(
+                    "Job %s deleted during batch %d/%d, aborting",
+                    job_id,
+                    batch_idx + 1,
+                    num_batches,
+                )
+                return None
+
+            try:
+                batch_result = await asyncio.wait_for(
+                    self._converter.convert(file_path, options, page_range=(start, end)),
+                    timeout=self._conversion_timeout,
+                )
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Batch {batch_idx + 1}/{num_batches} (pages {start}-{end}) failed: {exc}"
+                ) from exc
+
+            results.append(batch_result)
+            await analysis_repo.update_progress(job_id, end, total_pages)
+            logger.info(
+                "Batch %d/%d done (pages %d-%d) for job %s",
+                batch_idx + 1,
+                num_batches,
+                start,
+                end,
+                job_id,
+            )
+
+        return _merge_results(results)
+
     def _on_task_done(self, task: asyncio.Task, *, job_id: str) -> None:
         """Cleanup running tasks and delegate to module-level handler."""
         self._running_tasks.pop(job_id, None)
@@ -168,10 +299,24 @@ class AnalysisService:
                 opts_dict = {**opts_dict, "table_mode": settings.default_table_mode}
             options = ConversionOptions(**opts_dict)
 
-            result: ConversionResult = await asyncio.wait_for(
-                self._converter.convert(file_path, options),
-                timeout=self._conversion_timeout,
-            )
+            total_pages = _count_pdf_pages(file_path)
+            batch_size = settings.batch_page_size
+
+            if batch_size > 0 and total_pages > batch_size:
+                result = await self._run_batched_conversion(
+                    job_id,
+                    file_path,
+                    options,
+                    total_pages,
+                    batch_size,
+                )
+                if result is None:
+                    return  # job was deleted mid-batch
+            else:
+                result = await asyncio.wait_for(
+                    self._converter.convert(file_path, options),
+                    timeout=self._conversion_timeout,
+                )
 
             pages_json = json.dumps([asdict(p) for p in result.pages])
 

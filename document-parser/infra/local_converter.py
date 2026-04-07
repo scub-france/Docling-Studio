@@ -216,7 +216,12 @@ def _process_content_item(
 # ---------------------------------------------------------------------------
 
 
-def _convert_sync(file_path: str, options: ConversionOptions) -> ConversionResult:
+def _convert_sync(
+    file_path: str,
+    options: ConversionOptions,
+    *,
+    page_range: tuple[int, int] | None = None,
+) -> ConversionResult:
     acquired = _converter_lock.acquire(timeout=settings.lock_timeout)
     if not acquired:
         raise TimeoutError(
@@ -230,6 +235,8 @@ def _convert_sync(file_path: str, options: ConversionOptions) -> ConversionResul
             kwargs["max_num_pages"] = settings.max_page_count
         if settings.max_file_size > 0:
             kwargs["max_file_size"] = settings.max_file_size
+        if page_range is not None:
+            kwargs["page_range"] = page_range
         result = conv.convert(file_path, **kwargs)
     finally:
         _converter_lock.release()
@@ -275,5 +282,7 @@ class LocalConverter:
         self,
         file_path: str,
         options: ConversionOptions,
+        *,
+        page_range: tuple[int, int] | None = None,
     ) -> ConversionResult:
-        return await asyncio.to_thread(_convert_sync, file_path, options)
+        return await asyncio.to_thread(_convert_sync, file_path, options, page_range=page_range)

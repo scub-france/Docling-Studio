@@ -45,6 +45,8 @@ class AnalysisJob:
     document_json: str | None = None
     chunks_json: str | None = None
     error_message: str | None = None
+    progress_current: int | None = None
+    progress_total: int | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None
     created_at: datetime = field(default_factory=_utcnow)
@@ -73,6 +75,11 @@ class AnalysisJob:
         self.document_json = document_json
         self.chunks_json = chunks_json
         self.completed_at = _utcnow()
+
+    def update_progress(self, current: int, total: int) -> None:
+        """Update batch progress counters."""
+        self.progress_current = current
+        self.progress_total = total
 
     def mark_failed(self, error: str) -> None:
         """Transition to FAILED with an error message."""

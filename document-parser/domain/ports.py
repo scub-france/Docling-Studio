@@ -28,6 +28,8 @@ class DocumentConverter(Protocol):
         self,
         file_path: str,
         options: ConversionOptions,
+        *,
+        page_range: tuple[int, int] | None = None,
     ) -> ConversionResult: ...
 
 
