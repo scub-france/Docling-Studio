@@ -76,12 +76,14 @@ class ServeConverter:
         self,
         file_path: str,
         options: ConversionOptions,
+        *,
+        page_range: tuple[int, int] | None = None,
     ) -> ConversionResult:
         """Convert a document by uploading it to Docling Serve."""
         path = Path(file_path)
         content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
 
-        form_data = _build_form_data(options)
+        form_data = _build_form_data(options, page_range=page_range)
         url = f"{self._base_url}{_API_PREFIX}/convert/file"
 
         async with httpx.AsyncClient(timeout=self._timeout) as client:
@@ -112,13 +114,17 @@ class ServeConverter:
             return False
 
 
-def _build_form_data(options: ConversionOptions) -> dict[str, str | list[str]]:
+def _build_form_data(
+    options: ConversionOptions,
+    *,
+    page_range: tuple[int, int] | None = None,
+) -> dict[str, str | list[str]]:
     """Build form fields matching Docling Serve's multipart form contract.
 
     Array fields (to_formats) are sent as lists — httpx encodes them as
     repeated form keys (to_formats=md&to_formats=html&to_formats=json).
     """
-    return {
+    data: dict[str, str | list[str]] = {
         "to_formats": ["md", "html", "json"],
         "do_ocr": str(options.do_ocr).lower(),
         "do_table_structure": str(options.do_table_structure).lower(),
@@ -131,6 +137,9 @@ def _build_form_data(options: ConversionOptions) -> dict[str, str | list[str]]:
         "generate_page_images": str(options.generate_page_images).lower(),
         "images_scale": str(options.images_scale),
     }
+    if page_range is not None:
+        data["page_range"] = f"{page_range[0]}-{page_range[1]}"
+    return data
 
 
 def _parse_response(data: dict) -> ConversionResult:

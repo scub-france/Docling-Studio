@@ -47,6 +47,8 @@ class AnalysisResponse(_CamelModel):
     chunks_json: str | None = None
     has_document_json: bool = False
     error_message: str | None = None
+    progress_current: int | None = None
+    progress_total: int | None = None
     started_at: str | datetime | None = None
     completed_at: str | datetime | None = None
     created_at: str | datetime

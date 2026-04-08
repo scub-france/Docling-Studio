@@ -20,6 +20,7 @@ class Settings:
     default_table_mode: str = "accurate"  # "accurate" or "fast"
     max_page_count: int = 0  # 0 = unlimited (upload validation)
     max_file_size: int = 0  # 0 = unlimited (Docling-level, bytes)
+    batch_page_size: int = 0  # 0 = disabled, > 0 = pages per batch
     upload_dir: str = "./uploads"
     db_path: str = "./data/docling_studio.db"
     cors_origins: list[str] = field(
@@ -42,6 +43,8 @@ class Settings:
             errors.append(f"max_page_count must be >= 0 (got {self.max_page_count})")
         if self.max_file_size < 0:
             errors.append(f"max_file_size must be >= 0 (got {self.max_file_size})")
+        if self.batch_page_size < 0:
+            errors.append(f"batch_page_size must be >= 0 (got {self.batch_page_size})")
         if self.default_table_mode not in ("accurate", "fast"):
             errors.append(
                 f"default_table_mode must be 'accurate' or 'fast' (got '{self.default_table_mode}')"
@@ -78,6 +81,7 @@ class Settings:
             default_table_mode=os.environ.get("DEFAULT_TABLE_MODE", "accurate"),
             max_page_count=int(os.environ.get("MAX_PAGE_COUNT", "0")),
             max_file_size=int(os.environ.get("MAX_FILE_SIZE", "0")),
+            batch_page_size=int(os.environ.get("BATCH_PAGE_SIZE", "0")),
             upload_dir=os.environ.get("UPLOAD_DIR", "./uploads"),
             db_path=os.environ.get("DB_PATH", "./data/docling_studio.db"),
             cors_origins=[o.strip() for o in cors_raw.split(",")],
