@@ -106,7 +106,7 @@ jobs:
       - name: Wait for health
         run: |
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:8000/api/health > /dev/null 2>&1; then
+            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
               echo "Backend healthy"
               exit 0
             fi
@@ -123,7 +123,7 @@ jobs:
           if [[ "${{ github.base_ref }}" == release/* ]] || [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
             KARATE_TAGS="@smoke,@regression,@e2e"
           fi
-          mvn test -f e2e/pom.xml -Dkarate.options="--tags ${KARATE_TAGS}"
+          mvn test -f e2e/pom.xml -DbaseUrl=http://localhost:3000 -Dkarate.options="--tags ${KARATE_TAGS}"
 
       - name: Upload Karate reports
         if: always()
