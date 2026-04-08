@@ -1,0 +1,17 @@
+{
+  "id": "#string",
+  "documentId": "#string",
+  "documentFilename": "#string",
+  "status": "#? _ == 'PENDING' || _ == 'RUNNING' || _ == 'COMPLETED' || _ == 'FAILED'",
+  "contentMarkdown": "##string",
+  "contentHtml": "##string",
+  "pagesJson": "##string",
+  "chunksJson": "##string",
+  "hasDocumentJson": "#boolean",
+  "errorMessage": "##string",
+  "progressCurrent": "##number",
+  "progressTotal": "##number",
+  "startedAt": "##string",
+  "completedAt": "##string",
+  "createdAt": "#string"
+}

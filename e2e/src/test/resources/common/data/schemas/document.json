@@ -1,0 +1,8 @@
+{
+  "id": "#string",
+  "filename": "#string",
+  "contentType": "#string",
+  "fileSize": "#number",
+  "pageCount": "##number",
+  "createdAt": "#string"
+}

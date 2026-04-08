@@ -1,0 +1,7 @@
+{
+  "status": "#? _ == 'ok' || _ == 'degraded'",
+  "version": "#string",
+  "engine": "#? _ == 'local' || _ == 'remote'",
+  "deploymentMode": "#? _ == 'self-hosted' || _ == 'huggingface'",
+  "database": "#? _ == 'ok' || _ == 'error'"
+}
