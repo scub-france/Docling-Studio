@@ -1,0 +1,43 @@
+name: Auto-close issues on release branch merge
+
+on:
+  push:
+    branches:
+      - 'release/**'
+
+permissions:
+  issues: write
+
+jobs:
+  close-issues:
+    name: Close referenced issues
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scan commits and close issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          # Collect all commit messages from the push event
+          commits='${{ toJSON(github.event.commits) }}'
+
+          # Extract issue numbers from Closes/Fixes patterns (case-insensitive)
+          issues=$(echo "$commits" \
+            | grep -ioE '(closes|fixes|close|fix|resolved|resolves)\s+#[0-9]+' \
+            | grep -oE '[0-9]+' \
+            | sort -u)
+
+          if [ -z "$issues" ]; then
+            echo "No issue references found in commit messages."
+            exit 0
+          fi
+
+          branch="${GITHUB_REF#refs/heads/}"
+          for issue in $issues; do
+            echo "Closing issue #$issue (referenced in $branch @ ${SHA:0:7})"
+            gh issue close "$issue" \
+              --repo "$REPO" \
+              --comment "Closed automatically — merged into \`$branch\` via ${SHA:0:7}." \
+              || echo "Warning: could not close #$issue (may already be closed)"
+          done
