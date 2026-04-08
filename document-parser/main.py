@@ -95,7 +95,12 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
-app.add_middleware(RateLimiterMiddleware, requests_per_window=100, window_seconds=60)
+if settings.rate_limit_rpm > 0:
+    app.add_middleware(
+        RateLimiterMiddleware,
+        requests_per_window=settings.rate_limit_rpm,
+        window_seconds=60,
+    )
 
 app.include_router(documents_router)
 app.include_router(analyses_router)
