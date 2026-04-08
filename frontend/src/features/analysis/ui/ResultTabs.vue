@@ -1,10 +1,15 @@
 <template>
-  <div class="result-tabs" v-if="store.currentAnalysis?.status === 'COMPLETED'">
-    <div class="tabs-header">
+  <div
+    class="result-tabs"
+    data-e2e="result-tabs"
+    v-if="store.currentAnalysis?.status === 'COMPLETED'"
+  >
+    <div class="tabs-header" data-e2e="tabs-header">
       <button
         v-for="tab in tabs"
         :key="tab.id"
         class="tab-btn"
+        data-e2e="tab-btn"
         :class="{ active: activeTab === tab.id }"
         @click="activeTab = tab.id"
       >
@@ -13,7 +18,7 @@
     </div>
 
     <!-- Page chip -->
-    <div class="page-indicator" v-if="totalPages > 0">
+    <div class="page-indicator" data-e2e="page-indicator" v-if="totalPages > 0">
       <span class="page-chip">{{
         t('results.pageOf', { current: currentPage, total: totalPages })
       }}</span>
@@ -21,7 +26,7 @@
 
     <div class="tab-content">
       <!-- ELEMENTS VIEW — each bbox as a separate card -->
-      <div v-if="activeTab === 'elements'" class="elements-list">
+      <div v-if="activeTab === 'elements'" class="elements-list" data-e2e="elements-list">
         <div v-if="!currentElements.length" class="elements-empty">
           {{ t('results.noElements') }}
         </div>
@@ -29,6 +34,7 @@
           v-for="(el, idx) in currentElements"
           :key="idx"
           class="element-card"
+          data-e2e="element-card"
           :class="{ highlighted: highlightedIndex === idx }"
           @mouseenter="$emit('highlight-element', idx)"
           @mouseleave="$emit('highlight-element', -1)"
@@ -79,7 +85,7 @@
       </div>
 
       <!-- RAW MARKDOWN -->
-      <div v-else-if="activeTab === 'markdown'" class="raw-markdown">
+      <div v-else-if="activeTab === 'markdown'" class="raw-markdown" data-e2e="raw-markdown">
         <button class="copy-btn copy-btn-block" :title="t('results.copy')" @click="copyMarkdown">
           <svg v-if="!copiedMarkdown" viewBox="0 0 20 20" fill="currentColor" class="copy-icon">
             <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z" />
@@ -95,7 +101,7 @@
             />
           </svg>
         </button>
-        <pre class="raw-content">{{ pageMarkdown }}</pre>
+        <pre class="raw-content" data-e2e="raw-content">{{ pageMarkdown }}</pre>
       </div>
 
       <!-- IMAGES -->
@@ -118,7 +124,11 @@
       </span>
     </div>
   </div>
-  <div v-else-if="store.currentAnalysis?.status === 'FAILED'" class="result-placeholder error">
+  <div
+    v-else-if="store.currentAnalysis?.status === 'FAILED'"
+    class="result-placeholder error"
+    data-e2e="result-error"
+  >
     <svg viewBox="0 0 20 20" fill="currentColor" class="error-icon">
       <path
         fill-rule="evenodd"

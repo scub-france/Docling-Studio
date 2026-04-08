@@ -12,14 +12,14 @@ End-to-end API tests for Docling Studio using [Karate](https://karatelabs.github
 ## Quick start
 
 ```bash
-# 1. Generate test PDFs
+# 1. Generate test PDFs (from repo root)
 python e2e/generate-test-data.py
 
 # 2. Start the stack
 docker compose up -d --wait
 
-# 3. Run all tests
-mvn test -f e2e/pom.xml
+# 3. Run all API tests
+mvn test -f e2e/api/pom.xml
 
 # 4. Tear down
 docker compose down
@@ -29,26 +29,25 @@ docker compose down
 
 ```bash
 # Smoke only (~30s)
-mvn test -f e2e/pom.xml -Dkarate.options="--tags @smoke"
+mvn test -f e2e/api/pom.xml -Dkarate.options="--tags @smoke"
 
 # Regression (~2min)
-mvn test -f e2e/pom.xml -Dkarate.options="--tags @regression"
+mvn test -f e2e/api/pom.xml -Dkarate.options="--tags @regression"
 
 # Full E2E workflows (~5min)
-mvn test -f e2e/pom.xml -Dkarate.options="--tags @e2e"
+mvn test -f e2e/api/pom.xml -Dkarate.options="--tags @e2e"
 ```
 
 ## Custom base URL
 
 ```bash
-mvn test -f e2e/pom.xml -DbaseUrl=http://your-host:8000
+mvn test -f e2e/api/pom.xml -DbaseUrl=http://your-host:8000
 ```
 
 ## Structure
 
 ```
-e2e/
-├── generate-test-data.py       # Generates test PDFs (no binaries in repo)
+e2e/api/
 ├── pom.xml                     # Maven + Karate dependency
 ├── src/test/java/
 │   └── E2ERunner.java          # JUnit5 Karate runner
@@ -68,4 +67,4 @@ e2e/
 
 ## Reports
 
-After a run, Karate HTML reports are in `e2e/target/karate-reports/`.
+After a run, Karate HTML reports are in `e2e/api/target/karate-reports/`.

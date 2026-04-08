@@ -4,6 +4,7 @@
       v-for="doc in store.documents"
       :key="doc.id"
       class="doc-item"
+      data-e2e="doc-item"
       :class="{ selected: store.selectedId === doc.id }"
       @click="store.select(doc.id)"
     >
@@ -16,14 +17,19 @@
           />
         </svg>
         <div class="doc-meta">
-          <span class="doc-name">{{ doc.filename }}</span>
+          <span class="doc-name" data-e2e="doc-name">{{ doc.filename }}</span>
           <span class="doc-size"
             >{{ formatSize(doc.fileSize)
             }}{{ doc.pageCount ? ` — ${doc.pageCount} pages` : '' }}</span
           >
         </div>
       </div>
-      <button class="doc-delete" @click.stop="store.remove(doc.id)" title="Delete">
+      <button
+        class="doc-delete"
+        data-e2e="doc-delete"
+        @click.stop="store.remove(doc.id)"
+        title="Delete"
+      >
         <svg viewBox="0 0 20 20" fill="currentColor">
           <path
             fill-rule="evenodd"

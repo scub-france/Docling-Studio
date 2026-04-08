@@ -1,5 +1,5 @@
 <template>
-  <div class="settings-panel">
+  <div class="settings-panel" data-e2e="settings-panel">
     <div class="setting-group">
       <label class="setting-label">{{ t('settings.theme') }}</label>
       <div class="setting-toggle">
@@ -15,10 +15,18 @@
     <div class="setting-group">
       <label class="setting-label">{{ t('settings.language') }}</label>
       <div class="setting-toggle">
-        <button :class="{ active: store.locale === 'fr' }" @click="store.setLocale('fr')">
+        <button
+          :class="{ active: store.locale === 'fr' }"
+          data-e2e="lang-fr"
+          @click="store.setLocale('fr')"
+        >
           FR
         </button>
-        <button :class="{ active: store.locale === 'en' }" @click="store.setLocale('en')">
+        <button
+          :class="{ active: store.locale === 'en' }"
+          data-e2e="lang-en"
+          @click="store.setLocale('en')"
+        >
           EN
         </button>
       </div>

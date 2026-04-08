@@ -22,6 +22,7 @@
         <div class="mode-toggle">
           <button
             class="toggle-btn"
+            data-e2e="toggle-btn"
             :class="{ active: mode === 'configurer' }"
             @click="mode = 'configurer'"
           >
@@ -36,6 +37,7 @@
           </button>
           <button
             class="toggle-btn"
+            data-e2e="toggle-btn"
             :class="{ active: mode === 'verifier' }"
             @click="mode = 'verifier'"
             :disabled="!analysisStore.currentAnalysis"
@@ -52,6 +54,7 @@
           <button
             v-if="chunkingEnabled"
             class="toggle-btn"
+            data-e2e="toggle-btn"
             :class="{ active: mode === 'preparer' }"
             @click="mode = 'preparer'"
             :disabled="!analysisStore.currentAnalysis"
@@ -76,6 +79,7 @@
         </button>
         <button
           class="topbar-btn primary"
+          data-e2e="run-btn"
           :disabled="analysisStore.running"
           @click="runAnalysis"
           v-if="mode === 'configurer'"
@@ -189,6 +193,7 @@
               :src="previewUrl"
               :alt="`Page ${currentPage}`"
               class="pdf-image"
+              data-e2e="pdf-image"
               @load="onPdfImageLoad"
             />
             <BboxOverlay
@@ -212,7 +217,7 @@
       <!-- Right: Config or Results panel -->
       <div class="right-panel" :style="{ width: rightPanelWidth + 'px' }">
         <!-- CONFIGURER MODE -->
-        <div v-if="mode === 'configurer'" class="config-panel">
+        <div v-if="mode === 'configurer'" class="config-panel" data-e2e="config-panel">
           <div class="config-section">
             <label class="config-label">
               {{ t('config.model') }}
@@ -228,9 +233,9 @@
             <label class="config-label">{{ t('config.pipeline') }}</label>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input type="checkbox" v-model="pipelineOptions.do_ocr" class="toggle-input" />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.ocr') }}</span>
               </label>
               <span class="config-hint"
@@ -240,13 +245,13 @@
             </div>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.do_table_structure"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.tableStructure') }}</span>
               </label>
               <span class="config-hint"
@@ -257,7 +262,11 @@
 
             <div class="config-sub-option" v-if="pipelineOptions.do_table_structure">
               <label class="config-label-sm">{{ t('config.tableMode') }}</label>
-              <select class="config-select" v-model="pipelineOptions.table_mode">
+              <select
+                class="config-select"
+                data-e2e="config-select"
+                v-model="pipelineOptions.table_mode"
+              >
                 <option value="accurate">{{ t('config.tableModeAccurate') }}</option>
                 <option value="fast">{{ t('config.tableModeFast') }}</option>
               </select>
@@ -269,13 +278,13 @@
             <label class="config-label">{{ t('config.enrichment') }}</label>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.do_code_enrichment"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.codeEnrichment') }}</span>
               </label>
               <span class="config-hint"
@@ -285,13 +294,13 @@
             </div>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.do_formula_enrichment"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.formulaEnrichment') }}</span>
               </label>
               <span class="config-hint"
@@ -306,13 +315,13 @@
             <label class="config-label">{{ t('config.pictures') }}</label>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.do_picture_classification"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.pictureClassification') }}</span>
               </label>
               <span class="config-hint"
@@ -322,13 +331,13 @@
             </div>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.do_picture_description"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.pictureDescription') }}</span>
               </label>
               <span class="config-hint"
@@ -338,13 +347,13 @@
             </div>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.generate_picture_images"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.generatePictureImages') }}</span>
               </label>
               <span class="config-hint"
@@ -354,13 +363,13 @@
             </div>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.generate_page_images"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.generatePageImages') }}</span>
               </label>
               <span class="config-hint"

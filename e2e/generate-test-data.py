@@ -16,9 +16,10 @@ import os
 
 from fpdf import FPDF
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "src", "test", "resources", "common", "data", "generated"
-)
+OUTPUT_DIRS = [
+    os.path.join(os.path.dirname(__file__), "api", "src", "test", "resources", "common", "data", "generated"),
+    os.path.join(os.path.dirname(__file__), "ui", "src", "test", "resources", "common", "data", "generated"),
+]
 
 _PARAGRAPHS = [
     "Document processing is a critical step in building retrieval-augmented generation systems.",
@@ -63,13 +64,14 @@ def _make_non_pdf(path: str) -> None:
 
 
 def main() -> None:
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    print(f"Generating test data in {OUTPUT_DIR}")
+    for output_dir in OUTPUT_DIRS:
+        os.makedirs(output_dir, exist_ok=True)
+        print(f"Generating test data in {output_dir}")
 
-    _make_pdf(1, os.path.join(OUTPUT_DIR, "small.pdf"))
-    _make_pdf(5, os.path.join(OUTPUT_DIR, "medium.pdf"))
-    _make_pdf(25, os.path.join(OUTPUT_DIR, "large.pdf"))
-    _make_non_pdf(os.path.join(OUTPUT_DIR, "not-a-pdf.txt"))
+        _make_pdf(1, os.path.join(output_dir, "small.pdf"))
+        _make_pdf(5, os.path.join(output_dir, "medium.pdf"))
+        _make_pdf(25, os.path.join(output_dir, "large.pdf"))
+        _make_non_pdf(os.path.join(output_dir, "not-a-pdf.txt"))
 
     print("Done.")
 

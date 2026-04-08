@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.scub.docling-studio</groupId>
-    <artifactId>e2e-tests</artifactId>
+    <artifactId>e2e-ui-tests</artifactId>
     <version>0.3.1</version>
     <packaging>jar</packaging>
 
