@@ -118,6 +118,35 @@
         <span class="info-badge" v-if="analysisStore.currentAnalysis.status === 'RUNNING'">
           <div class="spinner-xs" />
           {{ t('studio.analysisRunning') }}
+          <span
+            v-if="
+              analysisStore.currentAnalysis.progressTotal &&
+              analysisStore.currentAnalysis.progressTotal > 0
+            "
+            class="info-badge-progress"
+          >
+            <span class="info-badge-bar">
+              <span
+                class="info-badge-fill"
+                :style="{
+                  width:
+                    Math.min(
+                      100,
+                      Math.round(
+                        ((analysisStore.currentAnalysis.progressCurrent ?? 0) /
+                          analysisStore.currentAnalysis.progressTotal) *
+                          100,
+                      ),
+                    ) + '%',
+                }"
+              />
+            </span>
+            <span class="info-badge-count"
+              >{{ analysisStore.currentAnalysis.progressCurrent ?? 0 }}/{{
+                analysisStore.currentAnalysis.progressTotal
+              }}</span
+            >
+          </span>
         </span>
         <span class="info-badge error" v-if="analysisStore.currentAnalysis.status === 'FAILED'">
           <span class="info-dot error" />
@@ -865,6 +894,32 @@ onBeforeUnmount(() => {
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
+}
+
+/* Inline mini progress in top bar */
+.info-badge-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+.info-badge-bar {
+  width: 48px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 1.5px;
+  overflow: hidden;
+}
+.info-badge-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 1.5px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.info-badge-count {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 /* Main content */
