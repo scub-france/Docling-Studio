@@ -1,11 +1,8 @@
 name: Release Gate
 
 on:
-  push:
-    branches: ['release/**']
   pull_request:
     branches: [main]
-    # Only run on PRs from release branches
     types: [opened, synchronize, reopened]
 
 concurrency:
