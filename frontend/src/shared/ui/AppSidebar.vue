@@ -97,10 +97,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from '../i18n'
+import { useFeatureFlagStore } from '../../features/feature-flags/store'
 
-const version = __APP_VERSION__
+const featureStore = useFeatureFlagStore()
+const version = computed(() => featureStore.appVersion)
 const route = useRoute()
 const { t } = useI18n()
 
