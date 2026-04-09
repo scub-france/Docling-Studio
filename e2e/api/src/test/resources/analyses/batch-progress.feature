@@ -27,6 +27,11 @@ Feature: Batched conversion with progress reporting
     And match response.contentMarkdown == '#string'
     And match response.pagesJson == '#string'
 
+    # When batched, progress must be preserved at completion (not reset to null)
+    # progressTotal > 0 proves batching was active
+    # progressCurrent == progressTotal proves the final update_status didn't erase them
+    * if (response.progressTotal > 0) karate.match('response.progressCurrent', response.progressTotal)
+
     # Cleanup
     * call read('classpath:common/helpers/cleanup.feature') { docId: '#(uploaded.docId)' }
 

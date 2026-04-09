@@ -327,6 +327,9 @@ class AnalysisService:
                 chunks_json = json.dumps([_chunk_to_dict(c) for c in chunks])
                 logger.info("Chunking produced %d chunks for job %s", len(chunks), job_id)
 
+            # Re-read the job so we don't lose progress_current/progress_total
+            # written to the DB during batched conversion.
+            job = await analysis_repo.find_by_id(job_id) or job
             job.mark_completed(
                 markdown=result.content_markdown,
                 html=result.content_html,

@@ -7,6 +7,7 @@ type DeploymentMode = 'self-hosted' | 'huggingface'
 
 interface HealthResponse {
   status: string
+  version?: string
   engine: ConversionEngine
   deploymentMode?: DeploymentMode
   maxPageCount?: number
@@ -41,6 +42,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
   const deploymentMode = ref<DeploymentMode | null>(null)
   const maxPageCount = ref<number>(0)
   const maxFileSizeMb = ref<number>(0)
+  const appVersion = ref<string>(__APP_VERSION__)
   const loaded = ref(false)
   const error = ref<string | null>(null)
 
@@ -62,6 +64,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
       deploymentMode.value = data.deploymentMode ?? 'self-hosted'
       maxPageCount.value = data.maxPageCount ?? 0
       maxFileSizeMb.value = data.maxFileSizeMb ?? 0
+      if (data.version) appVersion.value = data.version
       loaded.value = true
       error.value = null
     } catch (e) {
@@ -70,5 +73,15 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
     }
   }
 
-  return { engine, deploymentMode, maxPageCount, maxFileSizeMb, loaded, error, isEnabled, load }
+  return {
+    engine,
+    deploymentMode,
+    maxPageCount,
+    maxFileSizeMb,
+    appVersion,
+    loaded,
+    error,
+    isEnabled,
+    load,
+  }
 })

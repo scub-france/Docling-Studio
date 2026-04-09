@@ -386,6 +386,90 @@ class TestBatchedConversion:
                 )
 
     @pytest.mark.asyncio
+    async def test_progress_preserved_through_full_analysis_flow(self):
+        """Progress written during batches must survive the final update_status.
+
+        Regression: _run_analysis_inner used to re-read the job from DB at the
+        start, then call update_status(job) at the end — overwriting
+        progress_current/progress_total with None because the in-memory object
+        was stale.  The fix re-reads the job before mark_completed.
+        """
+        from domain.models import AnalysisJob, AnalysisStatus
+
+        converter = AsyncMock()
+        converter.convert.side_effect = [
+            ConversionResult(
+                page_count=5,
+                content_markdown="# B1",
+                content_html="<html><body><p>B1</p></body></html>",
+                pages=[PageDetail(page_number=i, width=612, height=792) for i in range(1, 6)],
+            ),
+            ConversionResult(
+                page_count=3,
+                content_markdown="# B2",
+                content_html="<html><body><p>B2</p></body></html>",
+                pages=[PageDetail(page_number=i, width=612, height=792) for i in range(6, 9)],
+            ),
+        ]
+
+        service = AnalysisService(converter=converter, conversion_timeout=60)
+
+        # Simulated DB state: find_by_id is called 4 times:
+        #   1) start of _run_analysis_inner (initial load)
+        #   2) batch 1 mid-flight deletion check
+        #   3) batch 2 mid-flight deletion check
+        #   4) re-read before mark_completed (must carry progress)
+        initial_job = AnalysisJob(
+            id="job-progress",
+            document_id="doc-1",
+            status=AnalysisStatus.PENDING,
+        )
+        batch_check_job = AnalysisJob(
+            id="job-progress",
+            document_id="doc-1",
+            status=AnalysisStatus.RUNNING,
+        )
+        refreshed_job = AnalysisJob(
+            id="job-progress",
+            document_id="doc-1",
+            status=AnalysisStatus.RUNNING,
+            progress_current=8,
+            progress_total=8,
+        )
+
+        saved_jobs: list[AnalysisJob] = []
+
+        async def capture_update_status(job):
+            saved_jobs.append(job)
+
+        with (
+            patch("services.analysis_service.analysis_repo") as mock_repo,
+            patch("services.analysis_service.document_repo") as mock_doc_repo,
+            patch("services.analysis_service._count_pdf_pages", return_value=8),
+            patch("services.analysis_service.settings") as mock_settings,
+        ):
+            mock_settings.batch_page_size = 5
+            mock_settings.default_table_mode = "accurate"
+            mock_repo.find_by_id = AsyncMock(
+                side_effect=[initial_job, batch_check_job, batch_check_job, refreshed_job]
+            )
+            mock_repo.update_status = AsyncMock(side_effect=capture_update_status)
+            mock_repo.update_progress = AsyncMock()
+            mock_doc_repo.update_page_count = AsyncMock()
+
+            await service._run_analysis_inner("job-progress", "/fake.pdf", "fake.pdf")
+
+        # The last update_status call is the COMPLETED one
+        completed_job = saved_jobs[-1]
+        assert completed_job.status == AnalysisStatus.COMPLETED
+        assert completed_job.progress_current == 8, (
+            "progress_current must be preserved (was the bug: got None)"
+        )
+        assert completed_job.progress_total == 8, (
+            "progress_total must be preserved (was the bug: got None)"
+        )
+
+    @pytest.mark.asyncio
     async def test_job_deleted_mid_batch_returns_none(self):
         """If the job is deleted between batches, conversion aborts with None."""
         converter = AsyncMock()

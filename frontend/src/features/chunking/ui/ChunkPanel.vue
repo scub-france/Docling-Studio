@@ -66,6 +66,18 @@
           <div v-if="analysisStore.rechunking" class="spinner-sm" />
           {{ analysisStore.rechunking ? t('chunking.chunking') : t('chunking.run') }}
         </button>
+
+        <!-- Batch mode notice -->
+        <div v-if="isBatchedAnalysis" class="batch-notice" data-e2e="batch-notice">
+          <svg viewBox="0 0 20 20" fill="currentColor" class="batch-notice-icon">
+            <path
+              fill-rule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <span>{{ t('chunking.batchNotice') }}</span>
+        </div>
       </div>
     </div>
 
@@ -149,6 +161,12 @@ const options = reactive<Required<ChunkingOptions>>({
 const canRechunk = computed(() => {
   const analysis = analysisStore.currentAnalysis
   return analysis?.status === 'COMPLETED' && analysis.hasDocumentJson
+})
+
+/** True when the analysis was batched (document_json unavailable). */
+const isBatchedAnalysis = computed(() => {
+  const analysis = analysisStore.currentAnalysis
+  return analysis?.status === 'COMPLETED' && !analysis.hasDocumentJson
 })
 
 const pageChunks = computed(() =>
@@ -424,6 +442,28 @@ async function doRechunk() {
   flex: 1;
   color: var(--text-secondary);
   font-size: 13px;
+}
+
+/* Batch mode info notice */
+.batch-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.batch-notice-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--info);
+  margin-top: 1px;
 }
 
 .spinner-sm {
