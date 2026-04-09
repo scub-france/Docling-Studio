@@ -7,7 +7,7 @@
 # Run from the repository root.
 # ============================================================================
 
-set -euo pipefail
+set -uo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
