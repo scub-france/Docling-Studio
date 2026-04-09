@@ -3,6 +3,7 @@
     <header class="topbar">
       <button
         class="burger-btn"
+        data-e2e="burger-btn"
         @click="sidebarOpen = !sidebarOpen"
         :title="sidebarOpen ? t('nav.collapse') : t('nav.expand')"
       >
@@ -14,7 +15,7 @@
           />
         </svg>
       </button>
-      <div class="topbar-logo">
+      <div class="topbar-logo" data-e2e="topbar-logo">
         <img src="/logo.png" alt="Docling Studio" class="topbar-logo-icon" />
         <span class="topbar-logo-text">Docling Studio</span>
       </div>

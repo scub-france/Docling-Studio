@@ -1,10 +1,11 @@
 <template>
-  <div class="chunk-panel">
+  <div class="chunk-panel" data-e2e="chunk-panel">
     <!-- Chunking config — collapsible -->
     <div class="chunk-config">
-      <button class="config-toggle" @click="configOpen = !configOpen">
+      <button class="config-toggle" data-e2e="config-toggle" @click="configOpen = !configOpen">
         <svg
           class="config-chevron"
+          data-e2e="config-chevron"
           :class="{ open: configOpen }"
           viewBox="0 0 20 20"
           fill="currentColor"
@@ -18,10 +19,10 @@
         <span class="config-label">{{ t('chunking.settings') }}</span>
       </button>
 
-      <div v-if="configOpen" class="config-body">
+      <div v-if="configOpen" class="config-body" data-e2e="config-body">
         <div class="config-row">
           <label class="config-label-sm">{{ t('chunking.chunkerType') }}</label>
-          <select class="config-select" v-model="options.chunker_type">
+          <select class="config-select" data-e2e="config-select" v-model="options.chunker_type">
             <option value="hybrid">Hybrid</option>
             <option value="hierarchical">Hierarchical</option>
           </select>
@@ -32,6 +33,7 @@
           <input
             type="number"
             class="config-input"
+            data-e2e="config-input"
             v-model.number="options.max_tokens"
             min="64"
             max="8192"
@@ -57,6 +59,7 @@
 
         <button
           class="chunk-btn primary"
+          data-e2e="chunk-btn"
           :disabled="!canRechunk || analysisStore.rechunking"
           @click="doRechunk"
         >
@@ -67,11 +70,14 @@
     </div>
 
     <!-- Chunks list -->
-    <div class="chunk-results" v-if="pageChunks.length">
-      <div class="chunk-summary">{{ pagination.totalItems.value }} {{ t('chunking.chunks') }}</div>
+    <div class="chunk-results" data-e2e="chunk-results" v-if="pageChunks.length">
+      <div class="chunk-summary" data-e2e="chunk-summary">
+        {{ pagination.totalItems.value }} {{ t('chunking.chunks') }}
+      </div>
       <div class="chunk-list">
         <div
           class="chunk-card"
+          data-e2e="chunk-card"
           v-for="(chunk, localIdx) in pagination.paginatedItems.value"
           :key="globalIndex(localIdx)"
           :class="{ highlighted: hoveredChunkIdx === globalIndex(localIdx) }"
@@ -79,8 +85,8 @@
           @mouseleave="onChunkLeave"
         >
           <div class="chunk-header">
-            <span class="chunk-index">#{{ globalIndex(localIdx) + 1 }}</span>
-            <span class="chunk-tokens" v-if="chunk.tokenCount">
+            <span class="chunk-index" data-e2e="chunk-index">#{{ globalIndex(localIdx) + 1 }}</span>
+            <span class="chunk-tokens" data-e2e="chunk-tokens" v-if="chunk.tokenCount">
               {{ chunk.tokenCount }} tokens
             </span>
             <span class="chunk-page" v-if="chunk.sourcePage"> p.{{ chunk.sourcePage }} </span>
@@ -88,7 +94,7 @@
           <div class="chunk-headings" v-if="chunk.headings.length">
             <span class="chunk-heading" v-for="h in chunk.headings" :key="h">{{ h }}</span>
           </div>
-          <div class="chunk-text">{{ chunk.text }}</div>
+          <div class="chunk-text" data-e2e="chunk-text">{{ chunk.text }}</div>
         </div>
       </div>
     </div>

@@ -76,6 +76,34 @@ npx prettier --write src/   # auto-format
     npm run test:run
     ```
 
+=== "E2E API (Karate)"
+
+    ```bash
+    # Generate test PDFs + start stack
+    python e2e/generate-test-data.py
+    docker compose up -d --wait
+
+    # Run all API tests
+    mvn test -f e2e/api/pom.xml
+
+    # Or by tag: @smoke, @regression, @e2e
+    mvn test -f e2e/api/pom.xml -Dkarate.options="--tags @smoke"
+    ```
+
+=== "E2E UI (Karate UI)"
+
+    ```bash
+    # Generate test PDFs + start stack (if not already running)
+    python e2e/generate-test-data.py
+    docker compose up -d --wait
+
+    # Run critical UI tests (CI scope)
+    mvn test -f e2e/ui/pom.xml -Dkarate.options="--tags @critical"
+
+    # Run all UI tests (local scope)
+    mvn test -f e2e/ui/pom.xml -Dkarate.options="--tags @ui"
+    ```
+
 All tests must pass before submitting a PR.
 
 ## Pull Request Guidelines

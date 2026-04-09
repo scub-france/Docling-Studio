@@ -1,6 +1,7 @@
 <template>
   <div
     class="upload-zone"
+    data-e2e="upload-zone"
     :class="{ dragging, uploading: store.uploading }"
     @dragover.prevent="dragging = true"
     @dragleave.prevent="dragging = false"
@@ -23,8 +24,8 @@
         <path d="M12 16V4m0 0L8 8m4-4l4 4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2" />
       </svg>
       <span class="upload-text">{{ t('upload.drop') }}</span>
-      <span class="upload-hint">{{ uploadHint }}</span>
-      <span v-if="store.error" class="upload-error">{{ store.error }}</span>
+      <span class="upload-hint" data-e2e="upload-hint">{{ uploadHint }}</span>
+      <span v-if="store.error" class="upload-error" data-e2e="upload-error">{{ store.error }}</span>
     </div>
   </div>
 </template>
