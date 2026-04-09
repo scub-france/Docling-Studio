@@ -119,6 +119,8 @@ const messages: Messages = {
     'chunking.chunks': 'chunks',
     'chunking.noChunks': 'Lancez le chunking pour préparer les segments.',
     'chunking.noChunksOnPage': 'Aucun chunk sur cette page.',
+    'chunking.batchNotice':
+      'Le chunking n\u2019est pas disponible pour cette analyse. Les documents volumineux trait\u00e9s par batch ne g\u00e9n\u00e8rent pas la structure interne n\u00e9cessaire au d\u00e9coupage.',
 
     // Pagination
     'pagination.pageOf': 'Page {current} sur {total}',
@@ -132,6 +134,8 @@ const messages: Messages = {
     'settings.themeDark': 'Sombre',
     'settings.themeLight': 'Clair',
     'settings.language': 'Langue',
+    'settings.about': '\u00C0 propos',
+    'settings.designArticle': 'Comment Docling Studio a \u00e9t\u00e9 con\u00e7u',
 
     // Disclaimer
     'disclaimer.banner':
@@ -241,6 +245,8 @@ const messages: Messages = {
     'chunking.chunks': 'chunks',
     'chunking.noChunks': 'Run chunking to prepare segments.',
     'chunking.noChunksOnPage': 'No chunks on this page.',
+    'chunking.batchNotice':
+      'Chunking is not available for this analysis. Large documents processed in batch mode do not generate the internal structure required for chunking.',
 
     'pagination.pageOf': 'Page {current} of {total}',
     'pagination.perPage': '/ page',
@@ -252,6 +258,8 @@ const messages: Messages = {
     'settings.themeDark': 'Dark',
     'settings.themeLight': 'Light',
     'settings.language': 'Language',
+    'settings.about': 'About',
+    'settings.designArticle': 'How Docling Studio was designed',
 
     // Disclaimer
     'disclaimer.banner':
