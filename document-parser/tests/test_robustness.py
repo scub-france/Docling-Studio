@@ -11,9 +11,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from domain.models import AnalysisJob
+from domain.services import classify_error
 from domain.value_objects import ConversionOptions, ConversionResult, PageDetail
 from infra.settings import Settings
-from services.analysis_service import AnalysisService, _classify_error
+from services.analysis_service import AnalysisConfig, AnalysisService
 
 # ---------------------------------------------------------------------------
 # M1 — _classify_error: user-friendly error messages
@@ -25,40 +26,40 @@ class TestClassifyError:
 
     def test_cxx_compiler_error(self):
         exc = RuntimeError("InvalidCxxCompiler: No working C++ compiler found")
-        assert "Missing C++ compiler" in _classify_error(exc)
+        assert "Missing C++ compiler" in classify_error(exc)
 
     def test_no_working_compiler(self):
         exc = RuntimeError("no working c++ compiler found in torch")
-        assert "Missing C++ compiler" in _classify_error(exc)
+        assert "Missing C++ compiler" in classify_error(exc)
 
     def test_out_of_memory(self):
         exc = MemoryError("Out of memory allocating tensor")
-        assert "Out of memory" in _classify_error(exc)
+        assert "Out of memory" in classify_error(exc)
 
     def test_oom_shorthand(self):
         exc = RuntimeError("OOM during inference on page 5")
-        assert "Out of memory" in _classify_error(exc)
+        assert "Out of memory" in classify_error(exc)
 
     def test_lock_timeout(self):
         exc = TimeoutError("Could not acquire converter lock within 300s")
-        assert "Server busy" in _classify_error(exc)
+        assert "Server busy" in classify_error(exc)
 
     def test_pipeline_failed(self):
         exc = RuntimeError("Pipeline StandardPdfPipeline failed on page 3")
-        assert "Document processing failed" in _classify_error(exc)
+        assert "Document processing failed" in classify_error(exc)
 
     def test_timeout_generic(self):
         exc = TimeoutError("timeout exceeded while processing")
-        assert "Processing took too long" in _classify_error(exc)
+        assert "Processing took too long" in classify_error(exc)
 
     def test_unknown_short_error(self):
         exc = ValueError("something weird happened")
-        assert _classify_error(exc) == "something weird happened"
+        assert classify_error(exc) == "something weird happened"
 
     def test_unknown_long_error_truncated(self):
         long_msg = "x" * 300
         exc = ValueError(long_msg)
-        result = _classify_error(exc)
+        result = classify_error(exc)
         assert len(result) <= 201
         assert result.endswith("…")
 
@@ -83,74 +84,63 @@ class TestDefaultTableMode:
             pages=[PageDetail(page_number=1, width=612.0, height=792.0)],
         )
 
-    @patch("services.analysis_service.analysis_repo")
-    @patch("services.analysis_service.document_repo")
-    @pytest.mark.asyncio
-    async def test_default_table_mode_injected_when_missing(
-        self, mock_doc_repo, mock_analysis_repo, mock_job
-    ):
-        mock_analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
+    def _make_service(self, converter, *, default_table_mode="accurate"):
+        mock_analysis_repo = MagicMock()
+        mock_analysis_repo.find_by_id = AsyncMock()
         mock_analysis_repo.update_status = AsyncMock()
-        mock_doc_repo.update_page_count = AsyncMock()
+        mock_document_repo = MagicMock()
+        mock_document_repo.update_page_count = AsyncMock()
+        config = AnalysisConfig(default_table_mode=default_table_mode)
+        return AnalysisService(
+            converter=converter,
+            analysis_repo=mock_analysis_repo,
+            document_repo=mock_document_repo,
+            config=config,
+        )
 
+    @pytest.mark.asyncio
+    async def test_default_table_mode_injected_when_missing(self, mock_job):
         mock_converter = AsyncMock()
         mock_converter.convert.return_value = self._make_result()
+        svc = self._make_service(mock_converter)
+        svc._analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
 
-        svc = AnalysisService(converter=mock_converter)
         await svc._run_analysis("j1", "/tmp/test.pdf", "test.pdf", {})
 
         opts = mock_converter.convert.call_args[0][1]
         assert opts.table_mode == "accurate"
 
-    @patch("services.analysis_service.analysis_repo")
-    @patch("services.analysis_service.document_repo")
     @pytest.mark.asyncio
-    async def test_default_table_mode_injected_when_none(
-        self, mock_doc_repo, mock_analysis_repo, mock_job
-    ):
-        mock_analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
-        mock_analysis_repo.update_status = AsyncMock()
-        mock_doc_repo.update_page_count = AsyncMock()
-
+    async def test_default_table_mode_injected_when_none(self, mock_job):
         mock_converter = AsyncMock()
         mock_converter.convert.return_value = self._make_result()
+        svc = self._make_service(mock_converter)
+        svc._analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
 
-        svc = AnalysisService(converter=mock_converter)
         await svc._run_analysis("j1", "/tmp/test.pdf", "test.pdf", None)
 
         opts = mock_converter.convert.call_args[0][1]
         assert opts.table_mode == "accurate"
 
-    @patch("services.analysis_service.analysis_repo")
-    @patch("services.analysis_service.document_repo")
     @pytest.mark.asyncio
-    async def test_user_table_mode_preserved(self, mock_doc_repo, mock_analysis_repo, mock_job):
-        mock_analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
-        mock_analysis_repo.update_status = AsyncMock()
-        mock_doc_repo.update_page_count = AsyncMock()
-
+    async def test_user_table_mode_preserved(self, mock_job):
         mock_converter = AsyncMock()
         mock_converter.convert.return_value = self._make_result()
+        svc = self._make_service(mock_converter)
+        svc._analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
 
-        svc = AnalysisService(converter=mock_converter)
         await svc._run_analysis("j1", "/tmp/test.pdf", "test.pdf", {"table_mode": "fast"})
 
         opts = mock_converter.convert.call_args[0][1]
         assert opts.table_mode == "fast"
 
-    @patch("services.analysis_service.settings", Settings(default_table_mode="fast"))
-    @patch("services.analysis_service.analysis_repo")
-    @patch("services.analysis_service.document_repo")
     @pytest.mark.asyncio
-    async def test_custom_default_from_settings(self, mock_doc_repo, mock_analysis_repo, mock_job):
-        mock_analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
-        mock_analysis_repo.update_status = AsyncMock()
-        mock_doc_repo.update_page_count = AsyncMock()
-
+    async def test_custom_default_from_settings(self, mock_job):
         mock_converter = AsyncMock()
         mock_converter.convert.return_value = self._make_result()
+        svc = self._make_service(mock_converter, default_table_mode="fast")
+        svc._analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
 
-        svc = AnalysisService(converter=mock_converter)
         await svc._run_analysis("j1", "/tmp/test.pdf", "test.pdf", {})
 
         opts = mock_converter.convert.call_args[0][1]

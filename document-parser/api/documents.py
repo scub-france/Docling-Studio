@@ -3,18 +3,25 @@
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile
 from fastapi.responses import Response
 
 from api.schemas import DocumentResponse
-from infra.settings import settings
-from services import document_service
+from services.document_service import DocumentService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
 _READ_CHUNK_SIZE = 64 * 1024  # 64 KB
+
+
+def _get_service(request: Request) -> DocumentService:
+    return request.app.state.document_service
+
+
+ServiceDep = Annotated[DocumentService, Depends(_get_service)]
 
 
 def _to_response(doc) -> DocumentResponse:
@@ -29,14 +36,14 @@ def _to_response(doc) -> DocumentResponse:
 
 
 @router.post("/upload", response_model=DocumentResponse, status_code=200)
-async def upload(file: UploadFile) -> DocumentResponse:
+async def upload(file: UploadFile, service: ServiceDep) -> DocumentResponse:
     """Upload a PDF document."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
     # Reject early if Content-Length exceeds limit (before reading body)
-    _max = document_service.MAX_FILE_SIZE
-    _detail = f"File too large (max {settings.max_file_size_mb} MB)"
+    _max = service.max_file_size
+    _detail = f"File too large (max {service.max_file_size_mb} MB)"
     if _max > 0 and file.size and file.size > _max:
         raise HTTPException(status_code=413, detail=_detail)
 
@@ -51,7 +58,7 @@ async def upload(file: UploadFile) -> DocumentResponse:
     content = b"".join(chunks)
 
     try:
-        doc = await document_service.upload(
+        doc = await service.upload(
             filename=file.filename,
             content_type=file.content_type or "application/pdf",
             file_content=content,
@@ -63,25 +70,25 @@ async def upload(file: UploadFile) -> DocumentResponse:
 
 
 @router.get("", response_model=list[DocumentResponse])
-async def list_documents() -> list[DocumentResponse]:
+async def list_documents(service: ServiceDep) -> list[DocumentResponse]:
     """List all documents."""
-    docs = await document_service.find_all()
+    docs = await service.find_all()
     return [_to_response(d) for d in docs]
 
 
 @router.get("/{doc_id}", response_model=DocumentResponse)
-async def get_document(doc_id: str) -> DocumentResponse:
+async def get_document(doc_id: str, service: ServiceDep) -> DocumentResponse:
     """Get a single document."""
-    doc = await document_service.find_by_id(doc_id)
+    doc = await service.find_by_id(doc_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     return _to_response(doc)
 
 
 @router.delete("/{doc_id}", status_code=204)
-async def delete_document(doc_id: str) -> None:
+async def delete_document(doc_id: str, service: ServiceDep) -> None:
     """Delete a document and its file."""
-    deleted = await document_service.delete(doc_id)
+    deleted = await service.delete(doc_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Document not found")
 
@@ -89,11 +96,12 @@ async def delete_document(doc_id: str) -> None:
 @router.get("/{doc_id}/preview")
 async def preview(
     doc_id: str,
+    service: ServiceDep,
     page: int = Query(1, ge=1),
     dpi: int = Query(150, ge=72, le=300),
 ) -> Response:
     """Generate a PNG preview of a specific PDF page."""
-    doc = await document_service.find_by_id(doc_id)
+    doc = await service.find_by_id(doc_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
@@ -106,7 +114,7 @@ async def preview(
     try:
         with open(doc.storage_path, "rb") as f:
             file_content = f.read()
-        png_bytes = document_service.generate_preview(file_content, page=page, dpi=dpi)
+        png_bytes = DocumentService.generate_preview(file_content, page=page, dpi=dpi)
         return Response(content=png_bytes, media_type="image/png")
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e

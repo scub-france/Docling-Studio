@@ -8,14 +8,20 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from domain.services import extract_html_body, merge_results
 from domain.value_objects import ConversionResult, PageDetail
-from services.analysis_service import (
-    AnalysisService,
-    _count_pdf_pages,
-    _extract_html_body,
-    _merge_results,
-    _on_task_done,
-)
+from services.analysis_service import AnalysisConfig, AnalysisService, _count_pdf_pages
+
+
+def _make_service(**kwargs) -> AnalysisService:
+    """Create an AnalysisService with mock repos for testing."""
+    defaults = {
+        "converter": MagicMock(),
+        "analysis_repo": MagicMock(),
+        "document_repo": MagicMock(),
+    }
+    defaults.update(kwargs)
+    return AnalysisService(**defaults)
 
 
 class TestOnTaskDone:
@@ -25,25 +31,25 @@ class TestOnTaskDone:
     async def test_exception_marks_job_failed(self):
         """When a background task raises, the job should be marked FAILED."""
         job_id = "job-123"
+        service = _make_service()
 
-        # Create a task that raises
         async def failing_task():
             raise RuntimeError("unexpected failure")
 
         task = asyncio.create_task(failing_task())
-        await asyncio.sleep(0)  # let the task fail
+        await asyncio.sleep(0)
 
-        with patch("services.analysis_service._mark_failed", new_callable=AsyncMock) as mock_mark:
-            _on_task_done(task, job_id=job_id)
-            # ensure_future schedules it; give the event loop a tick
+        with patch.object(service, "_mark_failed", new_callable=AsyncMock) as mock_mark:
+            service._on_task_done(task, job_id=job_id)
             await asyncio.sleep(0)
 
         mock_mark.assert_called_once_with(job_id, "unexpected failure")
 
     @pytest.mark.asyncio
     async def test_exception_uses_classify_error(self):
-        """_on_task_done should route exceptions through _classify_error."""
+        """_on_task_done should route exceptions through classify_error."""
         job_id = "job-classify"
+        service = _make_service()
 
         async def timeout_task():
             raise TimeoutError("timeout exceeded while processing")
@@ -51,8 +57,8 @@ class TestOnTaskDone:
         task = asyncio.create_task(timeout_task())
         await asyncio.sleep(0)
 
-        with patch("services.analysis_service._mark_failed", new_callable=AsyncMock) as mock_mark:
-            _on_task_done(task, job_id=job_id)
+        with patch.object(service, "_mark_failed", new_callable=AsyncMock) as mock_mark:
+            service._on_task_done(task, job_id=job_id)
             await asyncio.sleep(0)
 
         mock_mark.assert_called_once_with(
@@ -63,6 +69,7 @@ class TestOnTaskDone:
     async def test_cancelled_task_marks_job_failed(self):
         """When a background task is cancelled, the job should be marked FAILED."""
         job_id = "job-456"
+        service = _make_service()
 
         async def slow_task():
             await asyncio.sleep(999)
@@ -74,8 +81,8 @@ class TestOnTaskDone:
         with contextlib.suppress(asyncio.CancelledError):
             await task
 
-        with patch("services.analysis_service._mark_failed", new_callable=AsyncMock) as mock_mark:
-            _on_task_done(task, job_id=job_id)
+        with patch.object(service, "_mark_failed", new_callable=AsyncMock) as mock_mark:
+            service._on_task_done(task, job_id=job_id)
             await asyncio.sleep(0)
 
         mock_mark.assert_called_once_with(job_id, "Task was cancelled")
@@ -84,6 +91,7 @@ class TestOnTaskDone:
     async def test_successful_task_does_not_mark_failed(self):
         """When a background task succeeds, _mark_failed should not be called."""
         job_id = "job-789"
+        service = _make_service()
 
         async def ok_task():
             return "done"
@@ -91,8 +99,8 @@ class TestOnTaskDone:
         task = asyncio.create_task(ok_task())
         await task
 
-        with patch("services.analysis_service._mark_failed", new_callable=AsyncMock) as mock_mark:
-            _on_task_done(task, job_id=job_id)
+        with patch.object(service, "_mark_failed", new_callable=AsyncMock) as mock_mark:
+            service._on_task_done(task, job_id=job_id)
             await asyncio.sleep(0)
 
         mock_mark.assert_not_called()
@@ -104,8 +112,9 @@ class TestAnalysisServiceCancellation:
     @pytest.mark.asyncio
     async def test_delete_cancels_running_task(self):
         """Deleting a job while running should cancel its task."""
-        converter = MagicMock()
-        service = AnalysisService(converter=converter)
+        mock_analysis_repo = MagicMock()
+        mock_analysis_repo.delete = AsyncMock(return_value=True)
+        service = _make_service(analysis_repo=mock_analysis_repo)
 
         blocker = asyncio.Event()
 
@@ -115,9 +124,7 @@ class TestAnalysisServiceCancellation:
         task = asyncio.create_task(slow_analysis())
         service._running_tasks["j1"] = task
 
-        with patch("services.analysis_service.analysis_repo") as mock_repo:
-            mock_repo.delete = AsyncMock(return_value=True)
-            result = await service.delete("j1")
+        result = await service.delete("j1")
 
         assert result is True
         assert task.cancelling() or task.cancelled()
@@ -126,20 +133,18 @@ class TestAnalysisServiceCancellation:
     @pytest.mark.asyncio
     async def test_delete_completed_job_no_error(self):
         """Deleting a completed job should not raise even if no task tracked."""
-        converter = MagicMock()
-        service = AnalysisService(converter=converter)
+        mock_analysis_repo = MagicMock()
+        mock_analysis_repo.delete = AsyncMock(return_value=True)
+        service = _make_service(analysis_repo=mock_analysis_repo)
 
-        with patch("services.analysis_service.analysis_repo") as mock_repo:
-            mock_repo.delete = AsyncMock(return_value=True)
-            result = await service.delete("j-gone")
+        result = await service.delete("j-gone")
 
         assert result is True
 
     @pytest.mark.asyncio
     async def test_task_cleaned_from_running_on_completion(self):
         """After a task completes, it should be removed from _running_tasks."""
-        converter = MagicMock()
-        service = AnalysisService(converter=converter)
+        service = _make_service()
 
         async def instant():
             pass
@@ -156,13 +161,11 @@ class TestAnalysisServiceConcurrency:
     """Verify that the semaphore limits concurrent analysis jobs."""
 
     def test_semaphore_initialized_with_max_concurrent(self):
-        converter = MagicMock()
-        service = AnalysisService(converter=converter, max_concurrent=5)
+        service = _make_service(max_concurrent=5)
         assert service._semaphore._value == 5
 
     def test_default_max_concurrent(self):
-        converter = MagicMock()
-        service = AnalysisService(converter=converter)
+        service = _make_service()
         assert service._semaphore._value == 3
 
     @pytest.mark.asyncio
@@ -171,8 +174,7 @@ class TestAnalysisServiceConcurrency:
         call_order: list[str] = []
         blocker = asyncio.Event()
 
-        converter = MagicMock()
-        service = AnalysisService(converter=converter, max_concurrent=1)
+        service = _make_service(max_concurrent=1)
 
         async def fake_inner(self, *args, **kwargs):
             call_order.append("start")
@@ -203,7 +205,6 @@ class TestAnalysisServiceConcurrency:
 class TestCountPdfPages:
     def test_valid_pdf(self, tmp_path):
         """A real (minimal) PDF should return its page count."""
-        # Create a minimal valid 1-page PDF using pypdfium2
         import pypdfium2 as pdfium
 
         pdf = pdfium.PdfDocument.new()
@@ -234,20 +235,20 @@ class TestCountPdfPages:
 class TestExtractHtmlBody:
     def test_extracts_body(self):
         html = '<html><head></head><body class="x"><p>Hello</p></body></html>'
-        assert _extract_html_body(html) == "<p>Hello</p>"
+        assert extract_html_body(html) == "<p>Hello</p>"
 
     def test_no_body_tag_returns_raw(self):
         html = "<p>No body tag</p>"
-        assert _extract_html_body(html) == html
+        assert extract_html_body(html) == html
 
     def test_empty_body(self):
         html = "<html><body></body></html>"
-        assert _extract_html_body(html) == ""
+        assert extract_html_body(html) == ""
 
 
 class TestMergeResults:
     def test_empty_list(self):
-        result = _merge_results([])
+        result = merge_results([])
         assert result.page_count == 0
         assert result.content_markdown == ""
         assert result.pages == []
@@ -261,7 +262,7 @@ class TestMergeResults:
             pages=[PageDetail(page_number=1, width=612, height=792)],
             document_json='{"pages": {}}',
         )
-        merged = _merge_results([r])
+        merged = merge_results([r])
         assert merged.page_count == 3
         assert merged.content_markdown == "# Page 1"
         assert merged.pages == [PageDetail(page_number=1, width=612, height=792)]
@@ -288,7 +289,7 @@ class TestMergeResults:
             ],
             skipped_items=2,
         )
-        merged = _merge_results([r1, r2])
+        merged = merge_results([r1, r2])
         assert merged.page_count == 4
         assert merged.content_markdown == "# Batch 1\n\n# Batch 2"
         assert len(merged.pages) == 4
@@ -330,19 +331,23 @@ class TestBatchedConversion:
             ),
         ]
 
-        service = AnalysisService(converter=converter, conversion_timeout=60)
+        mock_analysis_repo = MagicMock()
+        mock_analysis_repo.find_by_id = AsyncMock(return_value=MagicMock())
+        mock_analysis_repo.update_progress = AsyncMock()
 
-        with patch("services.analysis_service.analysis_repo") as mock_repo:
-            mock_repo.find_by_id = AsyncMock(return_value=MagicMock())
-            mock_repo.update_progress = AsyncMock()
+        service = _make_service(
+            converter=converter,
+            analysis_repo=mock_analysis_repo,
+            conversion_timeout=60,
+        )
 
-            result = await service._run_batched_conversion(
-                "job-1",
-                "/fake.pdf",
-                MagicMock(),
-                total_pages=8,
-                batch_size=5,
-            )
+        result = await service._run_batched_conversion(
+            "job-1",
+            "/fake.pdf",
+            MagicMock(),
+            total_pages=8,
+            batch_size=5,
+        )
 
         assert result is not None
         assert result.page_count == 8
@@ -370,20 +375,24 @@ class TestBatchedConversion:
             RuntimeError("OOM"),
         ]
 
-        service = AnalysisService(converter=converter, conversion_timeout=60)
+        mock_analysis_repo = MagicMock()
+        mock_analysis_repo.find_by_id = AsyncMock(return_value=MagicMock())
+        mock_analysis_repo.update_progress = AsyncMock()
 
-        with patch("services.analysis_service.analysis_repo") as mock_repo:
-            mock_repo.find_by_id = AsyncMock(return_value=MagicMock())
-            mock_repo.update_progress = AsyncMock()
+        service = _make_service(
+            converter=converter,
+            analysis_repo=mock_analysis_repo,
+            conversion_timeout=60,
+        )
 
-            with pytest.raises(RuntimeError, match=r"Batch 2/2 \(pages 6-8\) failed: OOM"):
-                await service._run_batched_conversion(
-                    "job-fail",
-                    "/fake.pdf",
-                    MagicMock(),
-                    total_pages=8,
-                    batch_size=5,
-                )
+        with pytest.raises(RuntimeError, match=r"Batch 2/2 \(pages 6-8\) failed: OOM"):
+            await service._run_batched_conversion(
+                "job-fail",
+                "/fake.pdf",
+                MagicMock(),
+                total_pages=8,
+                batch_size=5,
+            )
 
     @pytest.mark.asyncio
     async def test_progress_preserved_through_full_analysis_flow(self):
@@ -411,8 +420,6 @@ class TestBatchedConversion:
                 pages=[PageDetail(page_number=i, width=612, height=792) for i in range(6, 9)],
             ),
         ]
-
-        service = AnalysisService(converter=converter, conversion_timeout=60)
 
         # Simulated DB state: find_by_id is called 4 times:
         #   1) start of _run_analysis_inner (initial load)
@@ -442,21 +449,27 @@ class TestBatchedConversion:
         async def capture_update_status(job):
             saved_jobs.append(job)
 
-        with (
-            patch("services.analysis_service.analysis_repo") as mock_repo,
-            patch("services.analysis_service.document_repo") as mock_doc_repo,
-            patch("services.analysis_service._count_pdf_pages", return_value=8),
-            patch("services.analysis_service.settings") as mock_settings,
-        ):
-            mock_settings.batch_page_size = 5
-            mock_settings.default_table_mode = "accurate"
-            mock_repo.find_by_id = AsyncMock(
-                side_effect=[initial_job, batch_check_job, batch_check_job, refreshed_job]
-            )
-            mock_repo.update_status = AsyncMock(side_effect=capture_update_status)
-            mock_repo.update_progress = AsyncMock()
-            mock_doc_repo.update_page_count = AsyncMock()
+        mock_analysis_repo = MagicMock()
+        mock_analysis_repo.find_by_id = AsyncMock(
+            side_effect=[initial_job, batch_check_job, batch_check_job, refreshed_job]
+        )
+        mock_analysis_repo.update_status = AsyncMock(side_effect=capture_update_status)
+        mock_analysis_repo.update_progress = AsyncMock()
 
+        mock_document_repo = MagicMock()
+        mock_document_repo.update_page_count = AsyncMock()
+
+        config = AnalysisConfig(default_table_mode="accurate", batch_page_size=5)
+
+        service = AnalysisService(
+            converter=converter,
+            analysis_repo=mock_analysis_repo,
+            document_repo=mock_document_repo,
+            conversion_timeout=60,
+            config=config,
+        )
+
+        with patch("services.analysis_service._count_pdf_pages", return_value=8):
             await service._run_analysis_inner("job-progress", "/fake.pdf", "fake.pdf")
 
         # The last update_status call is the COMPLETED one
@@ -480,20 +493,24 @@ class TestBatchedConversion:
             pages=[PageDetail(page_number=i, width=612, height=792) for i in range(1, 6)],
         )
 
-        service = AnalysisService(converter=converter, conversion_timeout=60)
-
+        mock_analysis_repo = MagicMock()
         # First check returns job, second returns None (deleted)
-        with patch("services.analysis_service.analysis_repo") as mock_repo:
-            mock_repo.find_by_id = AsyncMock(side_effect=[MagicMock(), None])
-            mock_repo.update_progress = AsyncMock()
+        mock_analysis_repo.find_by_id = AsyncMock(side_effect=[MagicMock(), None])
+        mock_analysis_repo.update_progress = AsyncMock()
 
-            result = await service._run_batched_conversion(
-                "job-del",
-                "/fake.pdf",
-                MagicMock(),
-                total_pages=10,
-                batch_size=5,
-            )
+        service = _make_service(
+            converter=converter,
+            analysis_repo=mock_analysis_repo,
+            conversion_timeout=60,
+        )
+
+        result = await service._run_batched_conversion(
+            "job-del",
+            "/fake.pdf",
+            MagicMock(),
+            total_pages=10,
+            batch_size=5,
+        )
 
         assert result is None
         # Only first batch should have been converted

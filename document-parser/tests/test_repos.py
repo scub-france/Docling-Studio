@@ -3,8 +3,9 @@
 import pytest
 
 from domain.models import AnalysisJob, AnalysisStatus, Document
-from persistence import analysis_repo, document_repo
+from persistence.analysis_repo import SqliteAnalysisRepository
 from persistence.database import init_db
+from persistence.document_repo import SqliteDocumentRepository
 
 
 @pytest.fixture(autouse=True)
@@ -16,8 +17,18 @@ async def setup_db(monkeypatch, tmp_path):
     yield
 
 
+@pytest.fixture
+def document_repo():
+    return SqliteDocumentRepository()
+
+
+@pytest.fixture
+def analysis_repo():
+    return SqliteAnalysisRepository()
+
+
 class TestDocumentRepo:
-    async def test_insert_and_find_by_id(self):
+    async def test_insert_and_find_by_id(self, document_repo):
         doc = Document(
             id="doc-1",
             filename="test.pdf",
@@ -33,11 +44,11 @@ class TestDocumentRepo:
         assert found.filename == "test.pdf"
         assert found.file_size == 1024
 
-    async def test_find_by_id_not_found(self):
+    async def test_find_by_id_not_found(self, document_repo):
         found = await document_repo.find_by_id("nonexistent")
         assert found is None
 
-    async def test_find_all(self):
+    async def test_find_all(self, document_repo):
         for i in range(3):
             doc = Document(id=f"doc-{i}", filename=f"file{i}.pdf", storage_path=f"/tmp/{i}")
             await document_repo.insert(doc)
@@ -45,7 +56,7 @@ class TestDocumentRepo:
         all_docs = await document_repo.find_all()
         assert len(all_docs) == 3
 
-    async def test_update_page_count(self):
+    async def test_update_page_count(self, document_repo):
         doc = Document(id="doc-1", filename="test.pdf", storage_path="/tmp/test.pdf")
         await document_repo.insert(doc)
 
@@ -54,7 +65,7 @@ class TestDocumentRepo:
         updated = await document_repo.find_by_id("doc-1")
         assert updated.page_count == 10
 
-    async def test_delete(self):
+    async def test_delete(self, document_repo):
         doc = Document(id="doc-1", filename="test.pdf", storage_path="/tmp/test.pdf")
         await document_repo.insert(doc)
 
@@ -64,19 +75,19 @@ class TestDocumentRepo:
         found = await document_repo.find_by_id("doc-1")
         assert found is None
 
-    async def test_delete_nonexistent(self):
+    async def test_delete_nonexistent(self, document_repo):
         deleted = await document_repo.delete("nonexistent")
         assert deleted is False
 
 
 class TestAnalysisRepo:
-    async def _insert_doc(self):
+    async def _insert_doc(self, document_repo):
         doc = Document(id="doc-1", filename="test.pdf", storage_path="/tmp/test.pdf")
         await document_repo.insert(doc)
         return doc
 
-    async def test_insert_and_find_by_id(self):
-        await self._insert_doc()
+    async def test_insert_and_find_by_id(self, document_repo, analysis_repo):
+        await self._insert_doc(document_repo)
         job = AnalysisJob(id="job-1", document_id="doc-1")
         await analysis_repo.insert(job)
 
@@ -87,12 +98,12 @@ class TestAnalysisRepo:
         assert found.status == AnalysisStatus.PENDING
         assert found.document_filename == "test.pdf"
 
-    async def test_find_by_id_not_found(self):
+    async def test_find_by_id_not_found(self, analysis_repo):
         found = await analysis_repo.find_by_id("nonexistent")
         assert found is None
 
-    async def test_find_all(self):
-        await self._insert_doc()
+    async def test_find_all(self, document_repo, analysis_repo):
+        await self._insert_doc(document_repo)
         for i in range(3):
             job = AnalysisJob(id=f"job-{i}", document_id="doc-1")
             await analysis_repo.insert(job)
@@ -100,8 +111,8 @@ class TestAnalysisRepo:
         all_jobs = await analysis_repo.find_all()
         assert len(all_jobs) == 3
 
-    async def test_update_status(self):
-        await self._insert_doc()
+    async def test_update_status(self, document_repo, analysis_repo):
+        await self._insert_doc(document_repo)
         job = AnalysisJob(id="job-1", document_id="doc-1")
         await analysis_repo.insert(job)
 
@@ -112,8 +123,8 @@ class TestAnalysisRepo:
         assert found.status == AnalysisStatus.RUNNING
         assert found.started_at is not None
 
-    async def test_update_status_completed(self):
-        await self._insert_doc()
+    async def test_update_status_completed(self, document_repo, analysis_repo):
+        await self._insert_doc(document_repo)
         job = AnalysisJob(id="job-1", document_id="doc-1")
         await analysis_repo.insert(job)
 
@@ -127,8 +138,8 @@ class TestAnalysisRepo:
         assert found.content_html == "<h1>Test</h1>"
         assert found.pages_json == "[]"
 
-    async def test_delete(self):
-        await self._insert_doc()
+    async def test_delete(self, document_repo, analysis_repo):
+        await self._insert_doc(document_repo)
         job = AnalysisJob(id="job-1", document_id="doc-1")
         await analysis_repo.insert(job)
 
@@ -138,12 +149,12 @@ class TestAnalysisRepo:
         found = await analysis_repo.find_by_id("job-1")
         assert found is None
 
-    async def test_delete_nonexistent(self):
+    async def test_delete_nonexistent(self, analysis_repo):
         deleted = await analysis_repo.delete("nonexistent")
         assert deleted is False
 
-    async def test_delete_by_document(self):
-        await self._insert_doc()
+    async def test_delete_by_document(self, document_repo, analysis_repo):
+        await self._insert_doc(document_repo)
         for i in range(3):
             job = AnalysisJob(id=f"job-{i}", document_id="doc-1")
             await analysis_repo.insert(job)

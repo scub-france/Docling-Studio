@@ -1,6 +1,6 @@
 """Tests for FastAPI API endpoints using TestClient."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -24,6 +24,18 @@ def mock_analysis_service(client):
     app.state.analysis_service = original
 
 
+@pytest.fixture
+def mock_document_service(client):
+    """Inject a mock DocumentService into app.state for the duration of the test."""
+    mock_svc = MagicMock()
+    mock_svc.max_file_size = 50 * 1024 * 1024
+    mock_svc.max_file_size_mb = 50
+    original = getattr(app.state, "document_service", None)
+    app.state.document_service = mock_svc
+    yield mock_svc
+    app.state.document_service = original
+
+
 class TestHealthEndpoint:
     def test_health(self, client):
         resp = client.get("/api/health")
@@ -41,12 +53,13 @@ class TestHealthEndpoint:
 
 
 class TestDocumentEndpoints:
-    @patch("services.document_service.find_all", new_callable=AsyncMock)
-    def test_list_documents(self, mock_find_all, client):
-        mock_find_all.return_value = [
-            Document(id="d1", filename="a.pdf", storage_path="/tmp/a"),
-            Document(id="d2", filename="b.pdf", storage_path="/tmp/b"),
-        ]
+    def test_list_documents(self, client, mock_document_service):
+        mock_document_service.find_all = AsyncMock(
+            return_value=[
+                Document(id="d1", filename="a.pdf", storage_path="/tmp/a"),
+                Document(id="d2", filename="b.pdf", storage_path="/tmp/b"),
+            ]
+        )
 
         resp = client.get("/api/documents")
         assert resp.status_code == 200
@@ -57,15 +70,16 @@ class TestDocumentEndpoints:
         # Verify camelCase
         assert "createdAt" in data[0]
 
-    @patch("services.document_service.find_by_id", new_callable=AsyncMock)
-    def test_get_document(self, mock_find, client):
-        mock_find.return_value = Document(
-            id="d1",
-            filename="test.pdf",
-            content_type="application/pdf",
-            file_size=2048,
-            page_count=3,
-            storage_path="/tmp/test",
+    def test_get_document(self, client, mock_document_service):
+        mock_document_service.find_by_id = AsyncMock(
+            return_value=Document(
+                id="d1",
+                filename="test.pdf",
+                content_type="application/pdf",
+                file_size=2048,
+                page_count=3,
+                storage_path="/tmp/test",
+            )
         )
 
         resp = client.get("/api/documents/d1")
@@ -75,21 +89,21 @@ class TestDocumentEndpoints:
         assert data["fileSize"] == 2048
         assert data["pageCount"] == 3
 
-    @patch("services.document_service.find_by_id", new_callable=AsyncMock)
-    def test_get_document_not_found(self, mock_find, client):
-        mock_find.return_value = None
+    def test_get_document_not_found(self, client, mock_document_service):
+        mock_document_service.find_by_id = AsyncMock(return_value=None)
 
         resp = client.get("/api/documents/missing")
         assert resp.status_code == 404
 
-    @patch("services.document_service.upload", new_callable=AsyncMock)
-    def test_upload_document(self, mock_upload, client):
-        mock_upload.return_value = Document(
-            id="new-1",
-            filename="uploaded.pdf",
-            content_type="application/pdf",
-            file_size=512,
-            storage_path="/tmp/uploaded",
+    def test_upload_document(self, client, mock_document_service):
+        mock_document_service.upload = AsyncMock(
+            return_value=Document(
+                id="new-1",
+                filename="uploaded.pdf",
+                content_type="application/pdf",
+                file_size=512,
+                storage_path="/tmp/uploaded",
+            )
         )
 
         resp = client.post(
@@ -101,9 +115,10 @@ class TestDocumentEndpoints:
         assert data["id"] == "new-1"
         assert data["filename"] == "uploaded.pdf"
 
-    @patch("services.document_service.upload", new_callable=AsyncMock)
-    def test_upload_too_large(self, mock_upload, client):
-        mock_upload.side_effect = ValueError("File too large (max 5 MB)")
+    def test_upload_too_large(self, client, mock_document_service):
+        mock_document_service.upload = AsyncMock(
+            side_effect=ValueError("File too large (max 5 MB)")
+        )
 
         resp = client.post(
             "/api/documents/upload",
@@ -111,29 +126,28 @@ class TestDocumentEndpoints:
         )
         assert resp.status_code == 400
 
-    @patch("services.document_service.find_by_id", new_callable=AsyncMock)
-    def test_preview_page_out_of_range(self, mock_find, client):
-        mock_find.return_value = Document(
-            id="d1",
-            filename="test.pdf",
-            page_count=3,
-            storage_path="/tmp/test.pdf",
+    def test_preview_page_out_of_range(self, client, mock_document_service):
+        mock_document_service.find_by_id = AsyncMock(
+            return_value=Document(
+                id="d1",
+                filename="test.pdf",
+                page_count=3,
+                storage_path="/tmp/test.pdf",
+            )
         )
 
         resp = client.get("/api/documents/d1/preview?page=10")
         assert resp.status_code == 400
         assert "out of range" in resp.json()["detail"]
 
-    @patch("services.document_service.delete", new_callable=AsyncMock)
-    def test_delete_document(self, mock_delete, client):
-        mock_delete.return_value = True
+    def test_delete_document(self, client, mock_document_service):
+        mock_document_service.delete = AsyncMock(return_value=True)
 
         resp = client.delete("/api/documents/d1")
         assert resp.status_code == 204
 
-    @patch("services.document_service.delete", new_callable=AsyncMock)
-    def test_delete_document_not_found(self, mock_delete, client):
-        mock_delete.return_value = False
+    def test_delete_document_not_found(self, client, mock_document_service):
+        mock_document_service.delete = AsyncMock(return_value=False)
 
         resp = client.delete("/api/documents/missing")
         assert resp.status_code == 404
