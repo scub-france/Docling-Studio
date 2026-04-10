@@ -56,6 +56,8 @@ class AnalysisJob:
 
     def mark_running(self) -> None:
         """Transition to RUNNING and record the start timestamp."""
+        if self.status != AnalysisStatus.PENDING:
+            raise ValueError(f"Cannot mark as RUNNING from {self.status} (expected PENDING)")
         self.status = AnalysisStatus.RUNNING
         self.started_at = _utcnow()
 
@@ -68,6 +70,8 @@ class AnalysisJob:
         chunks_json: str | None = None,
     ) -> None:
         """Transition to COMPLETED with conversion results."""
+        if self.status != AnalysisStatus.RUNNING:
+            raise ValueError(f"Cannot mark as COMPLETED from {self.status} (expected RUNNING)")
         self.status = AnalysisStatus.COMPLETED
         self.content_markdown = markdown
         self.content_html = html
@@ -78,11 +82,17 @@ class AnalysisJob:
 
     def update_progress(self, current: int, total: int) -> None:
         """Update batch progress counters."""
+        if self.status != AnalysisStatus.RUNNING:
+            raise ValueError(f"Cannot update progress from {self.status} (expected RUNNING)")
         self.progress_current = current
         self.progress_total = total
 
     def mark_failed(self, error: str) -> None:
         """Transition to FAILED with an error message."""
+        if self.status not in (AnalysisStatus.PENDING, AnalysisStatus.RUNNING):
+            raise ValueError(
+                f"Cannot mark as FAILED from {self.status} (expected PENDING or RUNNING)"
+            )
         self.status = AnalysisStatus.FAILED
         self.error_message = error
         self.completed_at = _utcnow()

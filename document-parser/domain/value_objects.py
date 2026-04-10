@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
-@dataclass
+@dataclass(frozen=True)
 class PageElement:
     type: str
     bbox: list[float]
@@ -17,7 +17,7 @@ class PageElement:
     level: int = 0
 
 
-@dataclass
+@dataclass(frozen=True)
 class PageDetail:
     page_number: int
     width: float
@@ -25,7 +25,7 @@ class PageDetail:
     elements: list[PageElement] = field(default_factory=list)
 
 
-@dataclass
+@dataclass(frozen=True)
 class ConversionOptions:
     do_ocr: bool = True
     do_table_structure: bool = True
@@ -43,7 +43,7 @@ class ConversionOptions:
         return self == ConversionOptions()
 
 
-@dataclass
+@dataclass(frozen=True)
 class ConversionResult:
     page_count: int
     content_markdown: str
@@ -53,7 +53,7 @@ class ConversionResult:
     document_json: str | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class ChunkingOptions:
     chunker_type: str = "hybrid"  # "hybrid", "hierarchical", "page"
     max_tokens: int = 512
@@ -65,13 +65,13 @@ class ChunkingOptions:
         return self == ChunkingOptions()
 
 
-@dataclass
+@dataclass(frozen=True)
 class ChunkBbox:
     page: int
     bbox: list[float]  # [left, top, right, bottom] in TOPLEFT origin
 
 
-@dataclass
+@dataclass(frozen=True)
 class ChunkResult:
     text: str
     headings: list[str] = field(default_factory=list)
