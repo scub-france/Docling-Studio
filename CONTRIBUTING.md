@@ -17,6 +17,35 @@ Thank you for your interest in contributing to Docling Studio! This guide will h
 
 ## Development Setup
 
+### Docker Dev Stack (recommended)
+
+The fastest way to get the full stack running (backend + frontend + OpenSearch):
+
+```bash
+docker compose -f docker-compose.dev.yml up
+```
+
+This starts:
+
+| Service | URL | Notes |
+|---------|-----|-------|
+| Frontend (Vite) | http://localhost:3000 | HMR enabled |
+| Backend (FastAPI) | http://localhost:8000 | Auto-reload on file changes |
+| OpenSearch | http://localhost:9200 | Single-node, security disabled |
+| OpenSearch Dashboards | http://localhost:5601 | Index inspection UI |
+
+Source code is bind-mounted — edits on your host are reflected immediately.
+
+To use remote conversion mode instead of local:
+
+```bash
+CONVERSION_MODE=remote docker compose -f docker-compose.dev.yml up
+```
+
+### Manual Setup
+
+If you prefer running services directly on your machine:
+
 ### Backend (Python 3.12+)
 
 ```bash
