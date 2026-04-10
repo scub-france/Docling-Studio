@@ -104,6 +104,17 @@ class IndexedChunk:
         return result
 
 
+# -- Search result -------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SearchResult:
+    """A chunk returned from a vector store query."""
+
+    chunk: IndexedChunk
+    score: float  # similarity score (higher = more similar)
+
+
 # -- Index mapping template ----------------------------------------------------
 
 

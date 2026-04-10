@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         ConversionOptions,
         ConversionResult,
     )
+    from domain.vector_schema import IndexedChunk, SearchResult
 
 
 class DocumentConverter(Protocol):
@@ -79,3 +80,52 @@ class AnalysisRepository(Protocol):
     async def delete(self, job_id: str) -> bool: ...
 
     async def delete_by_document(self, document_id: str) -> int: ...
+
+
+class VectorStore(Protocol):
+    """Port for vector storage and retrieval.
+
+    Implementations (OpenSearch, pgvector, Qdrant, etc.) must satisfy this
+    contract. The port uses domain types from vector_schema — no infrastructure
+    details leak into the domain.
+    """
+
+    async def ensure_index(self, index_name: str, mapping: dict) -> None:
+        """Create the index if it does not exist. No-op if it already exists."""
+        ...
+
+    async def index_chunks(self, index_name: str, chunks: list[IndexedChunk]) -> int:
+        """Bulk-index a list of chunks. Returns the number of successfully indexed chunks."""
+        ...
+
+    async def search_similar(
+        self,
+        index_name: str,
+        embedding: list[float],
+        *,
+        k: int = 10,
+        doc_id: str | None = None,
+    ) -> list[SearchResult]:
+        """Find the k nearest chunks by embedding similarity.
+
+        Args:
+            index_name: Target index.
+            embedding: Query vector.
+            k: Number of results to return.
+            doc_id: If provided, restrict search to chunks from this document.
+        """
+        ...
+
+    async def get_chunks(
+        self,
+        index_name: str,
+        doc_id: str,
+        *,
+        limit: int = 1000,
+    ) -> list[SearchResult]:
+        """Retrieve all indexed chunks for a given document, ordered by chunk_index."""
+        ...
+
+    async def delete_document(self, index_name: str, doc_id: str) -> int:
+        """Delete all chunks for a document from the index. Returns count deleted."""
+        ...

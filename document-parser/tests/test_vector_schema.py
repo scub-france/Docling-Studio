@@ -11,6 +11,7 @@ from domain.vector_schema import (
     ChunkOrigin,
     DocItemRef,
     IndexedChunk,
+    SearchResult,
     build_index_mapping,
 )
 
@@ -187,6 +188,36 @@ class TestBuildIndexMapping:
         props = mapping["mappings"]["properties"]
         for field_name in ("chunk_index", "page_number"):
             assert props[field_name]["type"] == "integer", f"{field_name} should be integer"
+
+
+class TestSearchResult:
+    def test_construction(self):
+        chunk = IndexedChunk(
+            doc_id="doc-1",
+            filename="test.pdf",
+            content="Hello",
+            embedding=[0.1] * 384,
+            chunk_index=0,
+            chunk_type="text",
+            page_number=1,
+        )
+        result = SearchResult(chunk=chunk, score=0.95)
+        assert result.chunk.content == "Hello"
+        assert result.score == 0.95
+
+    def test_frozen(self):
+        chunk = IndexedChunk(
+            doc_id="d",
+            filename="f",
+            content="c",
+            embedding=[],
+            chunk_index=0,
+            chunk_type="text",
+            page_number=1,
+        )
+        result = SearchResult(chunk=chunk, score=0.5)
+        with pytest.raises(AttributeError):
+            result.score = 0.9  # type: ignore[misc]
 
 
 class TestConstants:
