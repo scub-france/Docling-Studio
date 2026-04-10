@@ -23,9 +23,10 @@ services:
       EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-64}
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8001/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
     deploy:
       resources:
         limits:
