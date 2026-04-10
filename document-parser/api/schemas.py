@@ -180,3 +180,13 @@ class RechunkRequest(BaseModel):
     chunkingOptions: ChunkingOptionsRequest = Field(
         validation_alias=AliasChoices("chunkingOptions", "chunking_options")
     )
+
+
+class IngestionResponse(_CamelModel):
+    doc_id: str
+    chunks_indexed: int
+    embedding_dimension: int
+
+
+class IngestionStatusResponse(_CamelModel):
+    available: bool
