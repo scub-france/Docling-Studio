@@ -6,7 +6,7 @@ Infrastructure adapters (local Docling, Docling Serve, etc.) implement these.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from domain.models import AnalysisJob, Document
@@ -82,6 +82,7 @@ class AnalysisRepository(Protocol):
     async def delete_by_document(self, document_id: str) -> int: ...
 
 
+@runtime_checkable
 class VectorStore(Protocol):
     """Port for vector storage and retrieval.
 
