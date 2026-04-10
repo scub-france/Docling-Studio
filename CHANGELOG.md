@@ -4,6 +4,16 @@ All notable changes to Docling Studio will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - Unreleased
+
+### Added
+
+- Inline chunk text editing: double-click or edit button to modify chunk text, with save/cancel and "modified" badge
+
+### Fixed
+
+### Changed
+
 ## [0.3.1] - 2026-04-09
 
 ### Added

@@ -13,6 +13,7 @@ from api.schemas import (
     ChunkResponse,
     CreateAnalysisRequest,
     RechunkRequest,
+    UpdateChunkTextRequest,
 )
 from services.analysis_service import AnalysisService
 
@@ -105,6 +106,28 @@ async def rechunk_analysis(
             source_page=c.source_page,
             token_count=c.token_count,
             bboxes=[ChunkBboxResponse(page=b.page, bbox=b.bbox) for b in c.bboxes],
+        )
+        for c in chunks
+    ]
+
+
+@router.patch("/{job_id}/chunks/{chunk_index}", response_model=list[ChunkResponse])
+async def update_chunk_text(
+    job_id: str, chunk_index: int, body: UpdateChunkTextRequest, service: ServiceDep
+) -> list[ChunkResponse]:
+    """Update the text of a single chunk by index."""
+    try:
+        chunks = await service.update_chunk_text(job_id, chunk_index, body.text)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return [
+        ChunkResponse(
+            text=c["text"],
+            headings=c.get("headings", []),
+            source_page=c.get("sourcePage"),
+            token_count=c.get("tokenCount", 0),
+            bboxes=[ChunkBboxResponse(page=b["page"], bbox=b["bbox"]) for b in c.get("bboxes", [])],
+            modified=c.get("modified", False),
         )
         for c in chunks
     ]

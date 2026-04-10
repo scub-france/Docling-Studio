@@ -278,6 +278,70 @@ class TestCreateAnalysisWithChunking:
         assert chunks[0]["text"] == "chunk1"
 
 
+class TestUpdateChunkTextEndpoint:
+    def test_update_chunk_text_success(self, client, mock_analysis_service):
+        updated_chunks = [
+            {
+                "text": "updated text",
+                "headings": ["H1"],
+                "sourcePage": 1,
+                "tokenCount": 10,
+                "bboxes": [],
+                "modified": True,
+            },
+            {
+                "text": "chunk2",
+                "headings": [],
+                "sourcePage": 2,
+                "tokenCount": 20,
+                "bboxes": [],
+                "modified": False,
+            },
+        ]
+        mock_analysis_service.update_chunk_text = AsyncMock(return_value=updated_chunks)
+
+        resp = client.patch(
+            "/api/analyses/j1/chunks/0",
+            json={"text": "updated text"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 2
+        assert data[0]["text"] == "updated text"
+        assert data[0]["modified"] is True
+        assert data[1]["modified"] is False
+
+    def test_update_chunk_text_invalid_index(self, client, mock_analysis_service):
+        mock_analysis_service.update_chunk_text = AsyncMock(
+            side_effect=ValueError("Chunk index out of range: 99"),
+        )
+        resp = client.patch(
+            "/api/analyses/j1/chunks/99",
+            json={"text": "new"},
+        )
+        assert resp.status_code == 400
+
+    def test_update_chunk_text_not_completed(self, client, mock_analysis_service):
+        mock_analysis_service.update_chunk_text = AsyncMock(
+            side_effect=ValueError("Analysis is not completed: j1"),
+        )
+        resp = client.patch(
+            "/api/analyses/j1/chunks/0",
+            json={"text": "new"},
+        )
+        assert resp.status_code == 400
+
+    def test_update_chunk_text_not_found(self, client, mock_analysis_service):
+        mock_analysis_service.update_chunk_text = AsyncMock(
+            side_effect=ValueError("Analysis not found: j1"),
+        )
+        resp = client.patch(
+            "/api/analyses/j1/chunks/0",
+            json={"text": "new"},
+        )
+        assert resp.status_code == 400
+
+
 class TestRechunkEndpoint:
     def test_rechunk_success(self, client, mock_analysis_service):
         mock_analysis_service.rechunk = AsyncMock(

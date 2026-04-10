@@ -158,6 +158,11 @@ class ChunkResponse(_CamelModel):
     source_page: int | None = None
     token_count: int = 0
     bboxes: list[ChunkBboxResponse] = []
+    modified: bool = False
+
+
+class UpdateChunkTextRequest(BaseModel):
+    text: str
 
 
 class CreateAnalysisRequest(BaseModel):

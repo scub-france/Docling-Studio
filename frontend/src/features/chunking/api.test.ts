@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { rechunkAnalysis } from './api'
+import { rechunkAnalysis, updateChunkText } from './api'
 
 vi.mock('../../shared/api/http', () => ({
   apiFetch: vi.fn(),
@@ -22,6 +22,21 @@ describe('chunking API', () => {
     expect(apiFetch).toHaveBeenCalledWith('/api/analyses/job-1/rechunk', {
       method: 'POST',
       body: JSON.stringify({ chunkingOptions: opts }),
+    })
+    expect(result).toEqual(chunks)
+  })
+
+  it('updateChunkText sends PATCH to chunk endpoint', async () => {
+    const chunks = [
+      { text: 'updated', headings: [], sourcePage: 1, tokenCount: 10, bboxes: [], modified: true },
+    ]
+    apiFetch.mockResolvedValue(chunks)
+
+    const result = await updateChunkText('job-1', 0, 'updated')
+
+    expect(apiFetch).toHaveBeenCalledWith('/api/analyses/job-1/chunks/0', {
+      method: 'PATCH',
+      body: JSON.stringify({ text: 'updated' }),
     })
     expect(result).toEqual(chunks)
   })

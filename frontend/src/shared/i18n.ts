@@ -119,6 +119,11 @@ const messages: Messages = {
     'chunking.chunks': 'chunks',
     'chunking.noChunks': 'Lancez le chunking pour préparer les segments.',
     'chunking.noChunksOnPage': 'Aucun chunk sur cette page.',
+    'chunking.edit': 'Modifier',
+    'chunking.save': 'Enregistrer',
+    'chunking.saving': 'Enregistrement...',
+    'chunking.cancel': 'Annuler',
+    'chunking.modified': 'modifié',
     'chunking.batchNotice':
       'Le chunking n\u2019est pas disponible pour cette analyse. Les documents volumineux trait\u00e9s par batch ne g\u00e9n\u00e8rent pas la structure interne n\u00e9cessaire au d\u00e9coupage.',
 
@@ -245,6 +250,11 @@ const messages: Messages = {
     'chunking.chunks': 'chunks',
     'chunking.noChunks': 'Run chunking to prepare segments.',
     'chunking.noChunksOnPage': 'No chunks on this page.',
+    'chunking.edit': 'Edit',
+    'chunking.save': 'Save',
+    'chunking.saving': 'Saving...',
+    'chunking.cancel': 'Cancel',
+    'chunking.modified': 'modified',
     'chunking.batchNotice':
       'Chunking is not available for this analysis. Large documents processed in batch mode do not generate the internal structure required for chunking.',
 

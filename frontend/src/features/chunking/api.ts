@@ -7,3 +7,10 @@ export function rechunkAnalysis(jobId: string, chunkingOptions: ChunkingOptions)
     body: JSON.stringify({ chunkingOptions }),
   })
 }
+
+export function updateChunkText(jobId: string, chunkIndex: number, text: string): Promise<Chunk[]> {
+  return apiFetch<Chunk[]>(`/api/analyses/${jobId}/chunks/${chunkIndex}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ text }),
+  })
+}

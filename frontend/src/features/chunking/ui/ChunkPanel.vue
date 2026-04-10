@@ -102,11 +102,64 @@
               {{ chunk.tokenCount }} tokens
             </span>
             <span class="chunk-page" v-if="chunk.sourcePage"> p.{{ chunk.sourcePage }} </span>
+            <span v-if="chunk.modified" class="chunk-modified" data-e2e="chunk-modified">
+              {{ t('chunking.modified') }}
+            </span>
+            <button
+              v-if="editingIdx !== globalIndex(localIdx)"
+              class="chunk-edit-icon"
+              data-e2e="chunk-edit-btn"
+              :title="t('chunking.edit')"
+              @click.stop="startEdit(globalIndex(localIdx), chunk.text)"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                <path
+                  d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"
+                />
+              </svg>
+            </button>
           </div>
           <div class="chunk-headings" v-if="chunk.headings.length">
             <span class="chunk-heading" v-for="h in chunk.headings" :key="h">{{ h }}</span>
           </div>
-          <div class="chunk-text" data-e2e="chunk-text">{{ chunk.text }}</div>
+
+          <!-- Edit mode -->
+          <div v-if="editingIdx === globalIndex(localIdx)" class="chunk-edit">
+            <textarea
+              ref="editTextarea"
+              class="chunk-edit-textarea"
+              data-e2e="chunk-edit-textarea"
+              v-model="editText"
+              rows="6"
+            />
+            <div class="chunk-edit-actions">
+              <button
+                class="chunk-edit-btn save"
+                data-e2e="chunk-edit-save"
+                :disabled="chunkingStore.saving"
+                @click="saveEdit(globalIndex(localIdx))"
+              >
+                {{ chunkingStore.saving ? t('chunking.saving') : t('chunking.save') }}
+              </button>
+              <button
+                class="chunk-edit-btn cancel"
+                data-e2e="chunk-edit-cancel"
+                @click="cancelEdit"
+              >
+                {{ t('chunking.cancel') }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Read mode -->
+          <div
+            v-else
+            class="chunk-text"
+            data-e2e="chunk-text"
+            @dblclick="startEdit(globalIndex(localIdx), chunk.text)"
+          >
+            {{ chunk.text }}
+          </div>
         </div>
       </div>
     </div>
@@ -175,6 +228,32 @@ const pagination = usePagination(pageChunks, { pageSize: 20 })
 
 function globalIndex(localIdx: number): number {
   return (pagination.page.value - 1) * pagination.pageSize.value + localIdx
+}
+
+const editingIdx = ref(-1)
+const editText = ref('')
+
+function startEdit(idx: number, text: string) {
+  editingIdx.value = idx
+  editText.value = text
+}
+
+function cancelEdit() {
+  editingIdx.value = -1
+  editText.value = ''
+}
+
+async function saveEdit(chunkIndex: number) {
+  if (!props.analysisId) return
+  const allChunks = props.chunks
+  const originalText = allChunks[chunkIndex]?.text
+  if (editText.value === originalText) {
+    cancelEdit()
+    return
+  }
+  await chunkingStore.updateChunkText(props.analysisId, chunkIndex, editText.value)
+  emit('rechunked')
+  cancelEdit()
 }
 
 const hoveredChunkIdx = ref(-1)
@@ -425,6 +504,100 @@ async function doRechunk() {
   border-radius: 4px;
 }
 
+.chunk-modified {
+  font-size: 10px;
+  font-weight: 600;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.chunk-edit-icon {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.chunk-card:hover .chunk-edit-icon {
+  opacity: 1;
+}
+
+.chunk-edit-icon:hover {
+  color: var(--accent);
+  background: var(--bg-tertiary);
+}
+
+.chunk-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chunk-edit-textarea {
+  width: 100%;
+  font-size: 12px;
+  font-family: inherit;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm, 4px);
+  padding: 8px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.chunk-edit-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.chunk-edit-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.chunk-edit-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chunk-edit-btn.save {
+  background: var(--accent);
+  color: white;
+}
+
+.chunk-edit-btn.save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chunk-edit-btn.cancel {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.chunk-edit-btn.cancel:hover {
+  color: var(--text);
+}
+
 .chunk-text {
   font-size: 12px;
   color: var(--text);
@@ -433,6 +606,7 @@ async function doRechunk() {
   word-break: break-word;
   max-height: 120px;
   overflow-y: auto;
+  cursor: text;
 }
 
 .chunk-empty {

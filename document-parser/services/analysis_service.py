@@ -160,6 +160,28 @@ class AnalysisService:
 
         return chunks
 
+    async def update_chunk_text(self, job_id: str, chunk_index: int, text: str) -> list[dict]:
+        """Update the text of a single chunk by index. Returns the full updated chunks list."""
+        job = await self._analysis_repo.find_by_id(job_id)
+        if not job:
+            raise ValueError(f"Analysis not found: {job_id}")
+        if job.status != AnalysisStatus.COMPLETED:
+            raise ValueError(f"Analysis is not completed: {job_id}")
+        if not job.chunks_json:
+            raise ValueError(f"No chunks available: {job_id}")
+
+        chunks = json.loads(job.chunks_json)
+        if chunk_index < 0 or chunk_index >= len(chunks):
+            raise ValueError(f"Chunk index out of range: {chunk_index}")
+
+        chunks[chunk_index]["text"] = text
+        chunks[chunk_index]["modified"] = True
+
+        chunks_json = json.dumps(chunks)
+        await self._analysis_repo.update_chunks(job_id, chunks_json)
+
+        return chunks
+
     async def _run_batched_conversion(
         self,
         job_id: str,
