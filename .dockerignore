@@ -18,3 +18,6 @@ document-parser/.mypy_cache/
 document-parser/.ruff_cache/
 document-parser/data/
 document-parser/uploads/
+
+# E2E tests (JVM/Maven — not needed in Docker images)
+e2e/

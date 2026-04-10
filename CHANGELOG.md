@@ -4,6 +4,21 @@ All notable changes to Docling Studio will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-04-09
+
+### Added
+
+- Batch conversion progress: segmented progress bar with ring indicator and per-batch visual feedback
+- Inline mini progress bar in the top banner during analysis
+- Informational notice in Prepare mode when chunking is unavailable (batch mode)
+- `BATCH_PAGE_SIZE` environment variable forwarded in Docker Compose
+
+### Fixed
+
+- Batch progress reset to null on completion (progress_current/progress_total overwritten by stale in-memory job object)
+- Regression test for batch progress preservation in `_run_analysis_inner` flow
+- E2E assertion on final progress values in batch-progress feature
+
 ## [0.3.0] - 2026-04-07
 
 ### Added

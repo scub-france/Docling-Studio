@@ -53,6 +53,7 @@ class TestBuildConverter:
         assert opts.generate_page_images is False
         assert opts.generate_picture_images is False
         assert opts.images_scale == 1.0
+        assert opts.document_timeout is not None
 
     def test_ocr_disabled(self):
         conv = build_converter(ConversionOptions(do_ocr=False))
@@ -145,7 +146,7 @@ class TestBuildConverter:
 class TestConvertDocumentRouting:
     """Verify convert_document uses default converter for default opts, custom otherwise."""
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_default_converter_with_all_defaults(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -163,7 +164,7 @@ class TestConvertDocumentRouting:
         mock_get_default.assert_called_once()
         mock_build.assert_not_called()
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_ocr_disabled(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -181,7 +182,7 @@ class TestConvertDocumentRouting:
         mock_build.assert_called_once()
         mock_get_default.assert_not_called()
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_table_mode_fast(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -199,7 +200,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once_with(opts)
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_code_enrichment_on(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -217,7 +218,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once_with(opts)
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_formula_enrichment_on(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -234,7 +235,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once()
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_picture_options_on(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -251,7 +252,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once()
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_generate_images_on(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -268,7 +269,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once()
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_images_scale_changed(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -286,7 +287,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once_with(opts)
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_forwards_all_options_to_build_converter(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -324,6 +325,22 @@ class TestConvertDocumentRouting:
 class TestServiceForwardsPipelineOptions:
     """Verify analysis_service.create and _run_analysis forward pipeline options."""
 
+    def _make_service(self, converter):
+        from services.analysis_service import AnalysisService
+
+        mock_analysis_repo = MagicMock()
+        mock_analysis_repo.find_by_id = AsyncMock()
+        mock_analysis_repo.insert = AsyncMock()
+        mock_analysis_repo.update_status = AsyncMock()
+        mock_document_repo = MagicMock()
+        mock_document_repo.find_by_id = AsyncMock()
+        mock_document_repo.update_page_count = AsyncMock()
+        return AnalysisService(
+            converter=converter,
+            analysis_repo=mock_analysis_repo,
+            document_repo=mock_document_repo,
+        )
+
     @pytest.fixture
     def mock_doc(self):
         from domain.models import Document
@@ -336,22 +353,11 @@ class TestServiceForwardsPipelineOptions:
 
         return AnalysisJob(id="j1", document_id="d1", document_filename="test.pdf")
 
-    @patch("services.analysis_service.document_repo")
-    @patch("services.analysis_service.analysis_repo")
     @pytest.mark.asyncio
-    async def test_create_passes_pipeline_options_to_run(
-        self,
-        mock_analysis_repo,
-        mock_doc_repo,
-        mock_doc,
-    ):
-        mock_doc_repo.find_by_id = AsyncMock(return_value=mock_doc)
-        mock_analysis_repo.insert = AsyncMock()
-
+    async def test_create_passes_pipeline_options_to_run(self, mock_doc):
         mock_converter = AsyncMock()
-        from services.analysis_service import AnalysisService
-
-        svc = AnalysisService(converter=mock_converter)
+        svc = self._make_service(mock_converter)
+        svc._document_repo.find_by_id = AsyncMock(return_value=mock_doc)
 
         opts = {"do_ocr": False, "table_mode": "fast"}
 
@@ -359,41 +365,19 @@ class TestServiceForwardsPipelineOptions:
             await svc.create("d1", pipeline_options=opts)
             mock_task.assert_called_once()
 
-    @patch("services.analysis_service.document_repo")
-    @patch("services.analysis_service.analysis_repo")
     @pytest.mark.asyncio
-    async def test_create_passes_none_when_no_options(
-        self,
-        mock_analysis_repo,
-        mock_doc_repo,
-        mock_doc,
-    ):
-        mock_doc_repo.find_by_id = AsyncMock(return_value=mock_doc)
-        mock_analysis_repo.insert = AsyncMock()
-
+    async def test_create_passes_none_when_no_options(self, mock_doc):
         mock_converter = AsyncMock()
-        from services.analysis_service import AnalysisService
-
-        svc = AnalysisService(converter=mock_converter)
+        svc = self._make_service(mock_converter)
+        svc._document_repo.find_by_id = AsyncMock(return_value=mock_doc)
 
         with patch("services.analysis_service.asyncio.create_task") as mock_task:
             await svc.create("d1")
             mock_task.assert_called_once()
 
-    @patch("services.analysis_service.analysis_repo")
-    @patch("services.analysis_service.document_repo")
     @pytest.mark.asyncio
-    async def test_run_analysis_forwards_options_to_convert(
-        self,
-        mock_doc_repo,
-        mock_analysis_repo,
-        mock_job,
-    ):
+    async def test_run_analysis_forwards_options_to_convert(self, mock_job):
         from domain.value_objects import ConversionResult, PageDetail
-
-        mock_analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
-        mock_analysis_repo.update_status = AsyncMock()
-        mock_doc_repo.update_page_count = AsyncMock()
 
         mock_converter = AsyncMock()
         mock_converter.convert.return_value = ConversionResult(
@@ -403,9 +387,8 @@ class TestServiceForwardsPipelineOptions:
             pages=[PageDetail(page_number=1, width=612.0, height=792.0)],
         )
 
-        from services.analysis_service import AnalysisService
-
-        svc = AnalysisService(converter=mock_converter)
+        svc = self._make_service(mock_converter)
+        svc._analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
 
         opts = {
             "do_ocr": False,
@@ -431,20 +414,9 @@ class TestServiceForwardsPipelineOptions:
         assert conv_opts.generate_picture_images is True
         assert conv_opts.images_scale == 2.0
 
-    @patch("services.analysis_service.analysis_repo")
-    @patch("services.analysis_service.document_repo")
     @pytest.mark.asyncio
-    async def test_run_analysis_uses_defaults_when_no_options(
-        self,
-        mock_doc_repo,
-        mock_analysis_repo,
-        mock_job,
-    ):
+    async def test_run_analysis_uses_defaults_when_no_options(self, mock_job):
         from domain.value_objects import ConversionResult, PageDetail
-
-        mock_analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
-        mock_analysis_repo.update_status = AsyncMock()
-        mock_doc_repo.update_page_count = AsyncMock()
 
         mock_converter = AsyncMock()
         mock_converter.convert.return_value = ConversionResult(
@@ -454,9 +426,8 @@ class TestServiceForwardsPipelineOptions:
             pages=[PageDetail(page_number=1, width=612.0, height=792.0)],
         )
 
-        from services.analysis_service import AnalysisService
-
-        svc = AnalysisService(converter=mock_converter)
+        svc = self._make_service(mock_converter)
+        svc._analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
 
         await svc._run_analysis("j1", "/tmp/test.pdf", "test.pdf", None)
 
@@ -465,30 +436,19 @@ class TestServiceForwardsPipelineOptions:
         assert call_args[0][0] == "/tmp/test.pdf"
         assert call_args[0][1] == ConversionOptions()
 
-    @patch("services.analysis_service.analysis_repo")
-    @patch("services.analysis_service.document_repo")
     @pytest.mark.asyncio
-    async def test_run_analysis_marks_failed_on_error(
-        self,
-        mock_doc_repo,
-        mock_analysis_repo,
-        mock_job,
-    ):
-        mock_analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
-        mock_analysis_repo.update_status = AsyncMock()
-
+    async def test_run_analysis_marks_failed_on_error(self, mock_job):
         mock_converter = AsyncMock()
         mock_converter.convert.side_effect = RuntimeError("Docling crashed")
 
-        from services.analysis_service import AnalysisService
-
-        svc = AnalysisService(converter=mock_converter)
+        svc = self._make_service(mock_converter)
+        svc._analysis_repo.find_by_id = AsyncMock(return_value=mock_job)
 
         await svc._run_analysis("j1", "/tmp/test.pdf", "test.pdf", {"do_ocr": False})
 
         # Should have called update_status twice: RUNNING then FAILED
-        assert mock_analysis_repo.update_status.call_count == 2
-        last_job = mock_analysis_repo.update_status.call_args_list[-1][0][0]
+        assert svc._analysis_repo.update_status.call_count == 2
+        last_job = svc._analysis_repo.update_status.call_args_list[-1][0][0]
         assert last_job.status.value == "FAILED"
         assert "Docling crashed" in last_job.error_message
 

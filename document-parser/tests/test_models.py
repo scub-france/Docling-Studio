@@ -2,6 +2,8 @@
 
 from datetime import datetime
 
+import pytest
+
 from domain.models import AnalysisJob, AnalysisStatus, Document
 
 
@@ -94,6 +96,70 @@ class TestAnalysisJob:
 
         job.mark_completed(markdown="md", html="html", pages_json="[]")
         assert job.status == AnalysisStatus.COMPLETED
+
+
+class TestAnalysisJobGuardClauses:
+    """Guard clauses prevent invalid state transitions."""
+
+    def test_mark_running_from_running_raises(self):
+        job = AnalysisJob()
+        job.mark_running()
+        with pytest.raises(ValueError, match="Cannot mark as RUNNING"):
+            job.mark_running()
+
+    def test_mark_running_from_completed_raises(self):
+        job = AnalysisJob()
+        job.mark_running()
+        job.mark_completed(markdown="", html="", pages_json="[]")
+        with pytest.raises(ValueError, match="Cannot mark as RUNNING"):
+            job.mark_running()
+
+    def test_mark_running_from_failed_raises(self):
+        job = AnalysisJob()
+        job.mark_failed("err")
+        with pytest.raises(ValueError, match="Cannot mark as RUNNING"):
+            job.mark_running()
+
+    def test_mark_completed_from_pending_raises(self):
+        job = AnalysisJob()
+        with pytest.raises(ValueError, match="Cannot mark as COMPLETED"):
+            job.mark_completed(markdown="", html="", pages_json="[]")
+
+    def test_mark_completed_from_failed_raises(self):
+        job = AnalysisJob()
+        job.mark_failed("err")
+        with pytest.raises(ValueError, match="Cannot mark as COMPLETED"):
+            job.mark_completed(markdown="", html="", pages_json="[]")
+
+    def test_mark_failed_from_completed_raises(self):
+        job = AnalysisJob()
+        job.mark_running()
+        job.mark_completed(markdown="", html="", pages_json="[]")
+        with pytest.raises(ValueError, match="Cannot mark as FAILED"):
+            job.mark_failed("err")
+
+    def test_mark_failed_from_pending_allowed(self):
+        job = AnalysisJob()
+        job.mark_failed("err")
+        assert job.status == AnalysisStatus.FAILED
+
+    def test_mark_failed_from_running_allowed(self):
+        job = AnalysisJob()
+        job.mark_running()
+        job.mark_failed("err")
+        assert job.status == AnalysisStatus.FAILED
+
+    def test_update_progress_from_pending_raises(self):
+        job = AnalysisJob()
+        with pytest.raises(ValueError, match="Cannot update progress"):
+            job.update_progress(1, 10)
+
+    def test_update_progress_from_running_allowed(self):
+        job = AnalysisJob()
+        job.mark_running()
+        job.update_progress(5, 10)
+        assert job.progress_current == 5
+        assert job.progress_total == 10
 
 
 class TestAnalysisStatus:

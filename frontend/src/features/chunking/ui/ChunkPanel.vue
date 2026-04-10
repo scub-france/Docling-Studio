@@ -1,10 +1,11 @@
 <template>
-  <div class="chunk-panel">
+  <div class="chunk-panel" data-e2e="chunk-panel">
     <!-- Chunking config — collapsible -->
     <div class="chunk-config">
-      <button class="config-toggle" @click="configOpen = !configOpen">
+      <button class="config-toggle" data-e2e="config-toggle" @click="configOpen = !configOpen">
         <svg
           class="config-chevron"
+          data-e2e="config-chevron"
           :class="{ open: configOpen }"
           viewBox="0 0 20 20"
           fill="currentColor"
@@ -18,10 +19,10 @@
         <span class="config-label">{{ t('chunking.settings') }}</span>
       </button>
 
-      <div v-if="configOpen" class="config-body">
+      <div v-if="configOpen" class="config-body" data-e2e="config-body">
         <div class="config-row">
           <label class="config-label-sm">{{ t('chunking.chunkerType') }}</label>
-          <select class="config-select" v-model="options.chunker_type">
+          <select class="config-select" data-e2e="config-select" v-model="options.chunker_type">
             <option value="hybrid">Hybrid</option>
             <option value="hierarchical">Hierarchical</option>
           </select>
@@ -32,6 +33,7 @@
           <input
             type="number"
             class="config-input"
+            data-e2e="config-input"
             v-model.number="options.max_tokens"
             min="64"
             max="8192"
@@ -57,21 +59,37 @@
 
         <button
           class="chunk-btn primary"
-          :disabled="!canRechunk || analysisStore.rechunking"
+          data-e2e="chunk-btn"
+          :disabled="!canRechunk || chunkingStore.rechunking"
           @click="doRechunk"
         >
-          <div v-if="analysisStore.rechunking" class="spinner-sm" />
-          {{ analysisStore.rechunking ? t('chunking.chunking') : t('chunking.run') }}
+          <div v-if="chunkingStore.rechunking" class="spinner-sm" />
+          {{ chunkingStore.rechunking ? t('chunking.chunking') : t('chunking.run') }}
         </button>
+
+        <!-- Batch mode notice -->
+        <div v-if="isBatchedAnalysis" class="batch-notice" data-e2e="batch-notice">
+          <svg viewBox="0 0 20 20" fill="currentColor" class="batch-notice-icon">
+            <path
+              fill-rule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          <span>{{ t('chunking.batchNotice') }}</span>
+        </div>
       </div>
     </div>
 
     <!-- Chunks list -->
-    <div class="chunk-results" v-if="pageChunks.length">
-      <div class="chunk-summary">{{ pagination.totalItems.value }} {{ t('chunking.chunks') }}</div>
+    <div class="chunk-results" data-e2e="chunk-results" v-if="pageChunks.length">
+      <div class="chunk-summary" data-e2e="chunk-summary">
+        {{ pagination.totalItems.value }} {{ t('chunking.chunks') }}
+      </div>
       <div class="chunk-list">
         <div
           class="chunk-card"
+          data-e2e="chunk-card"
           v-for="(chunk, localIdx) in pagination.paginatedItems.value"
           :key="globalIndex(localIdx)"
           :class="{ highlighted: hoveredChunkIdx === globalIndex(localIdx) }"
@@ -79,8 +97,8 @@
           @mouseleave="onChunkLeave"
         >
           <div class="chunk-header">
-            <span class="chunk-index">#{{ globalIndex(localIdx) + 1 }}</span>
-            <span class="chunk-tokens" v-if="chunk.tokenCount">
+            <span class="chunk-index" data-e2e="chunk-index">#{{ globalIndex(localIdx) + 1 }}</span>
+            <span class="chunk-tokens" data-e2e="chunk-tokens" v-if="chunk.tokenCount">
               {{ chunk.tokenCount }} tokens
             </span>
             <span class="chunk-page" v-if="chunk.sourcePage"> p.{{ chunk.sourcePage }} </span>
@@ -88,16 +106,14 @@
           <div class="chunk-headings" v-if="chunk.headings.length">
             <span class="chunk-heading" v-for="h in chunk.headings" :key="h">{{ h }}</span>
           </div>
-          <div class="chunk-text">{{ chunk.text }}</div>
+          <div class="chunk-text" data-e2e="chunk-text">{{ chunk.text }}</div>
         </div>
       </div>
     </div>
 
-    <div class="chunk-empty" v-else-if="!analysisStore.rechunking">
+    <div class="chunk-empty" v-else-if="!chunkingStore.rechunking">
       <p>
-        {{
-          analysisStore.currentChunks.length ? t('chunking.noChunksOnPage') : t('chunking.noChunks')
-        }}
+        {{ chunks.length ? t('chunking.noChunksOnPage') : t('chunking.noChunks') }}
       </p>
     </div>
 
@@ -114,7 +130,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
-import { useAnalysisStore } from '../../analysis/store'
+import { useChunkingStore } from '../store'
 import { useI18n } from '../../../shared/i18n'
 import { usePagination } from '../../../shared/composables/usePagination'
 import { PaginationBar } from '../../../shared/ui'
@@ -122,13 +138,18 @@ import type { Chunk, ChunkBbox, ChunkingOptions } from '../../../shared/types'
 
 const props = defineProps<{
   currentPage: number
+  analysisId: string | null
+  analysisStatus: string | null
+  hasDocumentJson: boolean
+  chunks: Chunk[]
 }>()
 
 const emit = defineEmits<{
   'highlight-bboxes': [bboxes: ChunkBbox[]]
+  rechunked: []
 }>()
 
-const analysisStore = useAnalysisStore()
+const chunkingStore = useChunkingStore()
 const { t } = useI18n()
 
 const configOpen = ref(true)
@@ -141,13 +162,15 @@ const options = reactive<Required<ChunkingOptions>>({
 })
 
 const canRechunk = computed(() => {
-  const analysis = analysisStore.currentAnalysis
-  return analysis?.status === 'COMPLETED' && analysis.hasDocumentJson
+  return props.analysisStatus === 'COMPLETED' && props.hasDocumentJson
 })
 
-const pageChunks = computed(() =>
-  analysisStore.currentChunks.filter((c) => c.sourcePage === props.currentPage),
-)
+/** True when the analysis was batched (document_json unavailable). */
+const isBatchedAnalysis = computed(() => {
+  return props.analysisStatus === 'COMPLETED' && !props.hasDocumentJson
+})
+
+const pageChunks = computed(() => props.chunks.filter((c) => c.sourcePage === props.currentPage))
 const pagination = usePagination(pageChunks, { pageSize: 20 })
 
 function globalIndex(localIdx: number): number {
@@ -168,8 +191,9 @@ function onChunkLeave() {
 }
 
 async function doRechunk() {
-  if (!analysisStore.currentAnalysis) return
-  await analysisStore.rechunk(analysisStore.currentAnalysis.id, { ...options })
+  if (!props.analysisId) return
+  await chunkingStore.rechunk(props.analysisId, { ...options })
+  emit('rechunked')
 }
 </script>
 
@@ -418,6 +442,28 @@ async function doRechunk() {
   flex: 1;
   color: var(--text-secondary);
   font-size: 13px;
+}
+
+/* Batch mode info notice */
+.batch-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.batch-notice-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--info);
+  margin-top: 1px;
 }
 
 .spinner-sm {

@@ -1,109 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useAnalysisStore } from '../analysis/store'
+import { useChunkingStore } from './store'
 
-vi.mock('../analysis/api', () => ({
-  createAnalysis: vi.fn(),
-  fetchAnalyses: vi.fn().mockResolvedValue([]),
-  fetchAnalysis: vi.fn(),
-  deleteAnalysis: vi.fn(),
+vi.mock('./api', () => ({
   rechunkAnalysis: vi.fn(),
 }))
 
-import * as api from '../analysis/api'
+import * as api from './api'
 
-describe('analysis store — chunking', () => {
+describe('useChunkingStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
   })
 
-  it('currentChunks parses chunksJson from current analysis', () => {
-    const store = useAnalysisStore()
-    const chunks = [
-      {
-        text: 'chunk1',
-        headings: ['H1'],
-        sourcePage: 1,
-        tokenCount: 10,
-        bboxes: [{ page: 1, bbox: [10, 20, 100, 80] }],
-      },
-      { text: 'chunk2', headings: [], sourcePage: 2, tokenCount: 20, bboxes: [] },
-    ]
-    store.currentAnalysis = {
-      id: 'j1',
-      documentId: 'd1',
-      documentFilename: null,
-      status: 'COMPLETED',
-      contentMarkdown: null,
-      contentHtml: null,
-      pagesJson: null,
-      chunksJson: JSON.stringify(chunks),
-      hasDocumentJson: true,
-      errorMessage: null,
-      startedAt: null,
-      completedAt: null,
-      createdAt: '2024-01-01',
-    }
-    expect(store.currentChunks).toEqual(chunks)
+  it('starts with default state', () => {
+    const store = useChunkingStore()
+    expect(store.rechunking).toBe(false)
+    expect(store.error).toBeNull()
   })
 
-  it('currentChunks returns empty array when no chunksJson', () => {
-    const store = useAnalysisStore()
-    store.currentAnalysis = {
-      id: 'j1',
-      documentId: 'd1',
-      documentFilename: null,
-      status: 'COMPLETED',
-      contentMarkdown: null,
-      contentHtml: null,
-      pagesJson: null,
-      chunksJson: null,
-      hasDocumentJson: false,
-      errorMessage: null,
-      startedAt: null,
-      completedAt: null,
-      createdAt: '2024-01-01',
-    }
-    expect(store.currentChunks).toEqual([])
-  })
-
-  it('rechunk calls API and refreshes analysis', async () => {
-    const store = useAnalysisStore()
+  it('rechunk calls API and returns chunks', async () => {
     const chunks = [{ text: 'c1', headings: [], sourcePage: 1, tokenCount: 5, bboxes: [] }]
     vi.mocked(api.rechunkAnalysis).mockResolvedValue(chunks)
-    vi.mocked(api.fetchAnalysis).mockResolvedValue({
-      id: 'j1',
-      documentId: 'd1',
-      documentFilename: null,
-      status: 'COMPLETED',
-      contentMarkdown: null,
-      contentHtml: null,
-      pagesJson: null,
-      chunksJson: JSON.stringify(chunks),
-      hasDocumentJson: true,
-      errorMessage: null,
-      startedAt: null,
-      completedAt: null,
-      createdAt: '2024-01-01',
-    })
 
-    store.currentAnalysis = {
-      id: 'j1',
-      documentId: 'd1',
-      documentFilename: null,
-      status: 'COMPLETED',
-      contentMarkdown: null,
-      contentHtml: null,
-      pagesJson: null,
-      chunksJson: null,
-      hasDocumentJson: true,
-      errorMessage: null,
-      startedAt: null,
-      completedAt: null,
-      createdAt: '2024-01-01',
-    }
-
+    const store = useChunkingStore()
     const result = await store.rechunk('j1', { chunker_type: 'hybrid', max_tokens: 256 })
 
     expect(api.rechunkAnalysis).toHaveBeenCalledWith('j1', {
@@ -114,28 +35,31 @@ describe('analysis store — chunking', () => {
     expect(store.rechunking).toBe(false)
   })
 
-  it('run passes chunkingOptions to API', async () => {
-    const store = useAnalysisStore()
-    vi.mocked(api.createAnalysis).mockResolvedValue({
-      id: 'j1',
-      documentId: 'd1',
-      documentFilename: null,
-      status: 'PENDING',
-      contentMarkdown: null,
-      contentHtml: null,
-      pagesJson: null,
-      chunksJson: null,
-      hasDocumentJson: false,
-      errorMessage: null,
-      startedAt: null,
-      completedAt: null,
-      createdAt: '2024-01-01',
-    })
+  it('rechunk sets rechunking during execution', async () => {
+    let resolve: (v: any) => void
+    vi.mocked(api.rechunkAnalysis).mockImplementation(
+      () =>
+        new Promise((r) => {
+          resolve = r
+        }),
+    )
 
-    await store.run('d1', null, { chunker_type: 'hierarchical' })
+    const store = useChunkingStore()
+    const promise = store.rechunk('j1', { chunker_type: 'hybrid' })
 
-    expect(api.createAnalysis).toHaveBeenCalledWith('d1', null, {
-      chunker_type: 'hierarchical',
-    })
+    expect(store.rechunking).toBe(true)
+    resolve!([])
+    await promise
+    expect(store.rechunking).toBe(false)
+  })
+
+  it('rechunk handles errors', async () => {
+    vi.mocked(api.rechunkAnalysis).mockRejectedValue(new Error('fail'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const store = useChunkingStore()
+    await expect(store.rechunk('j1', { chunker_type: 'hybrid' })).rejects.toThrow('fail')
+    expect(store.rechunking).toBe(false)
+    expect(store.error).toBe('fail')
   })
 })

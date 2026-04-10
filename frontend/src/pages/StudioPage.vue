@@ -22,8 +22,9 @@
         <div class="mode-toggle">
           <button
             class="toggle-btn"
-            :class="{ active: mode === 'configurer' }"
-            @click="mode = 'configurer'"
+            data-e2e="toggle-btn"
+            :class="{ active: mode === 'configure' }"
+            @click="mode = 'configure'"
           >
             <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
               <path
@@ -36,8 +37,9 @@
           </button>
           <button
             class="toggle-btn"
-            :class="{ active: mode === 'verifier' }"
-            @click="mode = 'verifier'"
+            data-e2e="toggle-btn"
+            :class="{ active: mode === 'verify' }"
+            @click="mode = 'verify'"
             :disabled="!analysisStore.currentAnalysis"
           >
             <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
@@ -52,8 +54,9 @@
           <button
             v-if="chunkingEnabled"
             class="toggle-btn"
-            :class="{ active: mode === 'preparer' }"
-            @click="mode = 'preparer'"
+            data-e2e="toggle-btn"
+            :class="{ active: mode === 'prepare' }"
+            @click="mode = 'prepare'"
             :disabled="!analysisStore.currentAnalysis"
           >
             <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
@@ -76,9 +79,10 @@
         </button>
         <button
           class="topbar-btn primary"
+          data-e2e="run-btn"
           :disabled="analysisStore.running"
           @click="runAnalysis"
-          v-if="mode === 'configurer'"
+          v-if="mode === 'configure'"
         >
           <div v-if="analysisStore.running" class="spinner-sm" />
           <svg v-else viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
@@ -114,6 +118,35 @@
         <span class="info-badge" v-if="analysisStore.currentAnalysis.status === 'RUNNING'">
           <div class="spinner-xs" />
           {{ t('studio.analysisRunning') }}
+          <span
+            v-if="
+              analysisStore.currentAnalysis.progressTotal &&
+              analysisStore.currentAnalysis.progressTotal > 0
+            "
+            class="info-badge-progress"
+          >
+            <span class="info-badge-bar">
+              <span
+                class="info-badge-fill"
+                :style="{
+                  width:
+                    Math.min(
+                      100,
+                      Math.round(
+                        ((analysisStore.currentAnalysis.progressCurrent ?? 0) /
+                          analysisStore.currentAnalysis.progressTotal) *
+                          100,
+                      ),
+                    ) + '%',
+                }"
+              />
+            </span>
+            <span class="info-badge-count"
+              >{{ analysisStore.currentAnalysis.progressCurrent ?? 0 }}/{{
+                analysisStore.currentAnalysis.progressTotal
+              }}</span
+            >
+          </span>
         </span>
         <span class="info-badge error" v-if="analysisStore.currentAnalysis.status === 'FAILED'">
           <span class="info-dot error" />
@@ -189,10 +222,11 @@
               :src="previewUrl"
               :alt="`Page ${currentPage}`"
               class="pdf-image"
+              data-e2e="pdf-image"
               @load="onPdfImageLoad"
             />
             <BboxOverlay
-              v-if="(visualMode || mode === 'preparer') && hasAnalysisResults"
+              v-if="(visualMode || mode === 'prepare') && hasAnalysisResults"
               ref="bboxOverlayRef"
               :image-el="pdfImageRef"
               :page-data="currentPageData"
@@ -212,7 +246,7 @@
       <!-- Right: Config or Results panel -->
       <div class="right-panel" :style="{ width: rightPanelWidth + 'px' }">
         <!-- CONFIGURER MODE -->
-        <div v-if="mode === 'configurer'" class="config-panel">
+        <div v-if="mode === 'configure'" class="config-panel" data-e2e="config-panel">
           <div class="config-section">
             <label class="config-label">
               {{ t('config.model') }}
@@ -228,9 +262,9 @@
             <label class="config-label">{{ t('config.pipeline') }}</label>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input type="checkbox" v-model="pipelineOptions.do_ocr" class="toggle-input" />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.ocr') }}</span>
               </label>
               <span class="config-hint"
@@ -240,13 +274,13 @@
             </div>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.do_table_structure"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.tableStructure') }}</span>
               </label>
               <span class="config-hint"
@@ -257,7 +291,11 @@
 
             <div class="config-sub-option" v-if="pipelineOptions.do_table_structure">
               <label class="config-label-sm">{{ t('config.tableMode') }}</label>
-              <select class="config-select" v-model="pipelineOptions.table_mode">
+              <select
+                class="config-select"
+                data-e2e="config-select"
+                v-model="pipelineOptions.table_mode"
+              >
                 <option value="accurate">{{ t('config.tableModeAccurate') }}</option>
                 <option value="fast">{{ t('config.tableModeFast') }}</option>
               </select>
@@ -269,13 +307,13 @@
             <label class="config-label">{{ t('config.enrichment') }}</label>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.do_code_enrichment"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.codeEnrichment') }}</span>
               </label>
               <span class="config-hint"
@@ -285,13 +323,13 @@
             </div>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.do_formula_enrichment"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.formulaEnrichment') }}</span>
               </label>
               <span class="config-hint"
@@ -306,13 +344,13 @@
             <label class="config-label">{{ t('config.pictures') }}</label>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.do_picture_classification"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.pictureClassification') }}</span>
               </label>
               <span class="config-hint"
@@ -322,13 +360,13 @@
             </div>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.do_picture_description"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.pictureDescription') }}</span>
               </label>
               <span class="config-hint"
@@ -338,13 +376,13 @@
             </div>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.generate_picture_images"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.generatePictureImages') }}</span>
               </label>
               <span class="config-hint"
@@ -354,13 +392,13 @@
             </div>
 
             <div class="config-toggle-row">
-              <label class="toggle-label">
+              <label class="toggle-label" data-e2e="toggle-label">
                 <input
                   type="checkbox"
                   v-model="pipelineOptions.generate_page_images"
                   class="toggle-input"
                 />
-                <span class="toggle-switch" />
+                <span class="toggle-switch" data-e2e="toggle-switch" />
                 <span class="toggle-text">{{ t('config.generatePageImages') }}</span>
               </label>
               <span class="config-hint"
@@ -391,7 +429,7 @@
         </div>
 
         <!-- VERIFIER MODE -->
-        <div v-if="mode === 'verifier'" class="verify-panel">
+        <div v-if="mode === 'verify'" class="verify-panel">
           <ResultTabs
             :current-page="currentPage"
             :highlighted-index="highlightedElementIndex"
@@ -400,10 +438,15 @@
         </div>
 
         <!-- PREPARER MODE (feature-flipped) -->
-        <div v-if="mode === 'preparer' && chunkingEnabled" class="prepare-panel">
+        <div v-if="mode === 'prepare' && chunkingEnabled" class="prepare-panel">
           <ChunkPanel
             :current-page="currentPage"
+            :analysis-id="analysisStore.currentAnalysis?.id ?? null"
+            :analysis-status="analysisStore.currentAnalysis?.status ?? null"
+            :has-document-json="analysisStore.currentAnalysis?.hasDocumentJson ?? false"
+            :chunks="analysisStore.currentChunks"
             @highlight-bboxes="highlightedChunkBboxes = $event"
+            @rechunked="onRechunked"
           />
         </div>
       </div>
@@ -432,7 +475,7 @@ const analysisStore = useAnalysisStore()
 const { t } = useI18n()
 const chunkingEnabled = useFeatureFlag('chunking')
 
-const mode = ref('configurer')
+const mode = ref('configure')
 const currentPage = ref(1)
 const visualMode = ref(false)
 const highlightedElementIndex = ref(-1)
@@ -525,6 +568,12 @@ function addMore() {
   documentStore.selectedId = null
 }
 
+async function onRechunked() {
+  if (analysisStore.currentAnalysis?.id) {
+    await analysisStore.select(analysisStore.currentAnalysis.id)
+  }
+}
+
 // Clear highlights when switching modes or pages
 watch(mode, () => {
   highlightedElementIndex.value = -1
@@ -535,12 +584,12 @@ watch(currentPage, () => {
   highlightedChunkBboxes.value = []
 })
 
-// Auto-switch to verifier when analysis completes + refresh document data (pageCount)
+// Auto-switch to verify when analysis completes + refresh document data (pageCount)
 watch(
   () => analysisStore.currentAnalysis?.status,
   (status) => {
     if (status === 'COMPLETED') {
-      mode.value = 'verifier'
+      mode.value = 'verify'
       documentStore.load()
     }
   },
@@ -558,7 +607,7 @@ onMounted(async () => {
     if (analysis) {
       documentStore.select(analysis.documentId)
       if (analysis.status === 'COMPLETED') {
-        mode.value = 'verifier'
+        mode.value = 'verify'
       }
     }
     // Clean query param from URL
@@ -856,6 +905,32 @@ onBeforeUnmount(() => {
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
+}
+
+/* Inline mini progress in top bar */
+.info-badge-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+.info-badge-bar {
+  width: 48px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 1.5px;
+  overflow: hidden;
+}
+.info-badge-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 1.5px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.info-badge-count {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 /* Main content */

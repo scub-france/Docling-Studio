@@ -42,10 +42,12 @@ from domain.value_objects import (
     PageElement,
 )
 from infra.bbox import to_topleft_list
+from infra.settings import settings
 
 logger = logging.getLogger(__name__)
 
-# Thread lock — DoclingConverter is not thread-safe
+# Thread lock — DoclingConverter is not thread-safe.
+# Uses a timeout to prevent a frozen conversion from blocking all others.
 _converter_lock = threading.Lock()
 
 # US Letter page dimensions (points) — fallback when page size is unknown
@@ -102,6 +104,7 @@ def _build_docling_converter(options: ConversionOptions) -> DoclingConverter:
         generate_page_images=options.generate_page_images,
         generate_picture_images=options.generate_picture_images,
         images_scale=options.images_scale,
+        document_timeout=settings.document_timeout,
     )
 
     return DoclingConverter(
@@ -111,16 +114,19 @@ def _build_docling_converter(options: ConversionOptions) -> DoclingConverter:
     )
 
 
-def _get_default_converter() -> DoclingConverter:
+def _ensure_default_converter() -> DoclingConverter:
     global _default_converter
     if _default_converter is None:
-        _default_converter = _build_docling_converter(ConversionOptions())
+        try:
+            _default_converter = _build_docling_converter(ConversionOptions())
+        except Exception:
+            raise
     return _default_converter
 
 
 def _select_converter(options: ConversionOptions) -> DoclingConverter:
     if options.is_default():
-        return _get_default_converter()
+        return _ensure_default_converter()
     return _build_docling_converter(options)
 
 
@@ -209,10 +215,30 @@ def _process_content_item(
 # ---------------------------------------------------------------------------
 
 
-def _convert_sync(file_path: str, options: ConversionOptions) -> ConversionResult:
-    with _converter_lock:
+def _convert_sync(
+    file_path: str,
+    options: ConversionOptions,
+    *,
+    page_range: tuple[int, int] | None = None,
+) -> ConversionResult:
+    acquired = _converter_lock.acquire(timeout=settings.lock_timeout)
+    if not acquired:
+        raise TimeoutError(
+            f"Could not acquire converter lock within {settings.lock_timeout}s — "
+            "a previous conversion may be frozen"
+        )
+    try:
         conv = _select_converter(options)
-        result = conv.convert(file_path)
+        kwargs: dict = {}
+        if settings.max_page_count > 0:
+            kwargs["max_num_pages"] = settings.max_page_count
+        if settings.max_file_size > 0:
+            kwargs["max_file_size"] = settings.max_file_size
+        if page_range is not None:
+            kwargs["page_range"] = page_range
+        result = conv.convert(file_path, **kwargs)
+    finally:
+        _converter_lock.release()
 
     doc = result.document
     page_count = len(doc.pages)
@@ -255,5 +281,7 @@ class LocalConverter:
         self,
         file_path: str,
         options: ConversionOptions,
+        *,
+        page_range: tuple[int, int] | None = None,
     ) -> ConversionResult:
-        return await asyncio.to_thread(_convert_sync, file_path, options)
+        return await asyncio.to_thread(_convert_sync, file_path, options, page_range=page_range)

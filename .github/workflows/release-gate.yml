@@ -1,0 +1,782 @@
+name: Release Gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: release-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Phase 1 — Parallel validation (no Docker needed)
+  # ──────────────────────────────────────────────────────────────────────────
+
+  lint-typecheck:
+    name: Lint & type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.3.1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: document-parser/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend deps
+        run: |
+          pip install --upgrade pip
+          pip install -r document-parser/requirements.txt
+          pip install ruff
+
+      - name: Install frontend deps
+        run: cd frontend && npm ci
+
+      - name: Backend lint
+        run: cd document-parser && ruff check .
+
+      - name: Frontend lint
+        run: cd frontend && npx eslint src/
+
+      - name: Frontend type-check
+        run: cd frontend && npm run type-check
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.3.1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: document-parser/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install system deps
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils
+
+      - name: Backend tests
+        run: |
+          cd document-parser
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx ruff
+          pytest tests/ -v --tb=short 2>&1 | tee /tmp/backend-tests.txt
+
+      - name: Frontend tests
+        run: |
+          cd frontend
+          npm ci
+          npm run test:run 2>&1 | tee /tmp/frontend-tests.txt
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: unit-test-results
+          path: /tmp/*-tests.txt
+
+  dep-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.3.1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: document-parser/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install deps
+        run: |
+          cd document-parser && pip install --upgrade pip && pip install -r requirements.txt && pip install pip-audit
+          cd ../frontend && npm ci
+
+      - name: Python audit
+        id: pip_audit
+        continue-on-error: true
+        run: |
+          cd document-parser
+          pip-audit --format=json --output=/tmp/pip-audit.json 2>&1 || true
+          pip-audit 2>&1 | tee /tmp/pip-audit.txt
+          # Check for critical vulnerabilities
+          if pip-audit --format=json 2>/dev/null | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          vulns = data.get('dependencies', [])
+          crits = [v for dep in vulns for v in dep.get('vulns', []) if 'CRITICAL' in v.get('fix_versions', [''])]
+          sys.exit(1 if crits else 0)
+          " 2>/dev/null; then
+            echo "critical=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "critical=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Node audit
+        id: npm_audit
+        continue-on-error: true
+        run: |
+          cd frontend
+          npm audit --json > /tmp/npm-audit.json 2>&1 || true
+          npm audit 2>&1 | tee /tmp/npm-audit.txt
+          # Check for critical vulnerabilities
+          CRITICAL_COUNT=$(npm audit --json 2>/dev/null | python3 -c "
+          import sys, json
+          try:
+            data = json.load(sys.stdin)
+            print(data.get('metadata', {}).get('vulnerabilities', {}).get('critical', 0))
+          except: print(0)
+          " 2>/dev/null || echo "0")
+          if [ "$CRITICAL_COUNT" -gt 0 ]; then
+            echo "critical=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "critical=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: dep-audit-results
+          path: /tmp/*-audit.*
+
+      - name: Fail on critical vulnerabilities
+        if: steps.pip_audit.outputs.critical == 'true' || steps.npm_audit.outputs.critical == 'true'
+        run: |
+          echo "::error::Critical vulnerabilities found in dependencies"
+          exit 1
+
+  audit-checks:
+    name: Audit checks (commands.sh)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.3.1
+
+      - name: Run automated audit checks
+        id: audit
+        run: |
+          bash profiles/fastapi-vue/commands.sh 2>&1 | tee /tmp/audit-checks.txt
+        continue-on-error: true
+
+      - name: Parse audit results
+        id: results
+        if: always()
+        run: |
+          # Strip ANSI codes before counting
+          CLEAN=$(sed 's/\x1b\[[0-9;]*m//g' /tmp/audit-checks.txt)
+          PASS=$(echo "$CLEAN" | grep -c "PASS" || true)
+          WARN=$(echo "$CLEAN" | grep -c "WARN" || true)
+          FAIL=$(echo "$CLEAN" | grep -c "FAIL" || true)
+          echo "pass=${PASS:-0}" >> "$GITHUB_OUTPUT"
+          echo "warn=${WARN:-0}" >> "$GITHUB_OUTPUT"
+          echo "fail=${FAIL:-0}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: audit-checks-results
+          path: /tmp/audit-checks.txt
+
+      - name: Fail on audit failures
+        if: steps.audit.outcome == 'failure'
+        run: |
+          echo "::error::Audit checks failed — review profiles/fastapi-vue/commands.sh output"
+          exit 1
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Phase 2 — Docker build & validation
+  # ──────────────────────────────────────────────────────────────────────────
+
+  docker-build:
+    name: Docker build — ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [remote, local]
+
+    steps:
+      - uses: actions/checkout@v4.3.1
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Extract version from branch
+        id: version
+        run: |
+          # release/1.2.3 → 1.2.3
+          BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          VERSION=$(echo "$BRANCH" | sed 's|release/||')
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          load: true
+          tags: docling-studio:${{ matrix.target }}
+          build-args: APP_VERSION=${{ steps.version.outputs.value }}
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+
+      - name: Save image
+        run: |
+          docker save docling-studio:${{ matrix.target }} | gzip > /tmp/docling-studio-${{ matrix.target }}.tar.gz
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: docker-image-${{ matrix.target }}
+          path: /tmp/docling-studio-${{ matrix.target }}.tar.gz
+          retention-days: 1
+
+      - name: Record image size
+        run: |
+          SIZE_BYTES=$(docker image inspect docling-studio:${{ matrix.target }} --format='{{.Size}}')
+          SIZE_MB=$((SIZE_BYTES / 1024 / 1024))
+          echo "$SIZE_MB" > /tmp/image-size-${{ matrix.target }}.txt
+          echo "Image size (${{ matrix.target }}): ${SIZE_MB} MB"
+
+      - name: Upload size artifact
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: image-size-${{ matrix.target }}
+          path: /tmp/image-size-${{ matrix.target }}.txt
+
+  docker-smoke:
+    name: Docker smoke test
+    needs: [docker-build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.3.1
+
+      - name: Download remote image
+        uses: actions/download-artifact@v4.3.0
+        with:
+          name: docker-image-remote
+          path: /tmp
+
+      - name: Load remote image
+        run: docker load < /tmp/docling-studio-remote.tar.gz
+
+      - name: Smoke test — remote
+        run: |
+          docker run -d --name smoke-remote -p 3000:3000 \
+            -e RATE_LIMIT_RPM=0 \
+            docling-studio:remote
+
+          echo "Waiting for container to start..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "Remote image healthy!"
+              curl -s http://localhost:3000/api/health | python3 -m json.tool
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "::error::Remote image failed health check"
+              docker logs smoke-remote
+              exit 1
+            fi
+            sleep 2
+          done
+
+          # Verify response fields
+          HEALTH=$(curl -s http://localhost:3000/api/health)
+          ENGINE=$(echo "$HEALTH" | python3 -c "import sys,json; print(json.load(sys.stdin)['engine'])")
+          STATUS=$(echo "$HEALTH" | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])")
+
+          if [ "$STATUS" != "ok" ]; then
+            echo "::error::Health status is '$STATUS', expected 'ok'"
+            exit 1
+          fi
+          if [ "$ENGINE" != "remote" ]; then
+            echo "::error::Engine is '$ENGINE', expected 'remote'"
+            exit 1
+          fi
+          echo "Remote smoke test passed"
+
+          docker stop smoke-remote && docker rm smoke-remote
+
+  image-scan:
+    name: Security scan — ${{ matrix.target }}
+    needs: [docker-build]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [remote, local]
+
+    steps:
+      - uses: actions/checkout@v4.3.1
+
+      - name: Download image
+        uses: actions/download-artifact@v4.3.0
+        with:
+          name: docker-image-${{ matrix.target }}
+          path: /tmp
+
+      - name: Load image
+        run: docker load < /tmp/docling-studio-${{ matrix.target }}.tar.gz
+
+      - name: Run Trivy — CRITICAL (blocking)
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: docling-studio:${{ matrix.target }}
+          format: table
+          exit-code: 1
+          severity: CRITICAL
+          output: /tmp/trivy-critical-${{ matrix.target }}.txt
+
+      - name: Run Trivy — HIGH (informational)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: docling-studio:${{ matrix.target }}
+          format: table
+          exit-code: 0
+          severity: HIGH
+          output: /tmp/trivy-high-${{ matrix.target }}.txt
+
+      - name: Annotate HIGH vulnerabilities
+        if: always()
+        run: |
+          HIGH_COUNT=$(grep -c "HIGH" /tmp/trivy-high-${{ matrix.target }}.txt 2>/dev/null || echo "0")
+          if [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "::warning::${{ matrix.target }} image has $HIGH_COUNT HIGH severity vulnerabilities — review Trivy report"
+          else
+            echo "No HIGH vulnerabilities found in ${{ matrix.target }} image"
+          fi
+
+      - name: Upload Trivy reports
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: trivy-${{ matrix.target }}
+          path: /tmp/trivy-*-${{ matrix.target }}.txt
+
+  image-size:
+    name: Image size check
+    needs: [docker-build]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: read
+    steps:
+      - uses: actions/checkout@v4.3.1
+
+      - name: Download size artifacts
+        uses: actions/download-artifact@v4.3.0
+        with:
+          pattern: image-size-*
+          merge-multiple: true
+          path: /tmp/sizes
+
+      - name: Get previous release sizes
+        id: prev
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Find the latest release tag
+          PREV_TAG=$(gh release list --repo "${{ github.repository }}" --limit 1 --json tagName -q '.[0].tagName' 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "No previous release found — skipping delta check"
+            echo "remote=0" >> "$GITHUB_OUTPUT"
+            echo "local=0" >> "$GITHUB_OUTPUT"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Previous release: $PREV_TAG"
+          echo "found=true" >> "$GITHUB_OUTPUT"
+
+          # Pull previous images and get sizes
+          for target in remote local; do
+            IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${PREV_TAG#v}-${target}"
+            if docker pull "$IMAGE" 2>/dev/null; then
+              PREV_SIZE=$(docker image inspect "$IMAGE" --format='{{.Size}}')
+              PREV_MB=$((PREV_SIZE / 1024 / 1024))
+              echo "${target}=${PREV_MB}" >> "$GITHUB_OUTPUT"
+              echo "Previous $target size: ${PREV_MB} MB"
+            else
+              echo "Could not pull $IMAGE — skipping $target delta"
+              echo "${target}=0" >> "$GITHUB_OUTPUT"
+            fi
+          done
+
+      - name: Compare sizes
+        id: delta
+        run: |
+          for target in remote local; do
+            CURRENT=$(cat /tmp/sizes/image-size-${target}.txt 2>/dev/null || echo "0")
+
+            if [ "$target" = "remote" ]; then
+              PREV="${{ steps.prev.outputs.remote }}"
+            else
+              PREV="${{ steps.prev.outputs.local }}"
+            fi
+
+            if [ "$PREV" -gt 0 ] 2>/dev/null; then
+              DELTA=$((CURRENT - PREV))
+              DELTA_PCT=$((DELTA * 100 / PREV))
+              echo "${target}_current=${CURRENT}" >> "$GITHUB_OUTPUT"
+              echo "${target}_prev=${PREV}" >> "$GITHUB_OUTPUT"
+              echo "${target}_delta=${DELTA}" >> "$GITHUB_OUTPUT"
+              echo "${target}_delta_pct=${DELTA_PCT}" >> "$GITHUB_OUTPUT"
+              echo "$target: ${CURRENT}MB (was ${PREV}MB, delta: ${DELTA_PCT}%)"
+
+              if [ "$DELTA_PCT" -gt 10 ]; then
+                echo "::warning::$target image grew by ${DELTA_PCT}% (${PREV}MB → ${CURRENT}MB)"
+              elif [ "$DELTA_PCT" -lt -10 ]; then
+                echo "::notice::$target image shrank by ${DELTA_PCT#-}% (${PREV}MB → ${CURRENT}MB)"
+              fi
+            else
+              echo "${target}_current=${CURRENT}" >> "$GITHUB_OUTPUT"
+              echo "${target}_prev=n/a" >> "$GITHUB_OUTPUT"
+              echo "${target}_delta=n/a" >> "$GITHUB_OUTPUT"
+              echo "${target}_delta_pct=n/a" >> "$GITHUB_OUTPUT"
+              echo "$target: ${CURRENT}MB (no previous baseline)"
+            fi
+          done
+
+      - name: Save size report
+        run: |
+          cat > /tmp/image-size-report.txt <<EOF
+          Image Size Report
+          =================
+          remote: ${{ steps.delta.outputs.remote_current }}MB (prev: ${{ steps.delta.outputs.remote_prev }}MB, delta: ${{ steps.delta.outputs.remote_delta_pct }}%)
+          local:  ${{ steps.delta.outputs.local_current }}MB  (prev: ${{ steps.delta.outputs.local_prev }}MB, delta: ${{ steps.delta.outputs.local_delta_pct }}%)
+          EOF
+          cat /tmp/image-size-report.txt
+
+      - name: Upload size report
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: image-size-report
+          path: /tmp/image-size-report.txt
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Phase 3 — E2E tests on built images
+  # ──────────────────────────────────────────────────────────────────────────
+
+  e2e-api:
+    name: E2E API tests (full scope)
+    needs: [docker-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.3.1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: maven
+
+      - name: Generate test PDFs
+        run: |
+          pip install fpdf2 pypdfium2
+          python e2e/generate-test-data.py
+
+      - name: Start stack
+        run: docker compose up -d --wait --build
+        timeout-minutes: 10
+        env:
+          RATE_LIMIT_RPM: "0"
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "Backend healthy"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 5
+          done
+          echo "Backend failed to start"
+          docker compose logs
+          exit 1
+
+      - name: Run E2E API tests (full scope)
+        run: |
+          mvn test -f e2e/api/pom.xml \
+            -DbaseUrl=http://localhost:3000 \
+            -Dkarate.options="--tags @smoke,@regression,@e2e"
+
+      - name: Upload Karate reports
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: karate-api-reports
+          path: e2e/api/target/karate-reports/
+
+      - name: Tear down
+        if: always()
+        run: docker compose down
+
+  e2e-ui:
+    name: E2E UI tests (@critical)
+    needs: [docker-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.3.1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: maven
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Generate test PDFs
+        run: |
+          pip install fpdf2 pypdfium2
+          python e2e/generate-test-data.py
+
+      - name: Start stack
+        run: docker compose up -d --wait --build
+        timeout-minutes: 10
+        env:
+          RATE_LIMIT_RPM: "0"
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "Backend healthy"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 5
+          done
+          echo "Backend failed to start"
+          docker compose logs
+          exit 1
+
+      - name: Run critical UI tests
+        run: >
+          mvn test -f e2e/ui/pom.xml
+          -DbaseUrl=http://localhost:3000
+          -DuiBaseUrl=http://localhost:3000
+          -Dkarate.options="--tags @critical"
+
+      - name: Upload Karate UI reports
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: karate-ui-reports
+          path: e2e/ui/target/karate-reports/
+
+      - name: Tear down
+        if: always()
+        run: docker compose down
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Phase 4 — Release summary (comment on PR)
+  # ──────────────────────────────────────────────────────────────────────────
+
+  release-summary:
+    name: Release summary
+    if: always() && github.event_name == 'pull_request'
+    needs:
+      - lint-typecheck
+      - unit-tests
+      - dep-audit
+      - audit-checks
+      - docker-build
+      - docker-smoke
+      - image-scan
+      - image-size
+      - e2e-api
+      - e2e-ui
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      actions: read
+
+    steps:
+      - uses: actions/checkout@v4.3.1
+
+      - name: Download image-size artifacts
+        uses: actions/download-artifact@v4.3.0
+        with:
+          pattern: image-size-*
+          path: /tmp/artifacts
+
+      - name: Download audit-checks artifact
+        uses: actions/download-artifact@v4.3.0
+        with:
+          name: audit-checks-results
+          path: /tmp/artifacts/audit-checks-results
+
+      - name: Build summary comment
+        id: summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Job results from needs context
+          LINT="${{ needs.lint-typecheck.result }}"
+          TESTS="${{ needs.unit-tests.result }}"
+          DEP="${{ needs.dep-audit.result }}"
+          AUDIT="${{ needs.audit-checks.result }}"
+          BUILD="${{ needs.docker-build.result }}"
+          SMOKE="${{ needs.docker-smoke.result }}"
+          SCAN="${{ needs.image-scan.result }}"
+          SIZE="${{ needs.image-size.result }}"
+          E2E_API="${{ needs.e2e-api.result }}"
+          E2E_UI="${{ needs.e2e-ui.result }}"
+
+          # Determine verdict
+          BLOCKING_FAILED="false"
+          for result in "$LINT" "$TESTS" "$BUILD" "$SMOKE" "$SCAN" "$E2E_API" "$E2E_UI"; do
+            if [ "$result" = "failure" ]; then
+              BLOCKING_FAILED="true"
+            fi
+          done
+
+          if [ "$BLOCKING_FAILED" = "true" ]; then
+            VERDICT="NO-GO"
+            VERDICT_ICON="🔴"
+          elif [ "$DEP" = "failure" ] || [ "$AUDIT" = "failure" ]; then
+            VERDICT="GO CONDITIONAL"
+            VERDICT_ICON="🟡"
+          else
+            VERDICT="GO"
+            VERDICT_ICON="🟢"
+          fi
+
+          # Status emoji helper
+          status_icon() {
+            case "$1" in
+              success)  echo "✅" ;;
+              failure)  echo "❌" ;;
+              skipped)  echo "⏭️" ;;
+              cancelled) echo "🚫" ;;
+              *)        echo "❓" ;;
+            esac
+          }
+
+          # Read image sizes
+          REMOTE_SIZE=$(cat /tmp/artifacts/image-size-remote/image-size-remote.txt 2>/dev/null || echo "?")
+          LOCAL_SIZE=$(cat /tmp/artifacts/image-size-local/image-size-local.txt 2>/dev/null || echo "?")
+
+          # Read size report
+          SIZE_REPORT=$(cat /tmp/artifacts/image-size-report/image-size-report.txt 2>/dev/null || echo "No size data available")
+
+          # Read audit summary
+          AUDIT_PASS=$(grep -c "PASS" /tmp/artifacts/audit-checks-results/audit-checks.txt 2>/dev/null || echo "?")
+          AUDIT_WARN=$(grep -c "WARN" /tmp/artifacts/audit-checks-results/audit-checks.txt 2>/dev/null || echo "?")
+          AUDIT_FAIL=$(grep -c "FAIL" /tmp/artifacts/audit-checks-results/audit-checks.txt 2>/dev/null || echo "?")
+
+          # Build the comment
+          cat > /tmp/summary.md << ENDOFCOMMENT
+          ## ${VERDICT_ICON} Release Gate — ${VERDICT}
+
+          ### Validation Results
+
+          | Check | Status | Blocking |
+          |-------|--------|----------|
+          | Lint & type-check | $(status_icon "$LINT") | Yes |
+          | Unit tests | $(status_icon "$TESTS") | Yes |
+          | Dependency audit | $(status_icon "$DEP") | Yes (CRITICAL) |
+          | Audit checks | $(status_icon "$AUDIT") | Yes |
+          | Docker build | $(status_icon "$BUILD") | Yes |
+          | Docker smoke test | $(status_icon "$SMOKE") | Yes |
+          | Image security scan | $(status_icon "$SCAN") | Yes (CRITICAL) |
+          | Image size check | $(status_icon "$SIZE") | No |
+          | E2E API (full scope) | $(status_icon "$E2E_API") | Yes |
+          | E2E UI (@critical) | $(status_icon "$E2E_UI") | Yes |
+
+          ### Audit Checks Summary
+
+          | PASS | WARN | FAIL |
+          |------|------|------|
+          | ${AUDIT_PASS} | ${AUDIT_WARN} | ${AUDIT_FAIL} |
+
+          ### Docker Image Sizes
+
+          | Target | Size |
+          |--------|------|
+          | remote | ${REMOTE_SIZE} MB |
+          | local | ${LOCAL_SIZE} MB |
+
+          <details>
+          <summary>Size delta vs previous release</summary>
+
+          \`\`\`
+          ${SIZE_REPORT}
+          \`\`\`
+          </details>
+
+          ---
+
+          <sub>Generated by <b>release-gate.yml</b> — see <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">workflow run</a> for full details</sub>
+          ENDOFCOMMENT
+
+      - name: Post or update PR comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          COMMENT_TAG="<!-- release-gate-summary -->"
+
+          # Check for existing comment
+          EXISTING_COMMENT_ID=$(gh api \
+            "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.body | contains(\"$COMMENT_TAG\")) | .id" \
+            2>/dev/null | head -1)
+
+          BODY=$(cat /tmp/summary.md)
+          BODY="${COMMENT_TAG}
+          ${BODY}"
+
+          if [ -n "$EXISTING_COMMENT_ID" ]; then
+            gh api \
+              "repos/${{ github.repository }}/issues/comments/${EXISTING_COMMENT_ID}" \
+              -X PATCH \
+              -f body="$BODY"
+            echo "Updated existing comment #${EXISTING_COMMENT_ID}"
+          else
+            gh api \
+              "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+              -f body="$BODY"
+            echo "Posted new comment"
+          fi

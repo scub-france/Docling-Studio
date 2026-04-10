@@ -3,6 +3,7 @@
     <header class="topbar">
       <button
         class="burger-btn"
+        data-e2e="burger-btn"
         @click="sidebarOpen = !sidebarOpen"
         :title="sidebarOpen ? t('nav.collapse') : t('nav.expand')"
       >
@@ -14,7 +15,7 @@
           />
         </svg>
       </button>
-      <div class="topbar-logo">
+      <div class="topbar-logo" data-e2e="topbar-logo">
         <img src="/logo.png" alt="Docling Studio" class="topbar-logo-icon" />
         <span class="topbar-logo-text">Docling Studio</span>
       </div>
@@ -30,7 +31,7 @@
     </header>
 
     <div v-if="showDisclaimer" class="disclaimer-banner" role="alert">
-      {{ t('disclaimer.banner') }}
+      {{ t('disclaimer.banner').replace('{n}', String(flagStore.maxFileSizeMb || 50)) }}
       <button class="disclaimer-close" @click="dismissDisclaimer" aria-label="Close">
         &times;
       </button>
@@ -52,9 +53,11 @@ import { AppSidebar } from '../shared/ui/index'
 import { useSettingsStore } from '../features/settings/store'
 import { useDocumentStore } from '../features/document/store'
 import { useFeatureFlag } from '../features/feature-flags'
+import { useFeatureFlagStore } from '../features/feature-flags/store'
 import { useI18n } from '../shared/i18n'
 
 useSettingsStore()
+const flagStore = useFeatureFlagStore()
 const { t } = useI18n()
 const router = useRouter()
 const documentStore = useDocumentStore()

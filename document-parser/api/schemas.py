@@ -26,6 +26,16 @@ class _CamelModel(BaseModel):
     )
 
 
+class HealthResponse(_CamelModel):
+    status: str
+    version: str
+    engine: str
+    deployment_mode: str
+    database: str
+    max_page_count: int | None = None
+    max_file_size_mb: int | None = None
+
+
 class DocumentResponse(_CamelModel):
     id: str
     filename: str
@@ -47,6 +57,8 @@ class AnalysisResponse(_CamelModel):
     chunks_json: str | None = None
     has_document_json: bool = False
     error_message: str | None = None
+    progress_current: int | None = None
+    progress_total: int | None = None
     started_at: str | datetime | None = None
     completed_at: str | datetime | None = None
     created_at: str | datetime

@@ -1,10 +1,15 @@
 <template>
-  <div class="result-tabs" v-if="store.currentAnalysis?.status === 'COMPLETED'">
-    <div class="tabs-header">
+  <div
+    class="result-tabs"
+    data-e2e="result-tabs"
+    v-if="store.currentAnalysis?.status === 'COMPLETED'"
+  >
+    <div class="tabs-header" data-e2e="tabs-header">
       <button
         v-for="tab in tabs"
         :key="tab.id"
         class="tab-btn"
+        data-e2e="tab-btn"
         :class="{ active: activeTab === tab.id }"
         @click="activeTab = tab.id"
       >
@@ -13,7 +18,7 @@
     </div>
 
     <!-- Page chip -->
-    <div class="page-indicator" v-if="totalPages > 0">
+    <div class="page-indicator" data-e2e="page-indicator" v-if="totalPages > 0">
       <span class="page-chip">{{
         t('results.pageOf', { current: currentPage, total: totalPages })
       }}</span>
@@ -21,7 +26,7 @@
 
     <div class="tab-content">
       <!-- ELEMENTS VIEW — each bbox as a separate card -->
-      <div v-if="activeTab === 'elements'" class="elements-list">
+      <div v-if="activeTab === 'elements'" class="elements-list" data-e2e="elements-list">
         <div v-if="!currentElements.length" class="elements-empty">
           {{ t('results.noElements') }}
         </div>
@@ -29,6 +34,7 @@
           v-for="(el, idx) in currentElements"
           :key="idx"
           class="element-card"
+          data-e2e="element-card"
           :class="{ highlighted: highlightedIndex === idx }"
           @mouseenter="$emit('highlight-element', idx)"
           @mouseleave="$emit('highlight-element', -1)"
@@ -79,7 +85,7 @@
       </div>
 
       <!-- RAW MARKDOWN -->
-      <div v-else-if="activeTab === 'markdown'" class="raw-markdown">
+      <div v-else-if="activeTab === 'markdown'" class="raw-markdown" data-e2e="raw-markdown">
         <button class="copy-btn copy-btn-block" :title="t('results.copy')" @click="copyMarkdown">
           <svg v-if="!copiedMarkdown" viewBox="0 0 20 20" fill="currentColor" class="copy-icon">
             <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z" />
@@ -95,7 +101,7 @@
             />
           </svg>
         </button>
-        <pre class="raw-content">{{ pageMarkdown }}</pre>
+        <pre class="raw-content" data-e2e="raw-content">{{ pageMarkdown }}</pre>
       </div>
 
       <!-- IMAGES -->
@@ -103,10 +109,60 @@
     </div>
   </div>
   <div v-else-if="store.currentAnalysis?.status === 'RUNNING'" class="result-placeholder">
-    <div class="spinner-large" />
-    <span>{{ t('studio.analysisRunning') }}</span>
+    <!-- Batch progress: segmented bar -->
+    <div
+      v-if="store.currentAnalysis.progressTotal && store.currentAnalysis.progressTotal > 0"
+      class="batch-progress"
+    >
+      <div class="batch-progress-ring">
+        <svg viewBox="0 0 48 48" class="progress-ring-svg">
+          <circle cx="24" cy="24" r="20" fill="none" stroke="var(--border)" stroke-width="3" />
+          <circle
+            cx="24"
+            cy="24"
+            r="20"
+            fill="none"
+            stroke="var(--accent)"
+            stroke-width="3"
+            stroke-linecap="round"
+            :stroke-dasharray="125.66"
+            :stroke-dashoffset="125.66 - (125.66 * progressPercent) / 100"
+            class="progress-ring-fill"
+          />
+        </svg>
+        <span class="progress-ring-label">{{ progressPercent }}%</span>
+      </div>
+      <div class="batch-progress-detail">
+        <span class="batch-progress-title">{{ t('studio.analysisRunning') }}</span>
+        <div class="batch-segments">
+          <div
+            v-for="i in batchSegments"
+            :key="i"
+            class="batch-segment"
+            :class="{
+              filled: i <= filledSegments,
+              active: i === filledSegments + 1,
+            }"
+          />
+        </div>
+        <span class="batch-progress-sub">
+          <span class="batch-progress-pages">{{ store.currentAnalysis.progressCurrent ?? 0 }}</span>
+          <span class="batch-progress-sep">/</span>
+          <span>{{ store.currentAnalysis.progressTotal }} pages</span>
+        </span>
+      </div>
+    </div>
+    <!-- Fallback: no batch info -->
+    <template v-else>
+      <div class="spinner-large" />
+      <span>{{ t('studio.analysisRunning') }}</span>
+    </template>
   </div>
-  <div v-else-if="store.currentAnalysis?.status === 'FAILED'" class="result-placeholder error">
+  <div
+    v-else-if="store.currentAnalysis?.status === 'FAILED'"
+    class="result-placeholder error"
+    data-e2e="result-error"
+  >
     <svg viewBox="0 0 20 20" fill="currentColor" class="error-icon">
       <path
         fill-rule="evenodd"
@@ -170,6 +226,37 @@ const tabs = computed(() => [
 ])
 
 const totalPages = computed(() => store.currentPages.length)
+
+const progressPercent = computed(() => {
+  const a = store.currentAnalysis
+  if (!a?.progressTotal || a.progressTotal <= 0) return 0
+  return Math.min(100, Math.round(((a.progressCurrent ?? 0) / a.progressTotal) * 100))
+})
+
+/** Number of batch segments to render in the segmented progress bar. */
+const batchSegments = computed(() => {
+  const a = store.currentAnalysis
+  if (!a?.progressTotal || a.progressTotal <= 0) return 0
+  // Each segment = batch_page_size pages. We infer count from total & current.
+  // Backend updates progressCurrent in increments, so we derive segment count.
+  const current = a.progressCurrent ?? 0
+  if (current <= 0) return 0
+  // Guess batch size from the first non-zero progressCurrent value.
+  // Fallback: assume ~5 segments for a clean visual.
+  const total = a.progressTotal
+  // We can't know batch_page_size on frontend, so compute a clean segment count
+  // by aiming for 3-8 segments (visually optimal).
+  let count = Math.round(total / Math.max(1, current || total / 5))
+  if (count < 2) count = Math.ceil(total / Math.ceil(total / 5))
+  return Math.max(2, Math.min(8, count))
+})
+
+/** How many segments are "filled" (completed batches). */
+const filledSegments = computed(() => {
+  const total = batchSegments.value
+  if (total <= 0) return 0
+  return Math.round((progressPercent.value / 100) * total)
+})
 
 const currentPageData = computed(() => {
   return store.currentPages.find((p) => p.page_number === props.currentPage) || null
@@ -504,5 +591,100 @@ async function copyElement(idx: number, content: string) {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ── Batch progress: ring + segmented bar ── */
+.batch-progress {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Circular ring */
+.batch-progress-ring {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+.progress-ring-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.progress-ring-fill {
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.4));
+}
+.progress-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text);
+}
+
+/* Right side: text + segments */
+.batch-progress-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.batch-progress-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Segmented bar */
+.batch-segments {
+  display: flex;
+  gap: 3px;
+}
+.batch-segment {
+  width: 28px;
+  height: 5px;
+  border-radius: 2.5px;
+  background: var(--border);
+  transition:
+    background 0.4s ease,
+    box-shadow 0.4s ease;
+}
+.batch-segment.filled {
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(249, 115, 22, 0.3);
+}
+.batch-segment.active {
+  background: var(--accent-muted);
+  animation: segment-pulse 1.5s ease-in-out infinite;
+}
+@keyframes segment-pulse {
+  0%,
+  100% {
+    background: var(--accent-muted);
+  }
+  50% {
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.35);
+  }
+}
+
+/* Page counter */
+.batch-progress-sub {
+  font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--text-muted);
+}
+.batch-progress-pages {
+  color: var(--accent);
+  font-weight: 600;
+}
+.batch-progress-sep {
+  margin: 0 2px;
+  opacity: 0.4;
 }
 </style>

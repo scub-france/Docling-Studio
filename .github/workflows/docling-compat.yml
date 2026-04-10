@@ -9,6 +9,9 @@ on:
     - cron: "30 6 * * *" # Every day at 06:30 UTC
   workflow_dispatch: # Manual trigger from GitHub UI
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   compat:
     name: Test against latest Docling

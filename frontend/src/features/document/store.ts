@@ -1,9 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Document } from '../../shared/types'
+import { appMaxFileSizeMb } from '../../shared/appConfig'
 import * as api from './api'
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
 
 export const useDocumentStore = defineStore('document', () => {
   const documents = ref<Document[]>([])
@@ -26,8 +25,9 @@ export const useDocumentStore = defineStore('document', () => {
   }
 
   async function upload(file: File): Promise<Document> {
-    if (file.size > MAX_FILE_SIZE) {
-      error.value = 'File too large (max 5 MB)'
+    const maxMb = appMaxFileSizeMb.value
+    if (maxMb > 0 && file.size > maxMb * 1024 * 1024) {
+      error.value = `File too large (max ${maxMb} MB)`
       throw new Error(error.value)
     }
     uploading.value = true

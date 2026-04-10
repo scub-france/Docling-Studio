@@ -1,5 +1,5 @@
 import type { Locale } from './types'
-import { useSettingsStore } from '../features/settings/store'
+import { appLocale } from './appConfig'
 
 type MessageMap = Record<string, string>
 type Messages = Record<Locale, MessageMap>
@@ -94,9 +94,9 @@ const messages: Messages = {
     // Upload
     'upload.drop': 'Déposez un PDF ici ou cliquez pour importer',
     'upload.uploading': 'Import en cours...',
-    'upload.maxSize': 'Max 5Mo',
+    'upload.maxSize': 'Max {n}Mo',
     'upload.invalidFormat': 'Format invalide — seuls les fichiers PDF sont acceptés.',
-    'upload.tooLarge': 'Fichier trop volumineux (max 5 Mo).',
+    'upload.tooLarge': 'Fichier trop volumineux (max {n} Mo).',
     'upload.maxPages': 'Max {n} pages',
 
     // History
@@ -119,6 +119,8 @@ const messages: Messages = {
     'chunking.chunks': 'chunks',
     'chunking.noChunks': 'Lancez le chunking pour préparer les segments.',
     'chunking.noChunksOnPage': 'Aucun chunk sur cette page.',
+    'chunking.batchNotice':
+      'Le chunking n\u2019est pas disponible pour cette analyse. Les documents volumineux trait\u00e9s par batch ne g\u00e9n\u00e8rent pas la structure interne n\u00e9cessaire au d\u00e9coupage.',
 
     // Pagination
     'pagination.pageOf': 'Page {current} sur {total}',
@@ -132,10 +134,12 @@ const messages: Messages = {
     'settings.themeDark': 'Sombre',
     'settings.themeLight': 'Clair',
     'settings.language': 'Langue',
+    'settings.about': '\u00C0 propos',
+    'settings.designArticle': 'Comment Docling Studio a \u00e9t\u00e9 con\u00e7u',
 
     // Disclaimer
     'disclaimer.banner':
-      'Instance de d\u00e9monstration \u2014 les documents upload\u00e9s sont partag\u00e9s et temporaires (max 5 Mo). Ne pas envoyer de fichiers confidentiels.',
+      'Instance de d\u00e9monstration \u2014 les documents upload\u00e9s sont partag\u00e9s et temporaires (max {n} Mo). Ne pas envoyer de fichiers confidentiels.',
   },
   en: {
     'nav.home': 'Home',
@@ -218,9 +222,9 @@ const messages: Messages = {
 
     'upload.drop': 'Drop a PDF here or click to upload',
     'upload.uploading': 'Uploading...',
-    'upload.maxSize': 'Max 5MB',
+    'upload.maxSize': 'Max {n}MB',
     'upload.invalidFormat': 'Invalid format — only PDF files are accepted.',
-    'upload.tooLarge': 'File too large (max 5 MB).',
+    'upload.tooLarge': 'File too large (max {n} MB).',
     'upload.maxPages': 'Max {n} pages',
 
     'history.title': 'History',
@@ -241,6 +245,8 @@ const messages: Messages = {
     'chunking.chunks': 'chunks',
     'chunking.noChunks': 'Run chunking to prepare segments.',
     'chunking.noChunksOnPage': 'No chunks on this page.',
+    'chunking.batchNotice':
+      'Chunking is not available for this analysis. Large documents processed in batch mode do not generate the internal structure required for chunking.',
 
     'pagination.pageOf': 'Page {current} of {total}',
     'pagination.perPage': '/ page',
@@ -252,18 +258,18 @@ const messages: Messages = {
     'settings.themeDark': 'Dark',
     'settings.themeLight': 'Light',
     'settings.language': 'Language',
+    'settings.about': 'About',
+    'settings.designArticle': 'How Docling Studio was designed',
 
     // Disclaimer
     'disclaimer.banner':
-      'Demo instance \u2014 uploaded documents are shared and temporary (max 5 MB). Do not upload confidential files.',
+      'Demo instance \u2014 uploaded documents are shared and temporary (max {n} MB). Do not upload confidential files.',
   },
 }
 
 export function useI18n() {
-  const settings = useSettingsStore()
-
   function t(key: string, params: Record<string, string | number> = {}): string {
-    let str = messages[settings.locale]?.[key] || messages['fr'][key] || key
+    let str = messages[appLocale.value]?.[key] || messages['fr'][key] || key
     for (const [k, v] of Object.entries(params)) {
       str = str.replaceAll(`{${k}}`, String(v))
     }

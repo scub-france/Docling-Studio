@@ -20,10 +20,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.analyses import router as analyses_router
 from api.documents import router as documents_router
+from api.schemas import HealthResponse
 from infra.rate_limiter import RateLimiterMiddleware
 from infra.settings import settings
+from persistence.analysis_repo import SqliteAnalysisRepository
 from persistence.database import get_connection, init_db
-from services.analysis_service import AnalysisService
+from persistence.document_repo import SqliteDocumentRepository
+from services.analysis_service import AnalysisConfig, AnalysisService
+from services.document_service import DocumentConfig, DocumentService
 
 logging.basicConfig(
     level=logging.INFO,
@@ -58,14 +62,44 @@ def _build_chunker():
     return None
 
 
-def _build_analysis_service() -> AnalysisService:
+def _build_repos() -> tuple[SqliteDocumentRepository, SqliteAnalysisRepository]:
+    return SqliteDocumentRepository(), SqliteAnalysisRepository()
+
+
+def _build_analysis_service(
+    document_repo: SqliteDocumentRepository,
+    analysis_repo: SqliteAnalysisRepository,
+) -> AnalysisService:
     converter = _build_converter()
     chunker = _build_chunker()
+    config = AnalysisConfig(
+        default_table_mode=settings.default_table_mode,
+        batch_page_size=settings.batch_page_size,
+    )
     return AnalysisService(
         converter=converter,
+        analysis_repo=analysis_repo,
+        document_repo=document_repo,
         chunker=chunker,
         conversion_timeout=settings.conversion_timeout,
         max_concurrent=settings.max_concurrent_analyses,
+        config=config,
+    )
+
+
+def _build_document_service(
+    document_repo: SqliteDocumentRepository,
+    analysis_repo: SqliteAnalysisRepository,
+) -> DocumentService:
+    config = DocumentConfig(
+        upload_dir=settings.upload_dir,
+        max_file_size_mb=settings.max_file_size_mb,
+        max_page_count=settings.max_page_count,
+    )
+    return DocumentService(
+        document_repo=document_repo,
+        analysis_repo=analysis_repo,
+        config=config,
     )
 
 
@@ -77,7 +111,9 @@ def _build_analysis_service() -> AnalysisService:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await init_db()
-    app.state.analysis_service = _build_analysis_service()
+    document_repo, analysis_repo = _build_repos()
+    app.state.analysis_service = _build_analysis_service(document_repo, analysis_repo)
+    app.state.document_service = _build_document_service(document_repo, analysis_repo)
     logger.info("Docling Studio backend ready (engine=%s)", settings.conversion_engine)
     yield
 
@@ -95,14 +131,19 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
-app.add_middleware(RateLimiterMiddleware, requests_per_window=100, window_seconds=60)
+if settings.rate_limit_rpm > 0:
+    app.add_middleware(
+        RateLimiterMiddleware,
+        requests_per_window=settings.rate_limit_rpm,
+        window_seconds=60,
+    )
 
 app.include_router(documents_router)
 app.include_router(analyses_router)
 
 
-@app.get("/api/health")
-async def health() -> dict[str, str | int]:
+@app.get("/api/health", response_model=HealthResponse)
+async def health() -> HealthResponse:
     """Health check endpoint — verifies database connectivity."""
     db_status = "ok"
     try:
@@ -113,13 +154,12 @@ async def health() -> dict[str, str | int]:
         logger.warning("Health check: database unreachable", exc_info=True)
 
     status = "ok" if db_status == "ok" else "degraded"
-    result: dict[str, str | int] = {
-        "status": status,
-        "version": settings.app_version,
-        "engine": settings.conversion_engine,
-        "deploymentMode": settings.deployment_mode,
-        "database": db_status,
-    }
-    if settings.max_page_count > 0:
-        result["maxPageCount"] = settings.max_page_count
-    return result
+    return HealthResponse(
+        status=status,
+        version=settings.app_version,
+        engine=settings.conversion_engine,
+        deployment_mode=settings.deployment_mode,
+        database=db_status,
+        max_page_count=settings.max_page_count if settings.max_page_count > 0 else None,
+        max_file_size_mb=settings.max_file_size_mb if settings.max_file_size_mb > 0 else None,
+    )

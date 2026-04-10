@@ -4,12 +4,15 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, 'release/**']
 
 # Cancel previous runs on the same branch/PR
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   backend:
@@ -73,3 +76,132 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  e2e:
+    name: E2E API tests (Karate)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: maven
+
+      - name: Generate test PDFs
+        run: |
+          pip install fpdf2 pypdfium2
+          python e2e/generate-test-data.py
+
+      - name: Start stack
+        run: docker compose up -d --wait --build
+        timeout-minutes: 10
+        env:
+          RATE_LIMIT_RPM: "0"
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "Backend healthy"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 5
+          done
+          echo "Backend failed to start"
+          docker compose logs
+          exit 1
+
+      - name: Run E2E tests
+        run: |
+          KARATE_TAGS="@smoke"
+          if [[ "${{ github.base_ref }}" == release/* ]] || [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
+            KARATE_TAGS="@smoke,@regression,@e2e"
+          fi
+          mvn test -f e2e/api/pom.xml -DbaseUrl=http://localhost:3000 -Dkarate.options="--tags ${KARATE_TAGS}"
+
+      - name: Upload Karate reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: karate-api-reports
+          path: e2e/api/target/karate-reports/
+
+      - name: Tear down
+        if: always()
+        run: docker compose down
+
+  e2e-ui:
+    name: E2E UI tests (Karate UI)
+    if: github.ref == 'refs/heads/main'
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+          cache: maven
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Generate test PDFs
+        run: |
+          pip install fpdf2 pypdfium2
+          python e2e/generate-test-data.py
+
+      - name: Start stack
+        run: docker compose up -d --wait --build
+        timeout-minutes: 10
+        env:
+          RATE_LIMIT_RPM: "0"
+
+      - name: Wait for health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "Backend healthy"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 5
+          done
+          echo "Backend failed to start"
+          docker compose logs
+          exit 1
+
+      - name: Run critical UI tests
+        run: >
+          mvn test -f e2e/ui/pom.xml
+          -DbaseUrl=http://localhost:3000
+          -DuiBaseUrl=http://localhost:3000
+          -Dkarate.options="--tags @critical"
+
+      - name: Upload Karate UI reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: karate-ui-reports
+          path: e2e/ui/target/karate-reports/
+
+      - name: Tear down
+        if: always()
+        run: docker compose down

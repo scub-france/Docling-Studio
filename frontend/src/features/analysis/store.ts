@@ -10,7 +10,8 @@ export const useAnalysisStore = defineStore('analysis', () => {
   const error = ref<string | null>(null)
   const pollingInterval = ref<ReturnType<typeof setInterval> | null>(null)
   const pollingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
-  const MAX_POLLING_DURATION = 10 * 60 * 1000 // 10 minutes
+  const MAX_POLLING_DURATION = 15 * 60 * 1000 // 15 minutes — aligned with backend timeout
+  const MAX_POLL_RETRIES = 3
 
   const currentPages = computed<Page[]>(() => {
     if (!currentAnalysis.value?.pagesJson) return []
@@ -44,26 +45,6 @@ export const useAnalysisStore = defineStore('analysis', () => {
     }
   })
 
-  const rechunking = ref(false)
-
-  async function rechunk(jobId: string, chunkingOptions: ChunkingOptions): Promise<Chunk[]> {
-    rechunking.value = true
-    error.value = null
-    try {
-      const chunks = await api.rechunkAnalysis(jobId, chunkingOptions)
-      if (currentAnalysis.value?.id === jobId) {
-        currentAnalysis.value = await api.fetchAnalysis(jobId)
-      }
-      return chunks
-    } catch (e) {
-      error.value = (e as Error).message || 'Failed to rechunk'
-      console.error('Failed to rechunk', e)
-      throw e
-    } finally {
-      rechunking.value = false
-    }
-  }
-
   async function run(
     documentId: string,
     pipelineOptions: PipelineOptions | null = null,
@@ -87,9 +68,11 @@ export const useAnalysisStore = defineStore('analysis', () => {
 
   function startPolling(id: string): void {
     stopPolling()
+    let consecutiveErrors = 0
     pollingInterval.value = setInterval(async () => {
       try {
         const updated = await api.fetchAnalysis(id)
+        consecutiveErrors = 0
         currentAnalysis.value = updated
         const idx = analyses.value.findIndex((a) => a.id === id)
         if (idx !== -1) analyses.value[idx] = updated
@@ -98,10 +81,14 @@ export const useAnalysisStore = defineStore('analysis', () => {
           running.value = false
         }
       } catch (e) {
-        error.value = (e as Error).message || 'Polling error'
-        console.error('Polling error', e)
-        stopPolling()
-        running.value = false
+        consecutiveErrors++
+        console.warn(`Polling error (${consecutiveErrors}/${MAX_POLL_RETRIES})`, e)
+        if (consecutiveErrors >= MAX_POLL_RETRIES) {
+          error.value = (e as Error).message || 'Polling error'
+          console.error('Polling abandoned after retries', e)
+          stopPolling()
+          running.value = false
+        }
       }
     }, 2000)
     pollingTimeout.value = setTimeout(() => {
@@ -150,12 +137,10 @@ export const useAnalysisStore = defineStore('analysis', () => {
     currentPages,
     currentChunks,
     running,
-    rechunking,
     error,
     clearError,
     load,
     run,
-    rechunk,
     select,
     remove,
     stopPolling,

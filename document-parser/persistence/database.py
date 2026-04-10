@@ -50,6 +50,8 @@ CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at);
 _MIGRATIONS = [
     ("document_json", "ALTER TABLE analysis_jobs ADD COLUMN document_json TEXT"),
     ("chunks_json", "ALTER TABLE analysis_jobs ADD COLUMN chunks_json TEXT"),
+    ("progress_current", "ALTER TABLE analysis_jobs ADD COLUMN progress_current INTEGER"),
+    ("progress_total", "ALTER TABLE analysis_jobs ADD COLUMN progress_total INTEGER"),
 ]
 
 

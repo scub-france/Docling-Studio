@@ -68,6 +68,20 @@ describe('useFeatureFlagStore', () => {
     expect(store.isEnabled('disclaimer')).toBe(false)
   })
 
+  it('reads maxFileSizeMb from health response', async () => {
+    mockApiFetch.mockResolvedValue({ status: 'ok', engine: 'local', maxFileSizeMb: 100 })
+    const store = useFeatureFlagStore()
+    await store.load()
+    expect(store.maxFileSizeMb).toBe(100)
+  })
+
+  it('defaults maxFileSizeMb to 0 when missing', async () => {
+    mockApiFetch.mockResolvedValue({ status: 'ok', engine: 'local' })
+    const store = useFeatureFlagStore()
+    await store.load()
+    expect(store.maxFileSizeMb).toBe(0)
+  })
+
   it('handles health endpoint failure gracefully', async () => {
     mockApiFetch.mockRejectedValue(new Error('Network error'))
     const store = useFeatureFlagStore()

@@ -1,7 +1,12 @@
 <template>
-  <aside class="sidebar" :class="{ open }">
+  <aside class="sidebar" data-e2e="sidebar" :class="{ open }">
     <nav class="sidebar-nav">
-      <RouterLink to="/" class="nav-item" :class="{ active: route.name === 'home' }">
+      <RouterLink
+        to="/"
+        class="nav-item"
+        data-e2e="nav-home"
+        :class="{ active: route.name === 'home' }"
+      >
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
           <path
             d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"
@@ -10,7 +15,12 @@
         <span class="nav-label">{{ t('nav.home') }}</span>
       </RouterLink>
 
-      <RouterLink to="/studio" class="nav-item" :class="{ active: route.name === 'studio' }">
+      <RouterLink
+        to="/studio"
+        class="nav-item"
+        data-e2e="nav-studio"
+        :class="{ active: route.name === 'studio' }"
+      >
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
           <path
             d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838l-2.727 1.17 1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zm5.99 7.176A9.026 9.026 0 007 15.96v-4.5l.61.26a2.5 2.5 0 001.98 0l.61-.26v4.5a9.026 9.026 0 00-1.7.613z"
@@ -19,7 +29,12 @@
         <span class="nav-label">{{ t('nav.studio') }}</span>
       </RouterLink>
 
-      <RouterLink to="/documents" class="nav-item" :class="{ active: route.name === 'documents' }">
+      <RouterLink
+        to="/documents"
+        class="nav-item"
+        data-e2e="nav-documents"
+        :class="{ active: route.name === 'documents' }"
+      >
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
           <path
             fill-rule="evenodd"
@@ -30,7 +45,12 @@
         <span class="nav-label">{{ t('nav.documents') }}</span>
       </RouterLink>
 
-      <RouterLink to="/history" class="nav-item" :class="{ active: route.name === 'history' }">
+      <RouterLink
+        to="/history"
+        class="nav-item"
+        data-e2e="nav-history"
+        :class="{ active: route.name === 'history' }"
+      >
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
           <path
             fill-rule="evenodd"
@@ -41,7 +61,12 @@
         <span class="nav-label">{{ t('nav.history') }}</span>
       </RouterLink>
 
-      <RouterLink to="/settings" class="nav-item" :class="{ active: route.name === 'settings' }">
+      <RouterLink
+        to="/settings"
+        class="nav-item"
+        data-e2e="nav-settings"
+        :class="{ active: route.name === 'settings' }"
+      >
         <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
           <path
             fill-rule="evenodd"
@@ -72,10 +97,13 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from '../i18n'
+import { useFeatureFlagStore } from '../../features/feature-flags/store'
 
-const version = __APP_VERSION__
+const featureStore = useFeatureFlagStore()
+const version = computed(() => featureStore.appVersion)
 const route = useRoute()
 const { t } = useI18n()
 

@@ -43,3 +43,6 @@ hs_err_pid*
 
 # Docker
 docker-compose.override.yml
+
+# E2E tests — Maven build outputs & Chrome user data
+e2e/**/target/

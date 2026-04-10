@@ -1,15 +1,18 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { apiFetch } from '../../shared/api/http'
+import { appMaxFileSizeMb, appMaxPageCount } from '../../shared/appConfig'
 
 type ConversionEngine = 'local' | 'remote'
 type DeploymentMode = 'self-hosted' | 'huggingface'
 
 interface HealthResponse {
   status: string
+  version?: string
   engine: ConversionEngine
   deploymentMode?: DeploymentMode
   maxPageCount?: number
+  maxFileSizeMb?: number
 }
 
 export type FeatureFlag = 'chunking' | 'disclaimer'
@@ -39,6 +42,8 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
   const engine = ref<ConversionEngine | null>(null)
   const deploymentMode = ref<DeploymentMode | null>(null)
   const maxPageCount = ref<number>(0)
+  const maxFileSizeMb = ref<number>(0)
+  const appVersion = ref<string>(__APP_VERSION__)
   const loaded = ref(false)
   const error = ref<string | null>(null)
 
@@ -59,6 +64,10 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
       engine.value = data.engine
       deploymentMode.value = data.deploymentMode ?? 'self-hosted'
       maxPageCount.value = data.maxPageCount ?? 0
+      maxFileSizeMb.value = data.maxFileSizeMb ?? 0
+      appMaxFileSizeMb.value = maxFileSizeMb.value
+      appMaxPageCount.value = maxPageCount.value
+      if (data.version) appVersion.value = data.version
       loaded.value = true
       error.value = null
     } catch (e) {
@@ -67,5 +76,15 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
     }
   }
 
-  return { engine, deploymentMode, maxPageCount, loaded, error, isEnabled, load }
+  return {
+    engine,
+    deploymentMode,
+    maxPageCount,
+    maxFileSizeMb,
+    appVersion,
+    loaded,
+    error,
+    isEnabled,
+    load,
+  }
 })

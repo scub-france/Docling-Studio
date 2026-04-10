@@ -1,6 +1,7 @@
 <template>
   <div
     class="upload-zone"
+    data-e2e="upload-zone"
     :class="{ dragging, uploading: store.uploading }"
     @dragover.prevent="dragging = true"
     @dragleave.prevent="dragging = false"
@@ -23,8 +24,8 @@
         <path d="M12 16V4m0 0L8 8m4-4l4 4M4 17v2a1 1 0 001 1h14a1 1 0 001-1v-2" />
       </svg>
       <span class="upload-text">{{ t('upload.drop') }}</span>
-      <span class="upload-hint">{{ uploadHint }}</span>
-      <span v-if="store.error" class="upload-error">{{ store.error }}</span>
+      <span class="upload-hint" data-e2e="upload-hint">{{ uploadHint }}</span>
+      <span v-if="store.error" class="upload-error" data-e2e="upload-error">{{ store.error }}</span>
     </div>
   </div>
 </template>
@@ -32,23 +33,25 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useDocumentStore } from '../store'
-import { useFeatureFlagStore } from '../../feature-flags/store'
 import { useI18n } from '../../../shared/i18n'
+import { appMaxFileSizeMb, appMaxPageCount } from '../../../shared/appConfig'
 
 const emit = defineEmits<{ uploaded: [docId: string] }>()
 
 const store = useDocumentStore()
-const flags = useFeatureFlagStore()
 const { t } = useI18n()
 const fileInput = ref<HTMLInputElement | null>(null)
 const dragging = ref(false)
 
 const uploadHint = computed(() => {
-  const size = t('upload.maxSize')
-  if (flags.maxPageCount > 0) {
-    return `${size} · ${t('upload.maxPages').replace('{n}', String(flags.maxPageCount))}`
+  const parts: string[] = []
+  if (appMaxFileSizeMb.value > 0) {
+    parts.push(t('upload.maxSize').replace('{n}', String(appMaxFileSizeMb.value)))
   }
-  return size
+  if (appMaxPageCount.value > 0) {
+    parts.push(t('upload.maxPages').replace('{n}', String(appMaxPageCount.value)))
+  }
+  return parts.join(' · ')
 })
 
 function openFilePicker() {

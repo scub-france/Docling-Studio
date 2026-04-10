@@ -47,11 +47,11 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { useAnalysisStore } from '../../analysis/store'
+import { useHistoryStore } from '../store'
 import { useI18n } from '../../../shared/i18n'
 import type { Analysis } from '../../../shared/types'
 
-const store = useAnalysisStore()
+const store = useHistoryStore()
 const router = useRouter()
 const { t } = useI18n()
 

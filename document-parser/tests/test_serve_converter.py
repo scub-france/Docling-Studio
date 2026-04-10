@@ -56,6 +56,14 @@ class TestBuildFormData:
         assert data["images_scale"] == "2.0"
         assert data["include_images"] == "true"
 
+    def test_page_range_included_when_set(self):
+        data = _build_form_data(ConversionOptions(), page_range=(11, 20))
+        assert data["page_range"] == "11-20"
+
+    def test_page_range_absent_when_none(self):
+        data = _build_form_data(ConversionOptions())
+        assert "page_range" not in data
+
 
 # ---------------------------------------------------------------------------
 # Unit tests — response parsing

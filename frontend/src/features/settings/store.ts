@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch, watchEffect } from 'vue'
 import type { Locale, Theme } from '../../shared/types'
+import { appLocale } from '../../shared/appConfig'
 
 function safeGetItem(key: string): string | null {
   try {
@@ -24,7 +25,14 @@ export const useSettingsStore = defineStore('settings', () => {
   const locale = ref<Locale>((safeGetItem('docling-locale') as Locale) || 'fr')
 
   watch(theme, (v) => safeSetItem('docling-theme', v))
-  watch(locale, (v) => safeSetItem('docling-locale', v))
+  watch(
+    locale,
+    (v) => {
+      safeSetItem('docling-locale', v)
+      appLocale.value = v
+    },
+    { immediate: true },
+  )
 
   watchEffect(() => {
     document.documentElement.classList.toggle('light', theme.value === 'light')

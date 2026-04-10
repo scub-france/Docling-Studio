@@ -154,17 +154,49 @@ describe('useAnalysisStore', () => {
     expect(store.currentAnalysis.status).toBe('FAILED')
   })
 
-  it('polling stops on fetch error', async () => {
+  it('polling retries on transient errors and stops after MAX_POLL_RETRIES', async () => {
     const job = { id: 'j1', status: 'PENDING', documentId: 'd1' }
     api.createAnalysis.mockResolvedValue(job)
     api.fetchAnalysis.mockRejectedValue(new Error('network'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const store = useAnalysisStore()
     await store.run('d1')
 
+    // First two errors: still polling
     await vi.advanceTimersByTimeAsync(2000)
+    expect(store.running).toBe(true)
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(store.running).toBe(true)
 
+    // Third error: stops polling
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(store.running).toBe(false)
+  })
+
+  it('polling resets error count on successful fetch', async () => {
+    const job = { id: 'j1', status: 'PENDING', documentId: 'd1' }
+    api.createAnalysis.mockResolvedValue(job)
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    // Fail once, succeed, fail once — should NOT stop polling
+    api.fetchAnalysis
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce({ ...job, status: 'RUNNING' })
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce({ ...job, status: 'COMPLETED' })
+
+    const store = useAnalysisStore()
+    await store.run('d1')
+
+    await vi.advanceTimersByTimeAsync(2000) // error 1
+    expect(store.running).toBe(true)
+    await vi.advanceTimersByTimeAsync(2000) // success — resets counter
+    expect(store.running).toBe(true)
+    await vi.advanceTimersByTimeAsync(2000) // error 1 again
+    expect(store.running).toBe(true)
+    await vi.advanceTimersByTimeAsync(2000) // success — COMPLETED
     expect(store.running).toBe(false)
   })
 })
