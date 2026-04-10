@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.analyses import router as analyses_router
 from api.documents import router as documents_router
+from api.ingestion import router as ingestion_router
 from api.schemas import HealthResponse
 from infra.rate_limiter import RateLimiterMiddleware
 from infra.settings import settings
@@ -108,12 +109,46 @@ def _build_document_service(
 # ---------------------------------------------------------------------------
 
 
+def _build_ingestion_service(
+    document_repo: SqliteDocumentRepository,
+    analysis_repo: SqliteAnalysisRepository,
+):
+    """Build ingestion service if OpenSearch + embedding are configured."""
+    if not settings.opensearch_url or not settings.embedding_url:
+        logger.info(
+            "Ingestion pipeline disabled (OPENSEARCH_URL=%r, EMBEDDING_URL=%r)",
+            settings.opensearch_url,
+            settings.embedding_url,
+        )
+        return None
+
+    from infra.embedding_client import EmbeddingClient
+    from infra.opensearch_store import OpenSearchStore
+    from services.ingestion_service import IngestionService
+
+    embedding_svc = EmbeddingClient(settings.embedding_url)
+    vector_store = OpenSearchStore(hosts=[settings.opensearch_url])
+    logger.info(
+        "Ingestion pipeline enabled (opensearch=%s, embedding=%s)",
+        settings.opensearch_url,
+        settings.embedding_url,
+    )
+    return IngestionService(
+        analysis_repo=analysis_repo,
+        document_repo=document_repo,
+        embedding_svc=embedding_svc,
+        vector_store=vector_store,
+        embedding_dimension=settings.embedding_dimension,
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await init_db()
     document_repo, analysis_repo = _build_repos()
     app.state.analysis_service = _build_analysis_service(document_repo, analysis_repo)
     app.state.document_service = _build_document_service(document_repo, analysis_repo)
+    app.state.ingestion_service = _build_ingestion_service(document_repo, analysis_repo)
     logger.info("Docling Studio backend ready (engine=%s)", settings.conversion_engine)
     yield
 
@@ -140,6 +175,7 @@ if settings.rate_limit_rpm > 0:
 
 app.include_router(documents_router)
 app.include_router(analyses_router)
+app.include_router(ingestion_router)
 
 
 @app.get("/api/health", response_model=HealthResponse)
