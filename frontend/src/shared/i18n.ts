@@ -131,6 +131,23 @@ const messages: Messages = {
     'chunking.batchNotice':
       'Le chunking n\u2019est pas disponible pour cette analyse. Les documents volumineux trait\u00e9s par batch ne g\u00e9n\u00e8rent pas la structure interne n\u00e9cessaire au d\u00e9coupage.',
 
+    // Ingestion / My Documents
+    'ingestion.ingest': 'Ingérer',
+    'ingestion.ingesting': 'Ingestion...',
+    'ingestion.reindex': 'Ré-indexer',
+    'ingestion.indexed': 'Indexé',
+    'ingestion.notIndexed': 'Non indexé',
+    'ingestion.chunksIndexed': '{n} chunks indexés',
+    'ingestion.openInStudio': 'Ouvrir dans le Studio',
+    'ingestion.deleteIndex': "Supprimer de l'index",
+    'ingestion.unavailable': 'Ingestion non disponible',
+    'ingestion.filterAll': 'Tous',
+    'ingestion.filterIndexed': 'Indexés',
+    'ingestion.filterNotIndexed': 'Non indexés',
+    'ingestion.sortName': 'Nom',
+    'ingestion.sortDate': 'Date',
+    'ingestion.search': 'Rechercher...',
+
     // Pagination
     'pagination.pageOf': 'Page {current} sur {total}',
     'pagination.perPage': '/ page',
@@ -265,6 +282,22 @@ const messages: Messages = {
       'Delete this chunk? It will be marked as deleted until the next sync.',
     'chunking.batchNotice':
       'Chunking is not available for this analysis. Large documents processed in batch mode do not generate the internal structure required for chunking.',
+
+    'ingestion.ingest': 'Ingest',
+    'ingestion.ingesting': 'Ingesting...',
+    'ingestion.reindex': 'Re-index',
+    'ingestion.indexed': 'Indexed',
+    'ingestion.notIndexed': 'Not indexed',
+    'ingestion.chunksIndexed': '{n} chunks indexed',
+    'ingestion.openInStudio': 'Open in Studio',
+    'ingestion.deleteIndex': 'Remove from index',
+    'ingestion.unavailable': 'Ingestion unavailable',
+    'ingestion.filterAll': 'All',
+    'ingestion.filterIndexed': 'Indexed',
+    'ingestion.filterNotIndexed': 'Not indexed',
+    'ingestion.sortName': 'Name',
+    'ingestion.sortDate': 'Date',
+    'ingestion.search': 'Search...',
 
     'pagination.pageOf': 'Page {current} of {total}',
     'pagination.perPage': '/ page',

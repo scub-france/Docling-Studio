@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.analyses import router as analyses_router
 from api.documents import router as documents_router
+from api.ingestion import router as ingestion_router
 from api.schemas import HealthResponse
 from infra.rate_limiter import RateLimiterMiddleware
 from infra.settings import settings
@@ -28,6 +29,7 @@ from persistence.database import get_connection, init_db
 from persistence.document_repo import SqliteDocumentRepository
 from services.analysis_service import AnalysisConfig, AnalysisService
 from services.document_service import DocumentConfig, DocumentService
+from services.ingestion_service import IngestionConfig, IngestionService
 
 logging.basicConfig(
     level=logging.INFO,
@@ -87,6 +89,28 @@ def _build_analysis_service(
     )
 
 
+def _build_ingestion_service() -> IngestionService | None:
+    """Build the ingestion service — only if embedding + opensearch are configured."""
+    if not settings.embedding_url or not settings.opensearch_url:
+        logger.info("Ingestion disabled (EMBEDDING_URL or OPENSEARCH_URL not set)")
+        return None
+
+    from infra.embedding_client import EmbeddingClient
+    from infra.opensearch_store import OpenSearchStore
+
+    embedding = EmbeddingClient(settings.embedding_url)
+    vector_store = OpenSearchStore(settings.opensearch_url)
+    config = IngestionConfig(
+        embedding_dimension=settings.embedding_dimension,
+    )
+    logger.info(
+        "Ingestion enabled (embedding=%s, opensearch=%s)",
+        settings.embedding_url,
+        settings.opensearch_url,
+    )
+    return IngestionService(embedding, vector_store, config)
+
+
 def _build_document_service(
     document_repo: SqliteDocumentRepository,
     analysis_repo: SqliteAnalysisRepository,
@@ -114,6 +138,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     document_repo, analysis_repo = _build_repos()
     app.state.analysis_service = _build_analysis_service(document_repo, analysis_repo)
     app.state.document_service = _build_document_service(document_repo, analysis_repo)
+    app.state.ingestion_service = _build_ingestion_service()
     logger.info("Docling Studio backend ready (engine=%s)", settings.conversion_engine)
     yield
 
@@ -128,7 +153,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
 if settings.rate_limit_rpm > 0:
@@ -140,6 +165,7 @@ if settings.rate_limit_rpm > 0:
 
 app.include_router(documents_router)
 app.include_router(analyses_router)
+app.include_router(ingestion_router)
 
 
 @app.get("/api/health", response_model=HealthResponse)

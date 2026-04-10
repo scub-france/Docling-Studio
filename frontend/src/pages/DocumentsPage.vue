@@ -2,13 +2,40 @@
   <div class="documents-page">
     <div class="page-header">
       <h1 class="page-title">{{ t('nav.documents') }}</h1>
+      <div class="header-actions">
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="search-input"
+          :placeholder="t('ingestion.search')"
+        />
+        <div class="filter-group">
+          <button
+            v-for="f in filters"
+            :key="f.value"
+            class="filter-btn"
+            :class="{ active: activeFilter === f.value }"
+            @click="activeFilter = f.value"
+          >
+            {{ f.label }}
+          </button>
+        </div>
+        <div class="sort-group">
+          <button class="sort-btn" :class="{ active: sortBy === 'name' }" @click="sortBy = 'name'">
+            {{ t('ingestion.sortName') }}
+          </button>
+          <button class="sort-btn" :class="{ active: sortBy === 'date' }" @click="sortBy = 'date'">
+            {{ t('ingestion.sortDate') }}
+          </button>
+        </div>
+      </div>
     </div>
     <div class="page-content">
-      <div v-if="docStore.documents.length === 0" class="tab-empty">
+      <div v-if="filteredDocs.length === 0" class="tab-empty">
         {{ t('history.emptyDocs') }}
       </div>
       <div v-else class="doc-items">
-        <div v-for="doc in docStore.documents" :key="doc.id" class="doc-row">
+        <div v-for="doc in filteredDocs" :key="doc.id" class="doc-row">
           <div class="doc-row-info">
             <svg class="doc-row-icon" viewBox="0 0 20 20" fill="currentColor">
               <path
@@ -26,15 +53,39 @@
               </span>
             </div>
           </div>
-          <button class="doc-row-delete" @click="docStore.remove(doc.id)">
-            <svg viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fill-rule="evenodd"
-                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                clip-rule="evenodd"
-              />
-            </svg>
-          </button>
+          <div class="doc-row-actions">
+            <span
+              v-if="ingestionStore.ingestedDocs[doc.id]"
+              class="status-badge indexed"
+              :title="t('ingestion.chunksIndexed', { n: ingestionStore.ingestedDocs[doc.id] })"
+            >
+              {{ t('ingestion.indexed') }}
+              <span class="badge-count">{{ ingestionStore.ingestedDocs[doc.id] }}</span>
+            </span>
+            <span v-else class="status-badge not-indexed">
+              {{ t('ingestion.notIndexed') }}
+            </span>
+            <button
+              class="action-btn"
+              :title="t('ingestion.openInStudio')"
+              @click="openInStudio(doc)"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838l-2.727 1.17 1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"
+                />
+              </svg>
+            </button>
+            <button class="action-btn delete" @click="handleDelete(doc.id)">
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fill-rule="evenodd"
+                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -42,21 +93,75 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useDocumentStore } from '../features/document/store'
+import { useIngestionStore } from '../features/ingestion/store'
 import { useI18n } from '../shared/i18n'
 import { formatSize } from '../shared/format'
+import type { Document } from '../shared/types'
 
 const docStore = useDocumentStore()
+const ingestionStore = useIngestionStore()
+const router = useRouter()
 const { t } = useI18n()
+
+const searchQuery = ref('')
+const activeFilter = ref<'all' | 'indexed' | 'not-indexed'>('all')
+const sortBy = ref<'name' | 'date'>('date')
+
+const filters = computed(() => [
+  { value: 'all' as const, label: t('ingestion.filterAll') },
+  { value: 'indexed' as const, label: t('ingestion.filterIndexed') },
+  { value: 'not-indexed' as const, label: t('ingestion.filterNotIndexed') },
+])
+
+const filteredDocs = computed(() => {
+  let docs = [...docStore.documents]
+
+  // Search filter
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.toLowerCase()
+    docs = docs.filter((d) => d.filename.toLowerCase().includes(q))
+  }
+
+  // Status filter
+  if (activeFilter.value === 'indexed') {
+    docs = docs.filter((d) => ingestionStore.ingestedDocs[d.id])
+  } else if (activeFilter.value === 'not-indexed') {
+    docs = docs.filter((d) => !ingestionStore.ingestedDocs[d.id])
+  }
+
+  // Sort
+  if (sortBy.value === 'name') {
+    docs.sort((a, b) => a.filename.localeCompare(b.filename))
+  } else {
+    docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }
+
+  return docs
+})
 
 function formatDate(iso: string) {
   if (!iso) return ''
   return new Date(iso).toLocaleString()
 }
 
+function openInStudio(doc: Document) {
+  docStore.select(doc.id)
+  router.push('/studio')
+}
+
+async function handleDelete(docId: string) {
+  if (ingestionStore.ingestedDocs[docId]) {
+    await ingestionStore.deleteIngested(docId)
+  }
+  await docStore.remove(docId)
+}
+
 onMounted(() => {
   docStore.load()
+  ingestionStore.checkAvailability()
 })
 </script>
 
@@ -72,12 +177,68 @@ onMounted(() => {
   padding: 16px 24px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .page-title {
   font-size: 18px;
   font-weight: 600;
   color: var(--text);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-input {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  width: 180px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+}
+
+.filter-group,
+.sort-group {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  border: 1px solid var(--border);
+}
+
+.filter-btn,
+.sort-btn {
+  padding: 4px 10px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.filter-btn.active,
+.sort-btn.active {
+  background: var(--accent);
+  color: white;
 }
 
 .page-content {
@@ -152,7 +313,41 @@ onMounted(() => {
   font-family: 'IBM Plex Mono', monospace;
 }
 
-.doc-row-delete {
+.doc-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.status-badge.indexed {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+}
+
+.status-badge.not-indexed {
+  background: rgba(156, 163, 175, 0.15);
+  color: var(--text-muted);
+}
+
+.badge-count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+}
+
+.action-btn {
   background: none;
   border: none;
   padding: 6px;
@@ -164,14 +359,21 @@ onMounted(() => {
   transition: all var(--transition);
 }
 
-.doc-row:hover .doc-row-delete {
+.doc-row:hover .action-btn {
   opacity: 1;
 }
-.doc-row-delete:hover {
+
+.action-btn:hover {
+  color: var(--accent);
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.action-btn.delete:hover {
   color: var(--error);
   background: rgba(239, 68, 68, 0.1);
 }
-.doc-row-delete svg {
+
+.action-btn svg {
   width: 16px;
   height: 16px;
 }

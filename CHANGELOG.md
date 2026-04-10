@@ -16,6 +16,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - OpenSearch adapter (`OpenSearchStore`): kNN vector search, full-text search, bulk indexing, document CRUD
 - Embedding microservice (`embedding-service/`): sentence-transformers REST API with batch processing and Dockerfile
 - `EmbeddingService` port and `EmbeddingClient` HTTP adapter for remote embedding generation
+- Orchestrated ingestion pipeline: Docling → chunking → embedding → OpenSearch indexing (idempotent)
+- Ingestion REST API: `POST /api/ingestion/{jobId}`, `DELETE /api/ingestion/{docId}`, `GET /api/ingestion/status`
+- Production docker-compose with OpenSearch and embedding service
+- E2E Karate test for full ingestion workflow (PDF → chunks in OpenSearch)
+- My Documents screen: search, filter (all/indexed/not indexed), sort (name/date), ingestion status badges
+- Ingest button in Studio: one-click ingestion from completed analysis with progress feedback
 
 ### Fixed
 

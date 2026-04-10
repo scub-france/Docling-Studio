@@ -1,4 +1,38 @@
 services:
+  # --- OpenSearch (single-node, security disabled) ---
+  opensearch:
+    image: opensearchproject/opensearch:2
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # --- Embedding service (sentence-transformers) ---
+  embedding:
+    build:
+      context: ./embedding-service
+    environment:
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-all-MiniLM-L6-v2}
+      EMBEDDING_BATCH_SIZE: ${EMBEDDING_BATCH_SIZE:-64}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  # --- Backend (FastAPI) ---
   document-parser:
     build:
       context: ./document-parser
@@ -15,11 +49,19 @@ services:
       RATE_LIMIT_RPM: ${RATE_LIMIT_RPM:-100}
       MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
       BATCH_PAGE_SIZE: ${BATCH_PAGE_SIZE:-0}
+      OPENSEARCH_URL: http://opensearch:9200
+      EMBEDDING_URL: http://embedding:8001
+    depends_on:
+      opensearch:
+        condition: service_healthy
+      embedding:
+        condition: service_healthy
     deploy:
       resources:
         limits:
           memory: 4g
 
+  # --- Frontend (nginx) ---
   frontend:
     build:
       context: ./frontend
@@ -29,5 +71,6 @@ services:
       - document-parser
 
 volumes:
+  opensearch_data:
   uploads_data:
   db_data:

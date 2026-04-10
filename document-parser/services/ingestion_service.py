@@ -1,0 +1,166 @@
+"""Ingestion service — orchestrates Docling → embedding → OpenSearch.
+
+Chains the full ingestion pipeline:
+1. Convert document via Docling (reuse existing analysis)
+2. Chunk with selected strategy
+3. Embed all chunk texts via EmbeddingService
+4. Index into OpenSearch via VectorStore
+
+Idempotent: re-ingesting a document deletes old chunks before re-indexing.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from domain.vector_schema import (
+    ChunkBboxEntry,
+    ChunkOrigin,
+    IndexedChunk,
+    build_index_mapping,
+)
+
+if TYPE_CHECKING:
+    from domain.ports import EmbeddingService, VectorStore
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class IngestionConfig:
+    """Configuration for the ingestion pipeline."""
+
+    index_name: str = "docling-studio-chunks"
+    embedding_dimension: int = 384
+
+
+@dataclass
+class IngestionResult:
+    """Result of an ingestion pipeline run."""
+
+    doc_id: str
+    chunks_indexed: int
+    embedding_dimension: int
+
+
+class IngestionService:
+    """Orchestrates the embedding + indexing pipeline."""
+
+    def __init__(
+        self,
+        embedding_service: EmbeddingService,
+        vector_store: VectorStore,
+        config: IngestionConfig | None = None,
+    ) -> None:
+        self._embedding = embedding_service
+        self._vector_store = vector_store
+        self._config = config or IngestionConfig()
+
+    async def ensure_index(self) -> None:
+        """Ensure the vector index exists with the correct mapping."""
+        mapping = build_index_mapping(self._config.embedding_dimension)
+        await self._vector_store.ensure_index(self._config.index_name, mapping)
+
+    async def ingest(
+        self,
+        doc_id: str,
+        filename: str,
+        chunks_json: str,
+        *,
+        binary_hash: str | None = None,
+    ) -> IngestionResult:
+        """Run the embedding + indexing pipeline on pre-chunked data.
+
+        This method is idempotent: it deletes any existing chunks for the
+        document before re-indexing.
+
+        Args:
+            doc_id: Unique document identifier.
+            filename: Original filename.
+            chunks_json: JSON-serialized list of chunk dicts (from analysis).
+            binary_hash: Optional hash of the source file for provenance.
+
+        Returns:
+            IngestionResult with the number of chunks indexed.
+        """
+        await self.ensure_index()
+
+        chunks_data: list[dict] = json.loads(chunks_json)
+        active_chunks = [c for c in chunks_data if not c.get("deleted")]
+        if not active_chunks:
+            logger.info("No active chunks for doc %s — skipping ingestion", doc_id)
+            return IngestionResult(doc_id=doc_id, chunks_indexed=0, embedding_dimension=0)
+
+        # 1. Embed all chunk texts
+        texts = [c["text"] for c in active_chunks]
+        logger.info("Embedding %d chunks for doc %s", len(texts), doc_id)
+        embeddings = await self._embedding.embed(texts)
+
+        # 2. Build IndexedChunk domain objects
+        origin = (
+            ChunkOrigin(binary_hash=binary_hash or "", filename=filename) if binary_hash else None
+        )
+        indexed_chunks: list[IndexedChunk] = []
+        for i, (chunk_data, embedding) in enumerate(zip(active_chunks, embeddings, strict=True)):
+            bboxes = [
+                ChunkBboxEntry(
+                    page=b["page"],
+                    x=b["bbox"][0] if b.get("bbox") else 0,
+                    y=b["bbox"][1] if b.get("bbox") else 0,
+                    w=(b["bbox"][2] - b["bbox"][0]) if b.get("bbox") and len(b["bbox"]) >= 4 else 0,
+                    h=(b["bbox"][3] - b["bbox"][1]) if b.get("bbox") and len(b["bbox"]) >= 4 else 0,
+                )
+                for b in chunk_data.get("bboxes", [])
+            ]
+            indexed_chunks.append(
+                IndexedChunk(
+                    doc_id=doc_id,
+                    filename=filename,
+                    content=chunk_data["text"],
+                    embedding=embedding,
+                    chunk_index=i,
+                    chunk_type=chunk_data.get("chunkType", "text"),
+                    page_number=chunk_data.get("sourcePage", 0) or 0,
+                    bboxes=bboxes,
+                    headings=chunk_data.get("headings", []),
+                    origin=origin,
+                )
+            )
+
+        # 3. Delete old chunks (idempotent re-indexing)
+        deleted = await self._vector_store.delete_document(self._config.index_name, doc_id)
+        if deleted:
+            logger.info("Deleted %d old chunks for doc %s", deleted, doc_id)
+
+        # 4. Index new chunks
+        indexed = await self._vector_store.index_chunks(self._config.index_name, indexed_chunks)
+        logger.info("Indexed %d/%d chunks for doc %s", indexed, len(indexed_chunks), doc_id)
+
+        return IngestionResult(
+            doc_id=doc_id,
+            chunks_indexed=indexed,
+            embedding_dimension=len(embeddings[0]) if embeddings else 0,
+        )
+
+    async def delete_document(self, doc_id: str) -> int:
+        """Remove all indexed chunks for a document."""
+        return await self._vector_store.delete_document(self._config.index_name, doc_id)
+
+    async def search(
+        self,
+        query: str,
+        *,
+        k: int = 10,
+        doc_id: str | None = None,
+    ) -> list:
+        """Semantic search: embed the query then find nearest chunks."""
+        embeddings = await self._embedding.embed([query])
+        return await self._vector_store.search_similar(
+            self._config.index_name,
+            embeddings[0],
+            k=k,
+            doc_id=doc_id,
+        )

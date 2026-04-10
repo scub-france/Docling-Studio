@@ -94,6 +94,23 @@
           </svg>
           {{ analysisStore.running ? t('studio.analyzing') : t('studio.run') }}
         </button>
+        <button
+          v-if="canIngest"
+          class="topbar-btn ingest"
+          data-e2e="ingest-btn"
+          :disabled="ingestionStore.ingesting"
+          @click="runIngestion"
+        >
+          <div v-if="ingestionStore.ingesting" class="spinner-sm" />
+          <svg v-else viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+            <path
+              fill-rule="evenodd"
+              d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          {{ ingestionStore.ingesting ? t('ingestion.ingesting') : t('ingestion.ingest') }}
+        </button>
       </div>
     </div>
 
@@ -459,6 +476,7 @@ import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, reactive } 
 import { useRoute, useRouter } from 'vue-router'
 import { useDocumentStore } from '../features/document/store'
 import { useAnalysisStore } from '../features/analysis/store'
+import { useIngestionStore } from '../features/ingestion/store'
 import { DocumentUpload, DocumentList } from '../features/document/index'
 import { ResultTabs } from '../features/analysis/index'
 import BboxOverlay from '../features/analysis/ui/BboxOverlay.vue'
@@ -472,6 +490,7 @@ const route = useRoute()
 const router = useRouter()
 const documentStore = useDocumentStore()
 const analysisStore = useAnalysisStore()
+const ingestionStore = useIngestionStore()
 const { t } = useI18n()
 const chunkingEnabled = useFeatureFlag('chunking')
 
@@ -528,6 +547,14 @@ const pipelineOptions = reactive<PipelineOptions>({
   images_scale: 1.0,
 })
 
+const canIngest = computed(() => {
+  return (
+    ingestionStore.available &&
+    analysisStore.currentAnalysis?.status === 'COMPLETED' &&
+    analysisStore.currentAnalysis?.chunksJson != null
+  )
+})
+
 const hasAnalysisResults = computed(() => {
   return (
     analysisStore.currentAnalysis?.status === 'COMPLETED' && analysisStore.currentPages?.length > 0
@@ -564,6 +591,11 @@ async function runAnalysis() {
   await analysisStore.run(documentStore.selectedId, { ...pipelineOptions })
 }
 
+async function runIngestion() {
+  if (!analysisStore.currentAnalysis?.id) return
+  await ingestionStore.ingest(analysisStore.currentAnalysis.id)
+}
+
 function addMore() {
   documentStore.selectedId = null
 }
@@ -598,6 +630,7 @@ watch(
 onMounted(async () => {
   await documentStore.load()
   analysisStore.load()
+  ingestionStore.checkAvailability()
 
   // Restore analysis from history via query param
   const analysisId = route.query.analysisId
@@ -807,6 +840,21 @@ onBeforeUnmount(() => {
 }
 
 .topbar-btn.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.topbar-btn.ingest {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.topbar-btn.ingest:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.topbar-btn.ingest:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
