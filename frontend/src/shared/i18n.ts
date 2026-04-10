@@ -107,6 +107,22 @@ const messages: Messages = {
     'history.emptyDocs': 'Aucun document. Importez un document depuis le Studio.',
     'history.open': 'Ouvrir',
 
+    // Ingestion / My Documents
+    'ingestion.search': 'Rechercher…',
+    'ingestion.sortName': 'Nom',
+    'ingestion.sortDate': 'Date',
+    'ingestion.filterAll': 'Tous',
+    'ingestion.filterIndexed': 'Indexés',
+    'ingestion.filterNotIndexed': 'Non indexés',
+    'ingestion.indexed': 'Indexé',
+    'ingestion.notIndexed': 'Non indexé',
+    'ingestion.chunksIndexed': '{n} chunks',
+    'ingestion.openInStudio': 'Ouvrir dans Studio',
+    'ingestion.ingest': 'Indexer',
+    'ingestion.ingesting': 'Indexation…',
+    'ingestion.ingestSuccess': 'Indexation réussie — {n} chunks indexés.',
+    'ingestion.ingestError': 'Erreur d\u2019indexation : {msg}',
+
     // Chunking
     'studio.prepare': 'Préparer',
     'chunking.settings': 'Chunking',
@@ -242,6 +258,22 @@ const messages: Messages = {
     'history.empty': 'No analyses yet. Go to Studio to analyze your first document.',
     'history.emptyDocs': 'No documents yet. Upload a document from the Studio.',
     'history.open': 'Open',
+
+    // Ingestion / My Documents
+    'ingestion.search': 'Search…',
+    'ingestion.sortName': 'Name',
+    'ingestion.sortDate': 'Date',
+    'ingestion.filterAll': 'All',
+    'ingestion.filterIndexed': 'Indexed',
+    'ingestion.filterNotIndexed': 'Not indexed',
+    'ingestion.indexed': 'Indexed',
+    'ingestion.notIndexed': 'Not indexed',
+    'ingestion.chunksIndexed': '{n} chunks',
+    'ingestion.openInStudio': 'Open in Studio',
+    'ingestion.ingest': 'Index',
+    'ingestion.ingesting': 'Indexing…',
+    'ingestion.ingestSuccess': 'Indexed successfully — {n} chunks.',
+    'ingestion.ingestError': 'Indexing error: {msg}',
 
     'studio.prepare': 'Prepare',
     'chunking.settings': 'Chunking',
