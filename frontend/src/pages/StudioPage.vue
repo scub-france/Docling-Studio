@@ -23,8 +23,8 @@
           <button
             class="toggle-btn"
             data-e2e="toggle-btn"
-            :class="{ active: mode === 'configurer' }"
-            @click="mode = 'configurer'"
+            :class="{ active: mode === 'configure' }"
+            @click="mode = 'configure'"
           >
             <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
               <path
@@ -38,8 +38,8 @@
           <button
             class="toggle-btn"
             data-e2e="toggle-btn"
-            :class="{ active: mode === 'verifier' }"
-            @click="mode = 'verifier'"
+            :class="{ active: mode === 'verify' }"
+            @click="mode = 'verify'"
             :disabled="!analysisStore.currentAnalysis"
           >
             <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
@@ -55,8 +55,8 @@
             v-if="chunkingEnabled"
             class="toggle-btn"
             data-e2e="toggle-btn"
-            :class="{ active: mode === 'preparer' }"
-            @click="mode = 'preparer'"
+            :class="{ active: mode === 'prepare' }"
+            @click="mode = 'prepare'"
             :disabled="!analysisStore.currentAnalysis"
           >
             <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
@@ -82,7 +82,7 @@
           data-e2e="run-btn"
           :disabled="analysisStore.running"
           @click="runAnalysis"
-          v-if="mode === 'configurer'"
+          v-if="mode === 'configure'"
         >
           <div v-if="analysisStore.running" class="spinner-sm" />
           <svg v-else viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
@@ -226,7 +226,7 @@
               @load="onPdfImageLoad"
             />
             <BboxOverlay
-              v-if="(visualMode || mode === 'preparer') && hasAnalysisResults"
+              v-if="(visualMode || mode === 'prepare') && hasAnalysisResults"
               ref="bboxOverlayRef"
               :image-el="pdfImageRef"
               :page-data="currentPageData"
@@ -246,7 +246,7 @@
       <!-- Right: Config or Results panel -->
       <div class="right-panel" :style="{ width: rightPanelWidth + 'px' }">
         <!-- CONFIGURER MODE -->
-        <div v-if="mode === 'configurer'" class="config-panel" data-e2e="config-panel">
+        <div v-if="mode === 'configure'" class="config-panel" data-e2e="config-panel">
           <div class="config-section">
             <label class="config-label">
               {{ t('config.model') }}
@@ -429,7 +429,7 @@
         </div>
 
         <!-- VERIFIER MODE -->
-        <div v-if="mode === 'verifier'" class="verify-panel">
+        <div v-if="mode === 'verify'" class="verify-panel">
           <ResultTabs
             :current-page="currentPage"
             :highlighted-index="highlightedElementIndex"
@@ -438,7 +438,7 @@
         </div>
 
         <!-- PREPARER MODE (feature-flipped) -->
-        <div v-if="mode === 'preparer' && chunkingEnabled" class="prepare-panel">
+        <div v-if="mode === 'prepare' && chunkingEnabled" class="prepare-panel">
           <ChunkPanel
             :current-page="currentPage"
             @highlight-bboxes="highlightedChunkBboxes = $event"
@@ -470,7 +470,7 @@ const analysisStore = useAnalysisStore()
 const { t } = useI18n()
 const chunkingEnabled = useFeatureFlag('chunking')
 
-const mode = ref('configurer')
+const mode = ref('configure')
 const currentPage = ref(1)
 const visualMode = ref(false)
 const highlightedElementIndex = ref(-1)
@@ -573,12 +573,12 @@ watch(currentPage, () => {
   highlightedChunkBboxes.value = []
 })
 
-// Auto-switch to verifier when analysis completes + refresh document data (pageCount)
+// Auto-switch to verify when analysis completes + refresh document data (pageCount)
 watch(
   () => analysisStore.currentAnalysis?.status,
   (status) => {
     if (status === 'COMPLETED') {
-      mode.value = 'verifier'
+      mode.value = 'verify'
       documentStore.load()
     }
   },
@@ -596,7 +596,7 @@ onMounted(async () => {
     if (analysis) {
       documentStore.select(analysis.documentId)
       if (analysis.status === 'COMPLETED') {
-        mode.value = 'verifier'
+        mode.value = 'verify'
       }
     }
     // Clean query param from URL

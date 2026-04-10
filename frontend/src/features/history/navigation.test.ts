@@ -125,7 +125,7 @@ describe('History → Studio navigation', () => {
   })
 
   describe('Full restore flow (store-level integration)', () => {
-    it('restores completed analysis: selects analysis + document + verifier mode', async () => {
+    it('restores completed analysis: selects analysis + document + verify mode', async () => {
       const { fetchAnalysis } = await import('../analysis/api')
       fetchAnalysis.mockResolvedValue({
         id: 'a1',
@@ -147,12 +147,12 @@ describe('History → Studio navigation', () => {
       docStore.select(analysis.documentId)
       expect(docStore.selectedId).toBe('d1')
 
-      // Mode would be set to 'verifier' since status is COMPLETED
-      const mode = analysis.status === 'COMPLETED' ? 'verifier' : 'configurer'
-      expect(mode).toBe('verifier')
+      // Mode would be set to 'verify' since status is COMPLETED
+      const mode = analysis.status === 'COMPLETED' ? 'verify' : 'configure'
+      expect(mode).toBe('verify')
     })
 
-    it('restores failed analysis: selects analysis + document, stays in configurer mode', async () => {
+    it('restores failed analysis: selects analysis + document, stays in configure mode', async () => {
       const { fetchAnalysis } = await import('../analysis/api')
       fetchAnalysis.mockResolvedValue({
         id: 'a2',
@@ -171,8 +171,8 @@ describe('History → Studio navigation', () => {
       docStore.select(analysis.documentId)
       expect(docStore.selectedId).toBe('d2')
 
-      const mode = analysis.status === 'COMPLETED' ? 'verifier' : 'configurer'
-      expect(mode).toBe('configurer')
+      const mode = analysis.status === 'COMPLETED' ? 'verify' : 'configure'
+      expect(mode).toBe('configure')
     })
 
     it('handles missing analysis gracefully', async () => {
