@@ -342,6 +342,50 @@ class TestUpdateChunkTextEndpoint:
         assert resp.status_code == 400
 
 
+class TestDeleteChunkEndpoint:
+    def test_delete_chunk_success(self, client, mock_analysis_service):
+        updated_chunks = [
+            {
+                "text": "chunk1",
+                "headings": [],
+                "sourcePage": 1,
+                "tokenCount": 10,
+                "bboxes": [],
+                "deleted": True,
+            },
+            {
+                "text": "chunk2",
+                "headings": [],
+                "sourcePage": 2,
+                "tokenCount": 20,
+                "bboxes": [],
+                "deleted": False,
+            },
+        ]
+        mock_analysis_service.delete_chunk = AsyncMock(return_value=updated_chunks)
+
+        resp = client.delete("/api/analyses/j1/chunks/0")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 2
+        assert data[0]["deleted"] is True
+        assert data[1]["deleted"] is False
+
+    def test_delete_chunk_invalid_index(self, client, mock_analysis_service):
+        mock_analysis_service.delete_chunk = AsyncMock(
+            side_effect=ValueError("Chunk index out of range: 99"),
+        )
+        resp = client.delete("/api/analyses/j1/chunks/99")
+        assert resp.status_code == 400
+
+    def test_delete_chunk_not_completed(self, client, mock_analysis_service):
+        mock_analysis_service.delete_chunk = AsyncMock(
+            side_effect=ValueError("Analysis is not completed: j1"),
+        )
+        resp = client.delete("/api/analyses/j1/chunks/0")
+        assert resp.status_code == 400
+
+
 class TestRechunkEndpoint:
     def test_rechunk_success(self, client, mock_analysis_service):
         mock_analysis_service.rechunk = AsyncMock(

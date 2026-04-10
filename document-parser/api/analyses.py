@@ -128,6 +128,28 @@ async def update_chunk_text(
             token_count=c.get("tokenCount", 0),
             bboxes=[ChunkBboxResponse(page=b["page"], bbox=b["bbox"]) for b in c.get("bboxes", [])],
             modified=c.get("modified", False),
+            deleted=c.get("deleted", False),
+        )
+        for c in chunks
+    ]
+
+
+@router.delete("/{job_id}/chunks/{chunk_index}", response_model=list[ChunkResponse])
+async def delete_chunk(job_id: str, chunk_index: int, service: ServiceDep) -> list[ChunkResponse]:
+    """Soft-delete a chunk by index (marks it as deleted)."""
+    try:
+        chunks = await service.delete_chunk(job_id, chunk_index)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    return [
+        ChunkResponse(
+            text=c["text"],
+            headings=c.get("headings", []),
+            source_page=c.get("sourcePage"),
+            token_count=c.get("tokenCount", 0),
+            bboxes=[ChunkBboxResponse(page=b["page"], bbox=b["bbox"]) for b in c.get("bboxes", [])],
+            modified=c.get("modified", False),
+            deleted=c.get("deleted", False),
         )
         for c in chunks
     ]

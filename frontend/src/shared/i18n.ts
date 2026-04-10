@@ -124,6 +124,10 @@ const messages: Messages = {
     'chunking.saving': 'Enregistrement...',
     'chunking.cancel': 'Annuler',
     'chunking.modified': 'modifié',
+    'chunking.delete': 'Supprimer',
+    'chunking.deleting': 'Suppression...',
+    'chunking.deleteConfirm':
+      'Supprimer ce chunk ? Il sera marqué comme supprimé jusqu\u2019à la prochaine synchronisation.',
     'chunking.batchNotice':
       'Le chunking n\u2019est pas disponible pour cette analyse. Les documents volumineux trait\u00e9s par batch ne g\u00e9n\u00e8rent pas la structure interne n\u00e9cessaire au d\u00e9coupage.',
 
@@ -255,6 +259,10 @@ const messages: Messages = {
     'chunking.saving': 'Saving...',
     'chunking.cancel': 'Cancel',
     'chunking.modified': 'modified',
+    'chunking.delete': 'Delete',
+    'chunking.deleting': 'Deleting...',
+    'chunking.deleteConfirm':
+      'Delete this chunk? It will be marked as deleted until the next sync.',
     'chunking.batchNotice':
       'Chunking is not available for this analysis. Large documents processed in batch mode do not generate the internal structure required for chunking.',
 

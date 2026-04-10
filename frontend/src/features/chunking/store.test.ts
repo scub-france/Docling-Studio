@@ -5,6 +5,7 @@ import { useChunkingStore } from './store'
 vi.mock('./api', () => ({
   rechunkAnalysis: vi.fn(),
   updateChunkText: vi.fn(),
+  deleteChunk: vi.fn(),
 }))
 
 import * as api from './api'
@@ -19,6 +20,7 @@ describe('useChunkingStore', () => {
     const store = useChunkingStore()
     expect(store.rechunking).toBe(false)
     expect(store.saving).toBe(false)
+    expect(store.deleting).toBe(false)
     expect(store.error).toBeNull()
   })
 
@@ -105,5 +107,47 @@ describe('useChunkingStore', () => {
     await expect(store.updateChunkText('j1', 0, 'text')).rejects.toThrow('save failed')
     expect(store.saving).toBe(false)
     expect(store.error).toBe('save failed')
+  })
+
+  it('deleteChunk calls API and returns chunks', async () => {
+    const chunks = [
+      { text: 'chunk1', headings: [], sourcePage: 1, tokenCount: 5, bboxes: [], deleted: true },
+    ]
+    vi.mocked(api.deleteChunk).mockResolvedValue(chunks)
+
+    const store = useChunkingStore()
+    const result = await store.deleteChunk('j1', 0)
+
+    expect(api.deleteChunk).toHaveBeenCalledWith('j1', 0)
+    expect(result).toEqual(chunks)
+    expect(store.deleting).toBe(false)
+  })
+
+  it('deleteChunk sets deleting during execution', async () => {
+    let resolve: (v: any) => void
+    vi.mocked(api.deleteChunk).mockImplementation(
+      () =>
+        new Promise((r) => {
+          resolve = r
+        }),
+    )
+
+    const store = useChunkingStore()
+    const promise = store.deleteChunk('j1', 0)
+
+    expect(store.deleting).toBe(true)
+    resolve!([])
+    await promise
+    expect(store.deleting).toBe(false)
+  })
+
+  it('deleteChunk handles errors', async () => {
+    vi.mocked(api.deleteChunk).mockRejectedValue(new Error('delete failed'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const store = useChunkingStore()
+    await expect(store.deleteChunk('j1', 0)).rejects.toThrow('delete failed')
+    expect(store.deleting).toBe(false)
+    expect(store.error).toBe('delete failed')
   })
 })

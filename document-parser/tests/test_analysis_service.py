@@ -594,3 +594,64 @@ class TestUpdateChunkText:
 
         with pytest.raises(ValueError, match="No chunks available"):
             await service.update_chunk_text("j1", 0, "text")
+
+
+class TestDeleteChunk:
+    """Tests for AnalysisService.delete_chunk."""
+
+    @pytest.mark.asyncio
+    async def test_delete_chunk_success(self):
+        chunks = [
+            {"text": "chunk1", "headings": [], "sourcePage": 1, "tokenCount": 5, "bboxes": []},
+            {"text": "chunk2", "headings": [], "sourcePage": 2, "tokenCount": 3, "bboxes": []},
+        ]
+        job = MagicMock()
+        job.status = AnalysisStatus.COMPLETED
+        job.chunks_json = json.dumps(chunks)
+
+        repo = MagicMock()
+        repo.find_by_id = AsyncMock(return_value=job)
+        repo.update_chunks = AsyncMock(return_value=True)
+
+        service = _make_service(analysis_repo=repo)
+        result = await service.delete_chunk("j1", 0)
+
+        assert result[0]["deleted"] is True
+        assert result[1].get("deleted", False) is False
+        repo.update_chunks.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_delete_chunk_not_found(self):
+        repo = MagicMock()
+        repo.find_by_id = AsyncMock(return_value=None)
+        service = _make_service(analysis_repo=repo)
+
+        with pytest.raises(ValueError, match="Analysis not found"):
+            await service.delete_chunk("missing", 0)
+
+    @pytest.mark.asyncio
+    async def test_delete_chunk_index_out_of_range(self):
+        chunks = [{"text": "only", "headings": [], "sourcePage": 1, "tokenCount": 5, "bboxes": []}]
+        job = MagicMock()
+        job.status = AnalysisStatus.COMPLETED
+        job.chunks_json = json.dumps(chunks)
+
+        repo = MagicMock()
+        repo.find_by_id = AsyncMock(return_value=job)
+        service = _make_service(analysis_repo=repo)
+
+        with pytest.raises(ValueError, match="out of range"):
+            await service.delete_chunk("j1", 5)
+
+    @pytest.mark.asyncio
+    async def test_delete_chunk_no_chunks(self):
+        job = MagicMock()
+        job.status = AnalysisStatus.COMPLETED
+        job.chunks_json = None
+
+        repo = MagicMock()
+        repo.find_by_id = AsyncMock(return_value=job)
+        service = _make_service(analysis_repo=repo)
+
+        with pytest.raises(ValueError, match="No chunks available"):
+            await service.delete_chunk("j1", 0)

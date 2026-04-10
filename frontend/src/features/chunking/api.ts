@@ -14,3 +14,9 @@ export function updateChunkText(jobId: string, chunkIndex: number, text: string)
     body: JSON.stringify({ text }),
   })
 }
+
+export function deleteChunk(jobId: string, chunkIndex: number): Promise<Chunk[]> {
+  return apiFetch<Chunk[]>(`/api/analyses/${jobId}/chunks/${chunkIndex}`, {
+    method: 'DELETE',
+  })
+}

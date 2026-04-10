@@ -159,6 +159,7 @@ class ChunkResponse(_CamelModel):
     token_count: int = 0
     bboxes: list[ChunkBboxResponse] = []
     modified: bool = False
+    deleted: bool = False
 
 
 class UpdateChunkTextRequest(BaseModel):

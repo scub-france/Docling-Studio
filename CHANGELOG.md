@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 - Inline chunk text editing: double-click or edit button to modify chunk text, with save/cancel and "modified" badge
 - Docker Compose dev stack (`docker-compose.dev.yml`) with OpenSearch, Dashboards, hot-reload backend and Vite frontend
+- Soft-delete chunks: delete button with confirmation dialog, chunks hidden from UI but preserved in data
 
 ### Fixed
 

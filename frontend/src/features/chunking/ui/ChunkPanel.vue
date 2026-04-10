@@ -84,7 +84,7 @@
     <!-- Chunks list -->
     <div class="chunk-results" data-e2e="chunk-results" v-if="pageChunks.length">
       <div class="chunk-summary" data-e2e="chunk-summary">
-        {{ pagination.totalItems.value }} {{ t('chunking.chunks') }}
+        {{ activeChunks.length }} {{ t('chunking.chunks') }}
       </div>
       <div class="chunk-list">
         <div
@@ -115,6 +115,20 @@
               <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
                 <path
                   d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"
+                />
+              </svg>
+            </button>
+            <button
+              class="chunk-delete-icon"
+              data-e2e="chunk-delete-btn"
+              :title="t('chunking.delete')"
+              @click.stop="confirmDelete(globalIndex(localIdx))"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                <path
+                  fill-rule="evenodd"
+                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                  clip-rule="evenodd"
                 />
               </svg>
             </button>
@@ -160,6 +174,30 @@
           >
             {{ chunk.text }}
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete confirmation dialog -->
+    <div v-if="deleteConfirmIdx !== -1" class="chunk-confirm-overlay" data-e2e="chunk-confirm">
+      <div class="chunk-confirm-dialog">
+        <p class="chunk-confirm-text">{{ t('chunking.deleteConfirm') }}</p>
+        <div class="chunk-confirm-actions">
+          <button
+            class="chunk-confirm-btn danger"
+            data-e2e="chunk-confirm-yes"
+            :disabled="chunkingStore.deleting"
+            @click="doDelete"
+          >
+            {{ chunkingStore.deleting ? t('chunking.deleting') : t('chunking.delete') }}
+          </button>
+          <button
+            class="chunk-confirm-btn cancel"
+            data-e2e="chunk-confirm-no"
+            @click="deleteConfirmIdx = -1"
+          >
+            {{ t('chunking.cancel') }}
+          </button>
         </div>
       </div>
     </div>
@@ -223,11 +261,29 @@ const isBatchedAnalysis = computed(() => {
   return props.analysisStatus === 'COMPLETED' && !props.hasDocumentJson
 })
 
-const pageChunks = computed(() => props.chunks.filter((c) => c.sourcePage === props.currentPage))
+const activeChunks = computed(() => props.chunks.filter((c) => !c.deleted))
+const pageChunks = computed(() =>
+  activeChunks.value.filter((c) => c.sourcePage === props.currentPage),
+)
 const pagination = usePagination(pageChunks, { pageSize: 20 })
 
 function globalIndex(localIdx: number): number {
-  return (pagination.page.value - 1) * pagination.pageSize.value + localIdx
+  const pageLocalIdx = (pagination.page.value - 1) * pagination.pageSize.value + localIdx
+  const pageChunk = pageChunks.value[pageLocalIdx]
+  return props.chunks.indexOf(pageChunk)
+}
+
+const deleteConfirmIdx = ref(-1)
+
+function confirmDelete(chunkIndex: number) {
+  deleteConfirmIdx.value = chunkIndex
+}
+
+async function doDelete() {
+  if (!props.analysisId || deleteConfirmIdx.value === -1) return
+  await chunkingStore.deleteChunk(props.analysisId, deleteConfirmIdx.value)
+  deleteConfirmIdx.value = -1
+  emit('rechunked')
 }
 
 const editingIdx = ref(-1)
@@ -282,6 +338,7 @@ async function doRechunk() {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 .chunk-config {
@@ -529,6 +586,19 @@ async function doRechunk() {
   transition: opacity 0.15s;
 }
 
+.chunk-delete-icon {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
 .chunk-card:hover .chunk-edit-icon {
   opacity: 1;
 }
@@ -536,6 +606,15 @@ async function doRechunk() {
 .chunk-edit-icon:hover {
   color: var(--accent);
   background: var(--bg-tertiary);
+}
+
+.chunk-card:hover .chunk-delete-icon {
+  opacity: 1;
+}
+
+.chunk-delete-icon:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .chunk-edit {
@@ -595,6 +674,67 @@ async function doRechunk() {
 }
 
 .chunk-edit-btn.cancel:hover {
+  color: var(--text);
+}
+
+.chunk-confirm-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.chunk-confirm-dialog {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  max-width: 300px;
+  width: 90%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.chunk-confirm-text {
+  font-size: 13px;
+  color: var(--text);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.chunk-confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.chunk-confirm-btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chunk-confirm-btn.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.chunk-confirm-btn.danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chunk-confirm-btn.cancel {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.chunk-confirm-btn.cancel:hover {
   color: var(--text);
 }
 
