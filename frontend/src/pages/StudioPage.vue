@@ -94,6 +94,25 @@
           </svg>
           {{ analysisStore.running ? t('studio.analyzing') : t('studio.run') }}
         </button>
+        <button
+          v-if="
+            mode === 'prepare' && ingestionStore.available && analysisStore.currentChunks.length > 0
+          "
+          class="topbar-btn ingest"
+          data-e2e="ingest-btn"
+          :disabled="ingestionStore.ingesting"
+          @click="handleIngest"
+        >
+          <div v-if="ingestionStore.ingesting" class="spinner-sm" />
+          <svg v-else viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+            <path
+              fill-rule="evenodd"
+              d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            />
+          </svg>
+          {{ ingestionStore.ingesting ? t('ingestion.ingesting') : t('ingestion.ingest') }}
+        </button>
       </div>
     </div>
 
@@ -465,6 +484,7 @@ import BboxOverlay from '../features/analysis/ui/BboxOverlay.vue'
 import { ChunkPanel } from '../features/chunking'
 import { useFeatureFlag } from '../features/feature-flags'
 import { getPreviewUrl } from '../features/document/api'
+import { useIngestionStore } from '../features/ingestion/store'
 import { useI18n } from '../shared/i18n'
 import type { ChunkBbox, PipelineOptions } from '../shared/types'
 
@@ -472,6 +492,7 @@ const route = useRoute()
 const router = useRouter()
 const documentStore = useDocumentStore()
 const analysisStore = useAnalysisStore()
+const ingestionStore = useIngestionStore()
 const { t } = useI18n()
 const chunkingEnabled = useFeatureFlag('chunking')
 
@@ -595,9 +616,21 @@ watch(
   },
 )
 
+async function handleIngest(): Promise<void> {
+  const analysis = analysisStore.currentAnalysis
+  if (!analysis || !selectedDoc.value) return
+  try {
+    const count = await ingestionStore.ingest(analysis.id, selectedDoc.value.id)
+    console.warn(`Ingestion complete — ${count} chunks indexed.`)
+  } catch (e) {
+    console.error('Ingestion failed', e)
+  }
+}
+
 onMounted(async () => {
   await documentStore.load()
   analysisStore.load()
+  ingestionStore.checkAvailability()
 
   // Restore analysis from history via query param
   const analysisId = route.query.analysisId
@@ -807,6 +840,21 @@ onBeforeUnmount(() => {
 }
 
 .topbar-btn.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.topbar-btn.ingest {
+  background: var(--success, #22c55e);
+  border-color: var(--success, #22c55e);
+  color: white;
+}
+
+.topbar-btn.ingest:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--success, #22c55e) 85%, black);
+}
+
+.topbar-btn.ingest:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
