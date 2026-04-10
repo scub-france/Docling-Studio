@@ -635,10 +635,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4.3.1
 
-      - name: Download all artifacts
+      - name: Download image-size artifacts
         uses: actions/download-artifact@v4.3.0
         with:
+          pattern: image-size-*
           path: /tmp/artifacts
+
+      - name: Download audit-checks artifact
+        uses: actions/download-artifact@v4.3.0
+        with:
+          name: audit-checks-results
+          path: /tmp/artifacts/audit-checks-results
 
       - name: Build summary comment
         id: summary
