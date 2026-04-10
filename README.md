@@ -13,6 +13,17 @@ Upload a PDF, configure the extraction pipeline, and visualize the results — t
 
 ![Docling Studio — Presentation](docs/screenshots/presentation.gif)
 
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=scub-france%2FDocling-Studio&type=timeline&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=scub-france/Docling-Studio&type=timeline&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=scub-france/Docling-Studio&type=timeline&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=scub-france/Docling-Studio&type=timeline&legend=top-left" />
+ </picture>
+</a>
+
 ## Features
 
 - **Home page** with quick upload and recent documents
