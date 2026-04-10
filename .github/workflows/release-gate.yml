@@ -23,7 +23,7 @@ jobs:
     name: Lint & type-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - uses: actions/setup-python@v5
         with:
@@ -59,7 +59,7 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - uses: actions/setup-python@v5
         with:
@@ -92,7 +92,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: unit-test-results
           path: /tmp/*-tests.txt
@@ -101,7 +101,7 @@ jobs:
     name: Dependency audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - uses: actions/setup-python@v5
         with:
@@ -163,7 +163,7 @@ jobs:
 
       - name: Upload audit results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: dep-audit-results
           path: /tmp/*-audit.*
@@ -178,7 +178,7 @@ jobs:
     name: Audit checks (commands.sh)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - name: Run automated audit checks
         id: audit
@@ -201,7 +201,7 @@ jobs:
 
       - name: Upload audit results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: audit-checks-results
           path: /tmp/audit-checks.txt
@@ -224,7 +224,7 @@ jobs:
         target: [remote, local]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - uses: docker/setup-buildx-action@v3
 
@@ -252,7 +252,7 @@ jobs:
           docker save docling-studio:${{ matrix.target }} | gzip > /tmp/docling-studio-${{ matrix.target }}.tar.gz
 
       - name: Upload image artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: docker-image-${{ matrix.target }}
           path: /tmp/docling-studio-${{ matrix.target }}.tar.gz
@@ -266,7 +266,7 @@ jobs:
           echo "Image size (${{ matrix.target }}): ${SIZE_MB} MB"
 
       - name: Upload size artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: image-size-${{ matrix.target }}
           path: /tmp/image-size-${{ matrix.target }}.txt
@@ -276,10 +276,10 @@ jobs:
     needs: [docker-build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - name: Download remote image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           name: docker-image-remote
           path: /tmp
@@ -334,10 +334,10 @@ jobs:
         target: [remote, local]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - name: Download image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           name: docker-image-${{ matrix.target }}
           path: /tmp
@@ -376,7 +376,7 @@ jobs:
 
       - name: Upload Trivy reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: trivy-${{ matrix.target }}
           path: /tmp/trivy-*-${{ matrix.target }}.txt
@@ -388,10 +388,10 @@ jobs:
     permissions:
       packages: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - name: Download size artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           pattern: image-size-*
           merge-multiple: true
@@ -476,7 +476,7 @@ jobs:
           cat /tmp/image-size-report.txt
 
       - name: Upload size report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: image-size-report
           path: /tmp/image-size-report.txt
@@ -490,7 +490,7 @@ jobs:
     needs: [docker-smoke]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - uses: actions/setup-python@v5
         with:
@@ -535,7 +535,7 @@ jobs:
 
       - name: Upload Karate reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: karate-api-reports
           path: e2e/api/target/karate-reports/
@@ -549,7 +549,7 @@ jobs:
     needs: [docker-smoke]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - uses: actions/setup-python@v5
         with:
@@ -600,7 +600,7 @@ jobs:
 
       - name: Upload Karate UI reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: karate-ui-reports
           path: e2e/ui/target/karate-reports/
@@ -633,10 +633,10 @@ jobs:
       actions: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.3.1
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           path: /tmp/artifacts
 
