@@ -159,7 +159,7 @@ import infra.local_converter as lc_mod  # noqa: E402
 
 build_converter = lc_mod._build_docling_converter
 convert_sync = lc_mod._convert_sync
-get_default_converter = lc_mod._get_default_converter
+get_default_converter = lc_mod._ensure_default_converter
 
 # ---------------------------------------------------------------------------
 # C1 — document_timeout in PdfPipelineOptions
@@ -317,7 +317,7 @@ class TestConvertSyncLimits:
 
 
 class TestGetDefaultConverterReset:
-    """Verify _get_default_converter resets on failure and retries on next call."""
+    """Verify _ensure_default_converter resets on failure and retries on next call."""
 
     @pytest.fixture(autouse=True)
     def reset_default_converter(self):

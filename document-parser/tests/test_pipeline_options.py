@@ -146,7 +146,7 @@ class TestBuildConverter:
 class TestConvertDocumentRouting:
     """Verify convert_document uses default converter for default opts, custom otherwise."""
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_default_converter_with_all_defaults(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -164,7 +164,7 @@ class TestConvertDocumentRouting:
         mock_get_default.assert_called_once()
         mock_build.assert_not_called()
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_ocr_disabled(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -182,7 +182,7 @@ class TestConvertDocumentRouting:
         mock_build.assert_called_once()
         mock_get_default.assert_not_called()
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_table_mode_fast(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -200,7 +200,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once_with(opts)
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_code_enrichment_on(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -218,7 +218,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once_with(opts)
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_formula_enrichment_on(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -235,7 +235,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once()
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_picture_options_on(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -252,7 +252,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once()
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_generate_images_on(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -269,7 +269,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once()
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_uses_custom_converter_when_images_scale_changed(self, mock_build, mock_get_default):
         mock_conv = MagicMock()
@@ -287,7 +287,7 @@ class TestConvertDocumentRouting:
 
         mock_build.assert_called_once_with(opts)
 
-    @patch("infra.local_converter._get_default_converter")
+    @patch("infra.local_converter._ensure_default_converter")
     @patch("infra.local_converter._build_docling_converter")
     def test_forwards_all_options_to_build_converter(self, mock_build, mock_get_default):
         mock_conv = MagicMock()

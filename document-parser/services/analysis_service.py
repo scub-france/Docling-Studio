@@ -268,6 +268,67 @@ class AnalysisService:
                 job_id, file_path, filename, pipeline_options, chunking_options
             )
 
+    def _build_conversion_options(self, pipeline_options: dict | None) -> ConversionOptions:
+        """Build ConversionOptions, applying default table_mode if not specified."""
+        opts_dict = pipeline_options or {}
+        if "table_mode" not in opts_dict:
+            opts_dict = {**opts_dict, "table_mode": self._config.default_table_mode}
+        return ConversionOptions(**opts_dict)
+
+    async def _run_conversion(
+        self,
+        job_id: str,
+        file_path: str,
+        options: ConversionOptions,
+    ) -> ConversionResult | None:
+        """Run batched or single conversion. Returns None if the job was deleted mid-batch."""
+        total_pages = _count_pdf_pages(file_path)
+        batch_size = self._config.batch_page_size
+
+        if batch_size > 0 and total_pages > batch_size:
+            return await self._run_batched_conversion(
+                job_id, file_path, options, total_pages, batch_size
+            )
+        return await asyncio.wait_for(
+            self._converter.convert(file_path, options),
+            timeout=self._conversion_timeout,
+        )
+
+    async def _finalize_analysis(
+        self,
+        job_id: str,
+        result: ConversionResult,
+        chunking_options: dict | None,
+    ) -> None:
+        """Serialize results, optionally chunk, mark job completed, update page count."""
+        pages_json = json.dumps([asdict(p) for p in result.pages])
+
+        chunks_json = None
+        if chunking_options and self._chunker and result.document_json:
+            chunk_opts = ChunkingOptions(**chunking_options)
+            chunks = await self._chunker.chunk(result.document_json, chunk_opts)
+            chunks_json = json.dumps([_chunk_to_dict(c) for c in chunks])
+            logger.info("Chunking produced %d chunks for job %s", len(chunks), job_id)
+
+        # Re-read the job so we don't lose progress_current/progress_total
+        # written to the DB during batched conversion.
+        job = await self._analysis_repo.find_by_id(job_id)
+        if not job:
+            return
+        job.mark_completed(
+            markdown=result.content_markdown,
+            html=result.content_html,
+            pages_json=pages_json,
+            document_json=result.document_json,
+            chunks_json=chunks_json,
+        )
+        await self._analysis_repo.update_status(job)
+
+        if result.page_count:
+            await self._document_repo.update_page_count(job.document_id, result.page_count)
+
+        logger.info("Analysis completed: %s (%d pages)", job_id, result.page_count)
+
     async def _run_analysis_inner(
         self,
         job_id: str,
@@ -287,55 +348,12 @@ class AnalysisService:
             await self._analysis_repo.update_status(job)
             logger.info("Analysis started: %s (file: %s)", job_id, filename)
 
-            opts_dict = pipeline_options or {}
-            if "table_mode" not in opts_dict:
-                opts_dict = {**opts_dict, "table_mode": self._config.default_table_mode}
-            options = ConversionOptions(**opts_dict)
+            options = self._build_conversion_options(pipeline_options)
+            result = await self._run_conversion(job_id, file_path, options)
+            if result is None:
+                return  # job was deleted mid-batch
 
-            total_pages = _count_pdf_pages(file_path)
-            batch_size = self._config.batch_page_size
-
-            if batch_size > 0 and total_pages > batch_size:
-                result = await self._run_batched_conversion(
-                    job_id,
-                    file_path,
-                    options,
-                    total_pages,
-                    batch_size,
-                )
-                if result is None:
-                    return  # job was deleted mid-batch
-            else:
-                result = await asyncio.wait_for(
-                    self._converter.convert(file_path, options),
-                    timeout=self._conversion_timeout,
-                )
-
-            pages_json = json.dumps([asdict(p) for p in result.pages])
-
-            chunks_json = None
-            if chunking_options and self._chunker and result.document_json:
-                chunk_opts = ChunkingOptions(**chunking_options)
-                chunks = await self._chunker.chunk(result.document_json, chunk_opts)
-                chunks_json = json.dumps([_chunk_to_dict(c) for c in chunks])
-                logger.info("Chunking produced %d chunks for job %s", len(chunks), job_id)
-
-            # Re-read the job so we don't lose progress_current/progress_total
-            # written to the DB during batched conversion.
-            job = await self._analysis_repo.find_by_id(job_id) or job
-            job.mark_completed(
-                markdown=result.content_markdown,
-                html=result.content_html,
-                pages_json=pages_json,
-                document_json=result.document_json,
-                chunks_json=chunks_json,
-            )
-            await self._analysis_repo.update_status(job)
-
-            if result.page_count:
-                await self._document_repo.update_page_count(job.document_id, result.page_count)
-
-            logger.info("Analysis completed: %s (%d pages)", job_id, result.page_count)
+            await self._finalize_analysis(job_id, result, chunking_options)
 
         except TimeoutError:
             logger.error("Analysis timed out after %ds: %s", self._conversion_timeout, job_id)
