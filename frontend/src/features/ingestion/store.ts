@@ -13,11 +13,6 @@ export const useIngestionStore = defineStore('ingestion', () => {
   const ingestedDocs = ref<Record<string, number>>({})
   /** Current step of the ingestion pipeline (null when idle) */
   const currentStep = ref<IngestionStep | null>(null)
-  /** Search results */
-  const searchResults = ref<api.SearchResultItem[]>([])
-  const searchQuery = ref('')
-  const searching = ref(false)
-
   let _pollTimer: ReturnType<typeof setInterval> | null = null
 
   async function checkAvailability(): Promise<void> {
@@ -77,30 +72,6 @@ export const useIngestionStore = defineStore('ingestion', () => {
     }
   }
 
-  async function search(query: string, docId?: string): Promise<void> {
-    if (!query.trim()) {
-      searchResults.value = []
-      searchQuery.value = ''
-      return
-    }
-    searching.value = true
-    searchQuery.value = query
-    try {
-      const resp = await api.searchChunks(query, { docId })
-      searchResults.value = resp.results
-    } catch (e) {
-      console.error('Search failed', e)
-      searchResults.value = []
-    } finally {
-      searching.value = false
-    }
-  }
-
-  function clearSearch(): void {
-    searchResults.value = []
-    searchQuery.value = ''
-  }
-
   return {
     available,
     opensearchConnected,
@@ -108,15 +79,10 @@ export const useIngestionStore = defineStore('ingestion', () => {
     error,
     ingestedDocs,
     currentStep,
-    searchResults,
-    searchQuery,
-    searching,
     checkAvailability,
     startPolling,
     stopPolling,
     ingest,
     deleteIngested,
-    search,
-    clearSearch,
   }
 })

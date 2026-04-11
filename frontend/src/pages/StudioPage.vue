@@ -66,6 +66,24 @@
             </svg>
             {{ t('studio.prepare') }}
           </button>
+          <button
+            v-if="chunkingEnabled && ingestionStore.available"
+            class="toggle-btn"
+            data-e2e="toggle-btn"
+            :class="{ active: mode === 'ingest' }"
+            @click="mode = 'ingest'"
+            :disabled="!canIngest"
+            :title="!canIngest ? t('ingestion.unavailable') : ''"
+          >
+            <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fill-rule="evenodd"
+                d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            {{ t('studio.ingest') }}
+          </button>
         </div>
       </div>
       <div class="topbar-actions">
@@ -94,64 +112,6 @@
           </svg>
           {{ analysisStore.running ? t('studio.analyzing') : t('studio.run') }}
         </button>
-        <button
-          v-if="canIngest"
-          class="topbar-btn ingest"
-          data-e2e="ingest-btn"
-          :disabled="ingestionStore.ingesting"
-          @click="runIngestion"
-        >
-          <div v-if="ingestionStore.ingesting" class="spinner-sm" />
-          <svg v-else viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
-            <path
-              fill-rule="evenodd"
-              d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          {{ ingestionStore.ingesting ? t('ingestion.ingesting') : t('ingestion.ingest') }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Ingestion progress stepper -->
-    <div v-if="ingestionStore.currentStep" class="ingestion-stepper">
-      <div
-        class="step"
-        :class="{
-          active: ingestionStore.currentStep === 'embedding',
-          done: ingestionStore.currentStep === 'indexing' || ingestionStore.currentStep === 'done',
-        }"
-      >
-        <span class="step-dot" />
-        <span class="step-label">{{ t('ingestion.stepEmbedding') }}</span>
-      </div>
-      <div
-        class="step-line"
-        :class="{
-          done: ingestionStore.currentStep === 'indexing' || ingestionStore.currentStep === 'done',
-        }"
-      />
-      <div
-        class="step"
-        :class="{
-          active: ingestionStore.currentStep === 'indexing',
-          done: ingestionStore.currentStep === 'done',
-        }"
-      >
-        <span class="step-dot" />
-        <span class="step-label">{{ t('ingestion.stepIndexing') }}</span>
-      </div>
-      <div class="step-line" :class="{ done: ingestionStore.currentStep === 'done' }" />
-      <div
-        class="step"
-        :class="{
-          active: ingestionStore.currentStep === 'done',
-          done: ingestionStore.currentStep === 'done',
-        }"
-      >
-        <span class="step-dot" />
-        <span class="step-label">{{ t('ingestion.stepDone') }}</span>
       </div>
     </div>
 
@@ -507,6 +467,15 @@
             @rechunked="onRechunked"
           />
         </div>
+
+        <!-- INGEST MODE -->
+        <div v-if="mode === 'ingest'" class="ingest-panel-wrapper">
+          <IngestPanel
+            :analysis-id="analysisStore.currentAnalysis?.id ?? null"
+            :document-name="selectedDoc?.filename ?? ''"
+            :chunk-count="analysisStore.currentChunks?.length ?? 0"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -522,6 +491,7 @@ import { DocumentUpload, DocumentList } from '../features/document/index'
 import { ResultTabs } from '../features/analysis/index'
 import BboxOverlay from '../features/analysis/ui/BboxOverlay.vue'
 import { ChunkPanel } from '../features/chunking'
+import { IngestPanel } from '../features/ingestion'
 import { useFeatureFlag } from '../features/feature-flags'
 import { getPreviewUrl } from '../features/document/api'
 import { useI18n } from '../shared/i18n'
@@ -632,11 +602,6 @@ async function runAnalysis() {
   await analysisStore.run(documentStore.selectedId, { ...pipelineOptions })
 }
 
-async function runIngestion() {
-  if (!analysisStore.currentAnalysis?.id) return
-  await ingestionStore.ingest(analysisStore.currentAnalysis.id)
-}
-
 function addMore() {
   documentStore.selectedId = null
 }
@@ -658,22 +623,12 @@ watch(currentPage, () => {
 })
 
 // Auto-switch to verify when analysis completes + refresh document data (pageCount)
-// Auto-trigger ingestion if pipeline is available (#81)
 watch(
   () => analysisStore.currentAnalysis?.status,
-  async (status) => {
+  (status) => {
     if (status === 'COMPLETED') {
       mode.value = 'verify'
       documentStore.load()
-
-      // Auto-ingest if chunks are available and pipeline is configured
-      if (
-        ingestionStore.available &&
-        analysisStore.currentAnalysis?.chunksJson &&
-        analysisStore.currentAnalysis?.id
-      ) {
-        await ingestionStore.ingest(analysisStore.currentAnalysis.id)
-      }
     }
   },
 )
@@ -895,21 +850,6 @@ onBeforeUnmount(() => {
   cursor: not-allowed;
 }
 
-.topbar-btn.ingest {
-  background: var(--success);
-  border-color: var(--success);
-  color: white;
-}
-
-.topbar-btn.ingest:hover:not(:disabled) {
-  filter: brightness(1.1);
-}
-
-.topbar-btn.ingest:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .topbar-btn .btn-icon {
   width: 16px;
   height: 16px;
@@ -922,79 +862,6 @@ onBeforeUnmount(() => {
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
-}
-
-/* Ingestion stepper */
-.ingestion-stepper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  padding: 8px 20px;
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border);
-}
-
-.step {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 8px;
-}
-
-.step-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--border);
-  transition: all 0.3s ease;
-}
-
-.step.active .step-dot {
-  background: var(--accent);
-  box-shadow: 0 0 6px var(--accent);
-  animation: pulse-dot 1s ease-in-out infinite;
-}
-
-.step.done .step-dot {
-  background: var(--success, #22c55e);
-}
-
-.step-label {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.step.active .step-label {
-  color: var(--accent);
-}
-
-.step.done .step-label {
-  color: var(--success, #22c55e);
-}
-
-.step-line {
-  width: 40px;
-  height: 2px;
-  background: var(--border);
-  transition: background 0.3s ease;
-}
-
-.step-line.done {
-  background: var(--success, #22c55e);
-}
-
-@keyframes pulse-dot {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.3);
-    opacity: 0.7;
-  }
 }
 
 /* Doc info bar */
@@ -1541,9 +1408,10 @@ onBeforeUnmount(() => {
   padding-top: 16px;
 }
 
-/* Verify panel */
+/* Verify / Prepare / Ingest panels */
 .verify-panel,
-.prepare-panel {
+.prepare-panel,
+.ingest-panel-wrapper {
   height: 100%;
   overflow: hidden;
   display: flex;
