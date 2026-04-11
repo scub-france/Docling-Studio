@@ -27,7 +27,7 @@
             <span class="result-meta"
               >p.{{ result.pageNumber }} — chunk #{{ result.chunkIndex }}</span
             >
-            <span class="result-score">{{ (result.score * 100).toFixed(0) }}%</span>
+            <span class="result-score">{{ result.score.toFixed(1) }}</span>
           </div>
           <p class="result-content">
             {{ result.content.slice(0, 200) }}{{ result.content.length > 200 ? '…' : '' }}
