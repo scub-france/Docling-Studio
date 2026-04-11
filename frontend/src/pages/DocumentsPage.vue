@@ -30,6 +30,46 @@
         </div>
       </div>
     </div>
+    <!-- Full-text chunk search -->
+    <div v-if="ingestionStore.available" class="chunk-search-bar">
+      <input
+        v-model="chunkSearchQuery"
+        type="text"
+        class="search-input chunk-search"
+        :placeholder="t('ingestion.searchChunks')"
+        @keyup.enter="runChunkSearch"
+      />
+      <div v-if="ingestionStore.searching" class="spinner-xs" />
+    </div>
+    <div v-if="ingestionStore.searchResults.length > 0" class="search-results">
+      <div
+        v-for="(result, idx) in ingestionStore.searchResults"
+        :key="idx"
+        class="search-result-item"
+      >
+        <div class="result-header">
+          <span class="result-filename">{{ result.filename }}</span>
+          <span class="result-meta"
+            >p.{{ result.pageNumber }} — chunk #{{ result.chunkIndex }}</span
+          >
+          <span class="result-score">{{ (result.score * 100).toFixed(0) }}%</span>
+        </div>
+        <p class="result-content">
+          {{ result.content.slice(0, 200) }}{{ result.content.length > 200 ? '…' : '' }}
+        </p>
+      </div>
+    </div>
+    <div
+      v-if="
+        ingestionStore.searchQuery &&
+        !ingestionStore.searching &&
+        ingestionStore.searchResults.length === 0
+      "
+      class="tab-empty"
+    >
+      {{ t('ingestion.noResults', { q: ingestionStore.searchQuery }) }}
+    </div>
+
     <div class="page-content">
       <div v-if="filteredDocs.length === 0" class="tab-empty">
         {{ t('history.emptyDocs') }}
@@ -76,6 +116,20 @@
                 />
               </svg>
             </button>
+            <button
+              v-if="ingestionStore.ingestedDocs[doc.id]"
+              class="action-btn unindex"
+              :title="t('ingestion.deleteIndex')"
+              @click="confirmRemoveFromIndex(doc.id)"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fill-rule="evenodd"
+                  d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </button>
             <button class="action-btn delete" @click="handleDelete(doc.id)">
               <svg viewBox="0 0 20 20" fill="currentColor">
                 <path
@@ -107,6 +161,7 @@ const router = useRouter()
 const { t } = useI18n()
 
 const searchQuery = ref('')
+const chunkSearchQuery = ref('')
 const activeFilter = ref<'all' | 'indexed' | 'not-indexed'>('all')
 const sortBy = ref<'name' | 'date'>('date')
 
@@ -152,11 +207,25 @@ function openInStudio(doc: Document) {
   router.push('/studio')
 }
 
+function confirmRemoveFromIndex(docId: string) {
+  if (confirm(t('ingestion.deleteConfirm'))) {
+    ingestionStore.deleteIngested(docId)
+  }
+}
+
 async function handleDelete(docId: string) {
   if (ingestionStore.ingestedDocs[docId]) {
     await ingestionStore.deleteIngested(docId)
   }
   await docStore.remove(docId)
+}
+
+function runChunkSearch() {
+  if (chunkSearchQuery.value.trim()) {
+    ingestionStore.search(chunkSearchQuery.value)
+  } else {
+    ingestionStore.clearSearch()
+  }
 }
 
 onMounted(() => {
@@ -373,8 +442,91 @@ onMounted(() => {
   background: rgba(239, 68, 68, 0.1);
 }
 
+.action-btn.unindex:hover {
+  color: var(--warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.1);
+}
+
 .action-btn svg {
   width: 16px;
   height: 16px;
+}
+
+/* Chunk search */
+.chunk-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chunk-search {
+  flex: 1;
+}
+
+.spinner-xs {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Search results */
+.search-results {
+  max-height: 300px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-result-item {
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.result-filename {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.result-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.result-score {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.result-content {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
 }
 </style>

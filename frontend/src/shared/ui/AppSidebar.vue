@@ -79,6 +79,21 @@
     </nav>
 
     <div class="sidebar-footer">
+      <div
+        v-if="ingestionStore.available"
+        class="opensearch-status"
+        :title="
+          ingestionStore.opensearchConnected
+            ? t('ingestion.opensearchConnected')
+            : t('ingestion.opensearchDisconnected')
+        "
+      >
+        <span
+          class="status-dot"
+          :class="ingestionStore.opensearchConnected ? 'connected' : 'disconnected'"
+        />
+        <span class="status-label">OpenSearch</span>
+      </div>
       <a
         class="github-badge"
         href="https://github.com/scub-france/Docling-Studio"
@@ -97,18 +112,29 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from '../i18n'
 import { useFeatureFlagStore } from '../../features/feature-flags/store'
+import { useIngestionStore } from '../../features/ingestion/store'
 
 const featureStore = useFeatureFlagStore()
+const ingestionStore = useIngestionStore()
 const version = computed(() => featureStore.appVersion)
 const route = useRoute()
 const { t } = useI18n()
 
 defineProps({
   open: { type: Boolean, default: false },
+})
+
+onMounted(() => {
+  ingestionStore.checkAvailability()
+  ingestionStore.startPolling(30_000)
+})
+
+onBeforeUnmount(() => {
+  ingestionStore.stopPolling()
 })
 </script>
 
@@ -193,6 +219,37 @@ defineProps({
 
 .version {
   font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.opensearch-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  cursor: default;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.connected {
+  background: var(--success, #22c55e);
+  box-shadow: 0 0 4px var(--success, #22c55e);
+}
+
+.status-dot.disconnected {
+  background: var(--error, #ef4444);
+  box-shadow: 0 0 4px var(--error, #ef4444);
+}
+
+.status-label {
+  font-size: 11px;
   color: var(--text-muted);
   font-family: 'IBM Plex Mono', monospace;
 }

@@ -140,6 +140,44 @@ class TestSearch:
         mock_vector_store.search_similar.assert_awaited_once()
 
 
+class TestSearchFulltext:
+    async def test_delegates_to_vector_store(
+        self, service: IngestionService, mock_vector_store: AsyncMock
+    ) -> None:
+        mock_vector_store.search_fulltext.return_value = []
+        await service.search_fulltext("hello world", k=5)
+        mock_vector_store.search_fulltext.assert_awaited_once_with(
+            "test-idx", "hello world", k=5, doc_id=None
+        )
+
+    async def test_filters_by_doc_id(
+        self, service: IngestionService, mock_vector_store: AsyncMock
+    ) -> None:
+        mock_vector_store.search_fulltext.return_value = []
+        await service.search_fulltext("hello", doc_id="doc-1")
+        mock_vector_store.search_fulltext.assert_awaited_once_with(
+            "test-idx", "hello", k=20, doc_id="doc-1"
+        )
+
+
+class TestPing:
+    async def test_ping_success(
+        self, service: IngestionService, mock_vector_store: AsyncMock
+    ) -> None:
+        mock_vector_store._client = AsyncMock()
+        mock_vector_store._client.info.return_value = {"cluster_name": "test"}
+        result = await service.ping()
+        assert result is True
+
+    async def test_ping_failure(
+        self, service: IngestionService, mock_vector_store: AsyncMock
+    ) -> None:
+        mock_vector_store._client = AsyncMock()
+        mock_vector_store._client.info.side_effect = ConnectionError("down")
+        result = await service.ping()
+        assert result is False
+
+
 class TestEnsureIndex:
     async def test_calls_vector_store(
         self, service: IngestionService, mock_vector_store: AsyncMock

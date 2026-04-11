@@ -5,9 +5,14 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
-from api.schemas import IngestionResponse, IngestionStatusResponse
+from api.schemas import (
+    IngestionResponse,
+    IngestionStatusResponse,
+    SearchResponse,
+    SearchResultItem,
+)
 from services.analysis_service import AnalysisService
 from services.ingestion_service import IngestionService
 
@@ -77,6 +82,38 @@ async def delete_ingested_document(doc_id: str, ingestion: IngestionDep) -> None
 
 @router.get("/status", response_model=IngestionStatusResponse)
 async def ingestion_status(request: Request) -> IngestionStatusResponse:
-    """Check if the ingestion pipeline is available."""
-    available = request.app.state.ingestion_service is not None
-    return IngestionStatusResponse(available=available)
+    """Check if the ingestion pipeline is available and OpenSearch is connected."""
+    svc = request.app.state.ingestion_service
+    if svc is None:
+        return IngestionStatusResponse(available=False, opensearch_connected=False)
+
+    connected = await svc.ping()
+    return IngestionStatusResponse(available=True, opensearch_connected=connected)
+
+
+@router.get("/search", response_model=SearchResponse)
+async def search_chunks(
+    ingestion: IngestionDep,
+    q: str = Query(..., min_length=1, description="Search query"),
+    doc_id: str | None = Query(None, description="Filter by document ID"),
+    k: int = Query(20, ge=1, le=100, description="Max results"),
+) -> SearchResponse:
+    """Full-text search across indexed chunks.
+
+    Returns matching chunks with content and metadata.
+    Optionally filter by document ID.
+    """
+    results = await ingestion.search_fulltext(q, k=k, doc_id=doc_id)
+    items = [
+        SearchResultItem(
+            doc_id=r.chunk.doc_id,
+            filename=r.chunk.filename,
+            content=r.chunk.content,
+            chunk_index=r.chunk.chunk_index,
+            page_number=r.chunk.page_number,
+            score=r.score,
+            headings=r.chunk.headings,
+        )
+        for r in results
+    ]
+    return SearchResponse(results=items, total=len(items), query=q)

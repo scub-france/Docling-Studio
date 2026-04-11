@@ -164,3 +164,27 @@ class IngestionService:
             k=k,
             doc_id=doc_id,
         )
+
+    async def search_fulltext(
+        self,
+        query: str,
+        *,
+        k: int = 20,
+        doc_id: str | None = None,
+    ) -> list:
+        """Full-text keyword search in indexed chunks."""
+        return await self._vector_store.search_fulltext(
+            self._config.index_name,
+            query,
+            k=k,
+            doc_id=doc_id,
+        )
+
+    async def ping(self) -> bool:
+        """Check if the OpenSearch cluster is reachable."""
+        try:
+            info = await self._vector_store._client.info()
+            return bool(info)
+        except Exception:
+            logger.debug("OpenSearch ping failed", exc_info=True)
+            return False

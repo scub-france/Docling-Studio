@@ -112,3 +112,65 @@ class TestIngestionDisabled:
         tc = TestClient(app)
         resp = tc.post("/api/ingestion/job-1")
         assert resp.status_code == 503
+
+
+class TestStatusOpenSearch:
+    def test_status_with_opensearch_connected(
+        self, client: TestClient, mock_ingestion_service: AsyncMock
+    ) -> None:
+        mock_ingestion_service.ping.return_value = True
+        resp = client.get("/api/ingestion/status")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["available"] is True
+        assert data["opensearchConnected"] is True
+
+    def test_status_with_opensearch_disconnected(
+        self, client: TestClient, mock_ingestion_service: AsyncMock
+    ) -> None:
+        mock_ingestion_service.ping.return_value = False
+        resp = client.get("/api/ingestion/status")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["available"] is True
+        assert data["opensearchConnected"] is False
+
+
+class TestSearchEndpoint:
+    def test_search_success(self, client: TestClient, mock_ingestion_service: AsyncMock) -> None:
+        from domain.vector_schema import IndexedChunk, SearchResult
+
+        chunk = IndexedChunk(
+            doc_id="doc-1",
+            filename="test.pdf",
+            content="hello world",
+            embedding=[],
+            chunk_index=0,
+            chunk_type="text",
+            page_number=1,
+            headings=["Intro"],
+        )
+        mock_ingestion_service.search_fulltext.return_value = [
+            SearchResult(chunk=chunk, score=0.95)
+        ]
+        resp = client.get("/api/ingestion/search", params={"q": "hello"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 1
+        assert data["query"] == "hello"
+        assert data["results"][0]["content"] == "hello world"
+        assert data["results"][0]["score"] == 0.95
+
+    def test_search_empty_query(self, client: TestClient) -> None:
+        resp = client.get("/api/ingestion/search", params={"q": ""})
+        assert resp.status_code == 422
+
+    def test_search_with_doc_filter(
+        self, client: TestClient, mock_ingestion_service: AsyncMock
+    ) -> None:
+        mock_ingestion_service.search_fulltext.return_value = []
+        resp = client.get("/api/ingestion/search", params={"q": "test", "doc_id": "doc-1"})
+        assert resp.status_code == 200
+        mock_ingestion_service.search_fulltext.assert_awaited_once_with(
+            "test", k=20, doc_id="doc-1"
+        )

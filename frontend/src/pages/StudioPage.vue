@@ -114,6 +114,47 @@
       </div>
     </div>
 
+    <!-- Ingestion progress stepper -->
+    <div v-if="ingestionStore.currentStep" class="ingestion-stepper">
+      <div
+        class="step"
+        :class="{
+          active: ingestionStore.currentStep === 'embedding',
+          done: ingestionStore.currentStep === 'indexing' || ingestionStore.currentStep === 'done',
+        }"
+      >
+        <span class="step-dot" />
+        <span class="step-label">{{ t('ingestion.stepEmbedding') }}</span>
+      </div>
+      <div
+        class="step-line"
+        :class="{
+          done: ingestionStore.currentStep === 'indexing' || ingestionStore.currentStep === 'done',
+        }"
+      />
+      <div
+        class="step"
+        :class="{
+          active: ingestionStore.currentStep === 'indexing',
+          done: ingestionStore.currentStep === 'done',
+        }"
+      >
+        <span class="step-dot" />
+        <span class="step-label">{{ t('ingestion.stepIndexing') }}</span>
+      </div>
+      <div class="step-line" :class="{ done: ingestionStore.currentStep === 'done' }" />
+      <div
+        class="step"
+        :class="{
+          active: ingestionStore.currentStep === 'done',
+          done: ingestionStore.currentStep === 'done',
+        }"
+      >
+        <span class="step-dot" />
+        <span class="step-label">{{ t('ingestion.stepDone') }}</span>
+      </div>
+    </div>
+
     <!-- Document info bar -->
     <div class="doc-infobar">
       <div class="doc-info-left">
@@ -617,12 +658,22 @@ watch(currentPage, () => {
 })
 
 // Auto-switch to verify when analysis completes + refresh document data (pageCount)
+// Auto-trigger ingestion if pipeline is available (#81)
 watch(
   () => analysisStore.currentAnalysis?.status,
-  (status) => {
+  async (status) => {
     if (status === 'COMPLETED') {
       mode.value = 'verify'
       documentStore.load()
+
+      // Auto-ingest if chunks are available and pipeline is configured
+      if (
+        ingestionStore.available &&
+        analysisStore.currentAnalysis?.chunksJson &&
+        analysisStore.currentAnalysis?.id
+      ) {
+        await ingestionStore.ingest(analysisStore.currentAnalysis.id)
+      }
     }
   },
 )
@@ -871,6 +922,79 @@ onBeforeUnmount(() => {
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
+}
+
+/* Ingestion stepper */
+.ingestion-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 8px 20px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: all 0.3s ease;
+}
+
+.step.active .step-dot {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.step.done .step-dot {
+  background: var(--success, #22c55e);
+}
+
+.step-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.step.active .step-label {
+  color: var(--accent);
+}
+
+.step.done .step-label {
+  color: var(--success, #22c55e);
+}
+
+.step-line {
+  width: 40px;
+  height: 2px;
+  background: var(--border);
+  transition: background 0.3s ease;
+}
+
+.step-line.done {
+  background: var(--success, #22c55e);
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.7;
+  }
 }
 
 /* Doc info bar */

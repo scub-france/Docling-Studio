@@ -140,6 +140,8 @@ const messages: Messages = {
     'ingestion.chunksIndexed': '{n} chunks indexés',
     'ingestion.openInStudio': 'Ouvrir dans le Studio',
     'ingestion.deleteIndex': "Supprimer de l'index",
+    'ingestion.deleteConfirm':
+      'Retirer ce document de l\u2019index ? Les chunks seront supprimés mais le document source restera.',
     'ingestion.unavailable': 'Ingestion non disponible',
     'ingestion.filterAll': 'Tous',
     'ingestion.filterIndexed': 'Indexés',
@@ -147,6 +149,13 @@ const messages: Messages = {
     'ingestion.sortName': 'Nom',
     'ingestion.sortDate': 'Date',
     'ingestion.search': 'Rechercher...',
+    'ingestion.searchChunks': 'Rechercher dans les chunks…',
+    'ingestion.noResults': 'Aucun résultat pour « {q} ».',
+    'ingestion.stepEmbedding': 'Embedding…',
+    'ingestion.stepIndexing': 'Indexation…',
+    'ingestion.stepDone': 'Terminé',
+    'ingestion.opensearchConnected': 'OpenSearch connecté',
+    'ingestion.opensearchDisconnected': 'OpenSearch déconnecté',
 
     // Pagination
     'pagination.pageOf': 'Page {current} sur {total}',
@@ -291,6 +300,8 @@ const messages: Messages = {
     'ingestion.chunksIndexed': '{n} chunks indexed',
     'ingestion.openInStudio': 'Open in Studio',
     'ingestion.deleteIndex': 'Remove from index',
+    'ingestion.deleteConfirm':
+      'Remove this document from the index? Chunks will be deleted but the source document will remain.',
     'ingestion.unavailable': 'Ingestion unavailable',
     'ingestion.filterAll': 'All',
     'ingestion.filterIndexed': 'Indexed',
@@ -298,6 +309,13 @@ const messages: Messages = {
     'ingestion.sortName': 'Name',
     'ingestion.sortDate': 'Date',
     'ingestion.search': 'Search...',
+    'ingestion.searchChunks': 'Search indexed chunks…',
+    'ingestion.noResults': 'No results for "{q}".',
+    'ingestion.stepEmbedding': 'Embedding…',
+    'ingestion.stepIndexing': 'Indexing…',
+    'ingestion.stepDone': 'Done',
+    'ingestion.opensearchConnected': 'OpenSearch connected',
+    'ingestion.opensearchDisconnected': 'OpenSearch unreachable',
 
     'pagination.pageOf': 'Page {current} of {total}',
     'pagination.perPage': '/ page',

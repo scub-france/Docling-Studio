@@ -190,3 +190,23 @@ class IngestionResponse(_CamelModel):
 
 class IngestionStatusResponse(_CamelModel):
     available: bool
+    opensearch_connected: bool = False
+
+
+class SearchResultItem(_CamelModel):
+    """A single search result with content and metadata."""
+
+    doc_id: str
+    filename: str
+    content: str
+    chunk_index: int
+    page_number: int
+    score: float
+    headings: list[str] = []
+    highlights: list[str] = []
+
+
+class SearchResponse(_CamelModel):
+    results: list[SearchResultItem]
+    total: int
+    query: str
