@@ -18,7 +18,7 @@ Feature: UI — Launch an analysis and verify results
     * waitFor('[data-e2e=doc-item].selected')
 
     # Verify we are in Configure mode (first toggle button is active)
-    * waitFor('[data-e2e=toggle-btn].active')
+    * waitFor('[data-e2e~=configure-btn].active')
 
     # Click Run / Exécuter
     * waitFor('[data-e2e=run-btn]')
