@@ -22,7 +22,7 @@ Feature: UI — Full happy path via browser
     * waitFor('[data-e2e=doc-item].selected')
 
     # Step 5: Verify Configure mode is active
-    * waitFor('[data-e2e=toggle-btn].active')
+    * waitFor('[data-e2e~=configure-btn].active')
 
     # Step 6: Run the analysis
     * click('[data-e2e=run-btn]')
