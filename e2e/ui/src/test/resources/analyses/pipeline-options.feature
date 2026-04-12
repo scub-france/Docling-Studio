@@ -51,10 +51,9 @@ Feature: UI — Pipeline configuration options
     * select('[data-e2e=config-select]', 'fast')
 
     # Switch to Verify mode and back
-    * def toggleBtns = locateAll('[data-e2e=toggle-btn]')
-    * toggleBtns[1].click()
-    * waitFor('[data-e2e=toggle-btn].active')
-    * toggleBtns[0].click()
+    * click('[data-e2e~=verify-btn]')
+    * waitFor('[data-e2e~=verify-btn].active')
+    * click('[data-e2e~=configure-btn]')
     * waitFor('[data-e2e=config-select]')
 
     # Verify table mode is still fast

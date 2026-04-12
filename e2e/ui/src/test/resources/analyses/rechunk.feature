@@ -25,9 +25,9 @@ Feature: UI — Rechunk an analysis with different parameters
     * call read('classpath:common/helpers/ui-wait-analysis.feature')
     * waitFor('[data-e2e=result-tabs]')
 
-    # Now Préparer toggle should be enabled — click the last one
-    * def toggleBtns = locateAll('[data-e2e=toggle-btn]')
-    * toggleBtns[karate.sizeOf(toggleBtns) - 1].click()
+    # Switch to Prepare tab — use dedicated selector (avoids race with feature flag load)
+    * waitFor('[data-e2e~=prepare-btn]')
+    * click('[data-e2e~=prepare-btn]')
 
     # Wait for chunk panel to load
     * waitFor('[data-e2e=chunk-panel]')

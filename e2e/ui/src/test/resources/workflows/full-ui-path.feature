@@ -46,8 +46,8 @@ Feature: UI — Full happy path via browser
     * match text('[data-e2e=raw-content]') != ''
 
     # Step 9: Switch to Préparer mode and rechunk
-    * def toggleBtns = locateAll('[data-e2e=toggle-btn]')
-    * toggleBtns[karate.sizeOf(toggleBtns) - 1].click()
+    * waitFor('[data-e2e~=prepare-btn]')
+    * click('[data-e2e~=prepare-btn]')
     * waitFor('[data-e2e=chunk-panel]')
 
     # Expand config if needed
@@ -66,8 +66,7 @@ Feature: UI — Full happy path via browser
     * assert karate.sizeOf(locateAll('[data-e2e=chunk-card]')) > 0
 
     # Step 10: Delete the document via UI
-    * def toggleBtns2 = locateAll('[data-e2e=toggle-btn]')
-    * toggleBtns2[0].click()
+    * click('[data-e2e~=configure-btn]')
     * waitFor('[data-e2e=doc-item]')
 
     # Hover and delete

@@ -22,7 +22,7 @@
         <div class="mode-toggle">
           <button
             class="toggle-btn"
-            data-e2e="toggle-btn"
+            data-e2e="toggle-btn configure-btn"
             :class="{ active: mode === 'configure' }"
             @click="mode = 'configure'"
           >
@@ -37,7 +37,7 @@
           </button>
           <button
             class="toggle-btn"
-            data-e2e="toggle-btn"
+            data-e2e="toggle-btn verify-btn"
             :class="{ active: mode === 'verify' }"
             @click="mode = 'verify'"
             :disabled="!analysisStore.currentAnalysis"
@@ -54,7 +54,7 @@
           <button
             v-if="chunkingEnabled"
             class="toggle-btn"
-            data-e2e="toggle-btn"
+            data-e2e="toggle-btn prepare-btn"
             :class="{ active: mode === 'prepare' }"
             @click="mode = 'prepare'"
             :disabled="!analysisStore.currentAnalysis"
