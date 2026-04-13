@@ -104,7 +104,18 @@ class TestIngestionStatus:
 
 
 class TestIngestionDisabled:
-    def test_returns_503_when_disabled(self) -> None:
+    def test_router_not_mounted_returns_404(self) -> None:
+        """When ingestion service is None, router should not be mounted → 404."""
+        app = FastAPI()
+        # Do NOT include ingestion router — simulates main.py conditional mount
+        app.state.ingestion_service = None
+        app.state.analysis_service = AsyncMock()
+        tc = TestClient(app)
+        resp = tc.post("/api/ingestion/job-1")
+        assert resp.status_code == 404
+
+    def test_status_still_returns_503_when_router_mounted_but_service_none(self) -> None:
+        """If router is mounted but service is None, endpoints return 503."""
         app = FastAPI()
         app.include_router(router)
         app.state.ingestion_service = None

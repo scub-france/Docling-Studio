@@ -31,9 +31,13 @@ Upload a PDF, configure the extraction pipeline, and visualize the results — t
 - **Configurable Docling pipeline** — OCR, table extraction, code/formula enrichment, picture classification & description, image generation
 - **Bounding box visualization** — color-coded element overlay directly on the PDF
 - **Per-page results** — right panel syncs with the current PDF page
+- **Chunking** — split extracted content into semantic chunks (hierarchical, hybrid, or page-based) with configurable token limits and inline editing
+- **Ingestion pipeline** — Docling → chunking → embedding → OpenSearch vector indexing (one-click from Studio)
 - **Markdown & HTML export** of extracted content
-- **Document management** — upload, list, delete
+- **Document management** — upload, list, delete, search, filter by indexing status
 - **Analysis history** — re-visit and open past analyses
+- **Upload limits** — configurable max file size and max page count per document
+- **Rate limiting** — configurable requests per minute per IP
 - **Dark / Light theme** and **FR / EN** localization
 
 
@@ -74,7 +78,7 @@ document-parser/
 ├── services/                 # Use case orchestration
 │   ├── document_service.py   # Upload, delete, preview
 │   └── analysis_service.py   # Async Docling processing
-└── tests/                    # 199 tests (pytest)
+└── tests/                    # 377 tests (pytest)
 ```
 
 ### Frontend structure (feature-based)
@@ -98,14 +102,24 @@ frontend/src/
 
 ## Quick Start
 
-Docling Studio ships two Docker image variants:
+One command, nothing else to install:
+
+```bash
+docker run -p 3000:3000 ghcr.io/scub-france/docling-studio:latest-local
+```
+
+Open [http://localhost:3000](http://localhost:3000), upload a PDF, and get results. That's it.
+
+> **Note:** The first analysis takes longer as Docling downloads its ML models (~400 MB). Subsequent runs are fast.
+
+### Image variants
 
 | Variant | Image tag | Size | Description |
 |---------|-----------|------|-------------|
+| **local** | `latest-local` | ~1.9 GB | Full — runs Docling in-process, CPU-only |
 | **remote** | `latest-remote` | ~270 MB | Lightweight — delegates to an external [Docling Serve](https://github.com/DS4SD/docling-serve) instance |
-| **local** | `latest-local` | ~1.9 GB | Full — runs Docling in-process, CPU-only (downloads ML models on first run) |
 
-### Docker — remote mode (fastest)
+For remote mode:
 
 ```bash
 docker run -p 3000:3000 \
@@ -113,27 +127,17 @@ docker run -p 3000:3000 \
   ghcr.io/scub-france/docling-studio:latest-remote
 ```
 
-### Docker — local mode (self-contained)
-
-```bash
-docker run -p 3000:3000 ghcr.io/scub-france/docling-studio:latest-local
-```
-
-> **Note:** The first analysis takes longer as Docling downloads its ML models (~400 MB). Subsequent runs are fast.
-
-Open [http://localhost:3000](http://localhost:3000)
-
-### Docker Compose (for development)
+### Docker Compose
 
 ```bash
 git clone https://github.com/scub-france/Docling-Studio.git
 cd Docling-Studio
 
-# Local mode (default)
+# Simple mode (backend + frontend only)
 docker compose up --build
 
-# Remote mode
-CONVERSION_MODE=remote DOCLING_SERVE_URL=http://your-docling-serve:5001 docker compose up --build
+# With ingestion pipeline (OpenSearch + embeddings)
+docker compose --profile ingestion -f docker-compose.yml -f docker-compose.ingestion.yml up --build
 ```
 
 ### Local Development
@@ -162,12 +166,12 @@ npm run dev
 ### Running Tests
 
 ```bash
-# Backend (199 tests)
+# Backend (377 tests)
 cd document-parser
 pip install pytest pytest-asyncio httpx
 pytest tests/ -v
 
-# Frontend (129 tests)
+# Frontend (156 tests)
 cd frontend
 npm run test:run
 ```
@@ -202,6 +206,43 @@ All configuration is done via environment variables. See [`.env.example`](.env.e
 | `UPLOAD_DIR` | `./uploads` | File storage directory |
 | `DB_PATH` | `./data/docling_studio.db` | SQLite database path |
 | `CONVERSION_TIMEOUT` | `600` | Max seconds for a single Docling conversion |
+| `BATCH_PAGE_SIZE` | `5` (Docker) / `0` | Pages per batch (`0` = process all at once) |
+| `MAX_FILE_SIZE_MB` | `50` | Maximum upload file size in MB (`0` = unlimited) |
+| `MAX_PAGE_COUNT` | `0` | Maximum number of pages per document (`0` = unlimited) |
+| `RATE_LIMIT_RPM` | `100` | Max requests per minute per IP (`0` = disabled) |
+
+## Upload Limits
+
+Docling Studio enforces configurable limits on uploaded documents to protect the server against oversized files and long-running analyses:
+
+- **`MAX_FILE_SIZE_MB`** (default `50`) — rejects uploads exceeding this size. Validated at two levels: early `Content-Length` check and streaming byte count.
+- **`MAX_PAGE_COUNT`** (default `0` = unlimited) — rejects documents with more pages than allowed. Useful on shared instances or Hugging Face Spaces to cap processing time.
+
+Both limits are exposed in the `/api/health` endpoint so the frontend can display them to the user before upload. Set either to `0` to disable the corresponding check.
+
+## Ingestion Pipeline (opt-in)
+
+Docling Studio can optionally index extracted chunks into [OpenSearch](https://opensearch.org/) for vector and full-text search. This requires two additional services (OpenSearch + embedding) and is **disabled by default**.
+
+To enable ingestion with Docker Compose:
+
+```bash
+docker compose --profile ingestion \
+  -f docker-compose.yml -f docker-compose.ingestion.yml \
+  up --build
+```
+
+When ingestion is enabled, the UI shows:
+- An **Ingest** button in Studio to push chunks to OpenSearch
+- An **OpenSearch** connection status badge in the sidebar
+- **Indexed / Not indexed** filters on the Documents page
+- A **Search** page for full-text and vector search across indexed documents
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OPENSEARCH_URL` | — | OpenSearch endpoint (empty = ingestion disabled) |
+| `EMBEDDING_URL` | — | Embedding service endpoint (empty = ingestion disabled) |
+| `EMBEDDING_DIMENSION` | `384` | Vector dimension (must match embedding model) |
 
 ## CI / Release
 

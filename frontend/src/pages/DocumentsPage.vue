@@ -9,7 +9,7 @@
           class="search-input"
           :placeholder="t('ingestion.search')"
         />
-        <div class="filter-group">
+        <div v-if="ingestionEnabled" class="filter-group">
           <button
             v-for="f in filters"
             :key="f.value"
@@ -54,17 +54,19 @@
             </div>
           </div>
           <div class="doc-row-actions">
-            <span
-              v-if="ingestionStore.ingestedDocs[doc.id]"
-              class="status-badge indexed"
-              :title="t('ingestion.chunksIndexed', { n: ingestionStore.ingestedDocs[doc.id] })"
-            >
-              {{ t('ingestion.indexed') }}
-              <span class="badge-count">{{ ingestionStore.ingestedDocs[doc.id] }}</span>
-            </span>
-            <span v-else class="status-badge not-indexed">
-              {{ t('ingestion.notIndexed') }}
-            </span>
+            <template v-if="ingestionEnabled">
+              <span
+                v-if="ingestionStore.ingestedDocs[doc.id]"
+                class="status-badge indexed"
+                :title="t('ingestion.chunksIndexed', { n: ingestionStore.ingestedDocs[doc.id] })"
+              >
+                {{ t('ingestion.indexed') }}
+                <span class="badge-count">{{ ingestionStore.ingestedDocs[doc.id] }}</span>
+              </span>
+              <span v-else class="status-badge not-indexed">
+                {{ t('ingestion.notIndexed') }}
+              </span>
+            </template>
             <button
               class="action-btn"
               :title="t('ingestion.openInStudio')"
@@ -77,7 +79,7 @@
               </svg>
             </button>
             <button
-              v-if="ingestionStore.ingestedDocs[doc.id]"
+              v-if="ingestionEnabled && ingestionStore.ingestedDocs[doc.id]"
               class="action-btn unindex"
               :title="t('ingestion.deleteIndex')"
               @click="confirmRemoveFromIndex(doc.id)"
@@ -110,13 +112,16 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDocumentStore } from '../features/document/store'
+import { useFeatureFlagStore } from '../features/feature-flags/store'
 import { useIngestionStore } from '../features/ingestion/store'
 import { useI18n } from '../shared/i18n'
 import { formatSize } from '../shared/format'
 import type { Document } from '../shared/types'
 
 const docStore = useDocumentStore()
+const featureStore = useFeatureFlagStore()
 const ingestionStore = useIngestionStore()
+const ingestionEnabled = computed(() => featureStore.isEnabled('ingestion'))
 const router = useRouter()
 const { t } = useI18n()
 
@@ -173,7 +178,7 @@ function confirmRemoveFromIndex(docId: string) {
 }
 
 async function handleDelete(docId: string) {
-  if (ingestionStore.ingestedDocs[docId]) {
+  if (ingestionEnabled.value && ingestionStore.ingestedDocs[docId]) {
     await ingestionStore.deleteIngested(docId)
   }
   await docStore.remove(docId)
@@ -181,7 +186,9 @@ async function handleDelete(docId: string) {
 
 onMounted(() => {
   docStore.load()
-  ingestionStore.checkAvailability()
+  if (ingestionEnabled.value) {
+    ingestionStore.checkAvailability()
+  }
 })
 </script>
 

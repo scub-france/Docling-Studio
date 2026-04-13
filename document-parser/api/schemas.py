@@ -34,6 +34,7 @@ class HealthResponse(_CamelModel):
     database: str
     max_page_count: int | None = None
     max_file_size_mb: int | None = None
+    ingestion_available: bool = False
 
 
 class DocumentResponse(_CamelModel):

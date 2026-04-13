@@ -46,6 +46,7 @@
       </RouterLink>
 
       <RouterLink
+        v-if="ingestionEnabled"
         to="/search"
         class="nav-item"
         data-e2e="nav-search"
@@ -96,7 +97,7 @@
 
     <div class="sidebar-footer">
       <div
-        v-if="ingestionStore.available"
+        v-if="ingestionEnabled && ingestionStore.available"
         class="opensearch-status"
         :title="
           ingestionStore.opensearchConnected
@@ -136,6 +137,7 @@ import { useIngestionStore } from '../../features/ingestion/store'
 
 const featureStore = useFeatureFlagStore()
 const ingestionStore = useIngestionStore()
+const ingestionEnabled = computed(() => featureStore.isEnabled('ingestion'))
 const version = computed(() => featureStore.appVersion)
 const route = useRoute()
 const { t } = useI18n()
@@ -145,8 +147,10 @@ defineProps({
 })
 
 onMounted(() => {
-  ingestionStore.checkAvailability()
-  ingestionStore.startPolling(30_000)
+  if (ingestionEnabled.value) {
+    ingestionStore.checkAvailability()
+    ingestionStore.startPolling(30_000)
+  }
 })
 
 onBeforeUnmount(() => {

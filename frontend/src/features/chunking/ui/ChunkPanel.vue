@@ -202,7 +202,10 @@
       </div>
     </div>
 
-    <div class="chunk-empty" v-else-if="!chunkingStore.rechunking">
+    <div
+      class="chunk-empty"
+      v-if="!pageChunks.length && !chunkingStore.rechunking && deleteConfirmIdx === -1"
+    >
       <p>
         {{ chunks.length ? t('chunking.noChunksOnPage') : t('chunking.noChunks') }}
       </p>

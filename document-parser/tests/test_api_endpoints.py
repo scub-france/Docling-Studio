@@ -51,6 +51,23 @@ class TestHealthEndpoint:
         assert "maxFileSizeMb" in data
         assert data["maxFileSizeMb"] == 50
 
+    def test_health_exposes_ingestion_available_false(self, client):
+        original = getattr(app.state, "ingestion_service", None)
+        app.state.ingestion_service = None
+        resp = client.get("/api/health")
+        app.state.ingestion_service = original
+        data = resp.json()
+        assert "ingestionAvailable" in data
+        assert data["ingestionAvailable"] is False
+
+    def test_health_exposes_ingestion_available_true(self, client):
+        original = getattr(app.state, "ingestion_service", None)
+        app.state.ingestion_service = MagicMock()
+        resp = client.get("/api/health")
+        app.state.ingestion_service = original
+        data = resp.json()
+        assert data["ingestionAvailable"] is True
+
 
 class TestDocumentEndpoints:
     def test_list_documents(self, client, mock_document_service):

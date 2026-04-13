@@ -138,7 +138,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     document_repo, analysis_repo = _build_repos()
     app.state.analysis_service = _build_analysis_service(document_repo, analysis_repo)
     app.state.document_service = _build_document_service(document_repo, analysis_repo)
-    app.state.ingestion_service = _build_ingestion_service()
+    ingestion_service = _build_ingestion_service()
+    app.state.ingestion_service = ingestion_service
+    if ingestion_service is not None:
+        app.include_router(ingestion_router)
+        logger.info("Ingestion router mounted")
     logger.info("Docling Studio backend ready (engine=%s)", settings.conversion_engine)
     yield
 
@@ -165,7 +169,6 @@ if settings.rate_limit_rpm > 0:
 
 app.include_router(documents_router)
 app.include_router(analyses_router)
-app.include_router(ingestion_router)
 
 
 @app.get("/api/health", response_model=HealthResponse)
@@ -188,4 +191,5 @@ async def health() -> HealthResponse:
         database=db_status,
         max_page_count=settings.max_page_count if settings.max_page_count > 0 else None,
         max_file_size_mb=settings.max_file_size_mb if settings.max_file_size_mb > 0 else None,
+        ingestion_available=getattr(app.state, "ingestion_service", None) is not None,
     )

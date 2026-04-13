@@ -1,6 +1,7 @@
 services:
   # --- OpenSearch (single-node, security disabled) ---
   opensearch:
+    profiles: ["ingestion"]
     image: opensearchproject/opensearch:2
     environment:
       discovery.type: single-node
@@ -16,6 +17,7 @@ services:
 
   # --- Embedding service (sentence-transformers) ---
   embedding:
+    profiles: ["ingestion"]
     build:
       context: ./embedding-service
     environment:
@@ -49,13 +51,8 @@ services:
       RATE_LIMIT_RPM: ${RATE_LIMIT_RPM:-100}
       MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
       BATCH_PAGE_SIZE: ${BATCH_PAGE_SIZE:-0}
-      OPENSEARCH_URL: http://opensearch:9200
-      EMBEDDING_URL: http://embedding:8001
-    depends_on:
-      opensearch:
-        condition: service_healthy
-      embedding:
-        condition: service_healthy
+      OPENSEARCH_URL: ${OPENSEARCH_URL:-}
+      EMBEDDING_URL: ${EMBEDDING_URL:-}
     deploy:
       resources:
         limits:

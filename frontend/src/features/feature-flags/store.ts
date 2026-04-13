@@ -13,9 +13,10 @@ interface HealthResponse {
   deploymentMode?: DeploymentMode
   maxPageCount?: number
   maxFileSizeMb?: number
+  ingestionAvailable?: boolean
 }
 
-export type FeatureFlag = 'chunking' | 'disclaimer'
+export type FeatureFlag = 'chunking' | 'disclaimer' | 'ingestion'
 
 interface FeatureFlagDef {
   description: string
@@ -25,6 +26,7 @@ interface FeatureFlagDef {
 interface FeatureFlagContext {
   engine: ConversionEngine | null
   deploymentMode: DeploymentMode | null
+  ingestionAvailable: boolean
 }
 
 const featureRegistry: Record<FeatureFlag, FeatureFlagDef> = {
@@ -36,6 +38,10 @@ const featureRegistry: Record<FeatureFlag, FeatureFlagDef> = {
     description: 'Show shared-instance disclaimer banner',
     isEnabled: (ctx) => ctx.deploymentMode === 'huggingface',
   },
+  ingestion: {
+    description: 'OpenSearch ingestion pipeline (embedding + vector indexing)',
+    isEnabled: (ctx) => ctx.ingestionAvailable,
+  },
 }
 
 export const useFeatureFlagStore = defineStore('feature-flags', () => {
@@ -43,6 +49,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
   const deploymentMode = ref<DeploymentMode | null>(null)
   const maxPageCount = ref<number>(0)
   const maxFileSizeMb = ref<number>(0)
+  const ingestionAvailable = ref(false)
   const appVersion = ref<string>(__APP_VERSION__)
   const loaded = ref(false)
   const error = ref<string | null>(null)
@@ -50,6 +57,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
   const context = computed<FeatureFlagContext>(() => ({
     engine: engine.value,
     deploymentMode: deploymentMode.value,
+    ingestionAvailable: ingestionAvailable.value,
   }))
 
   function isEnabled(flag: FeatureFlag): boolean {
@@ -65,6 +73,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
       deploymentMode.value = data.deploymentMode ?? 'self-hosted'
       maxPageCount.value = data.maxPageCount ?? 0
       maxFileSizeMb.value = data.maxFileSizeMb ?? 0
+      ingestionAvailable.value = data.ingestionAvailable ?? false
       appMaxFileSizeMb.value = maxFileSizeMb.value
       appMaxPageCount.value = maxPageCount.value
       if (data.version) appVersion.value = data.version
@@ -81,6 +90,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
     deploymentMode,
     maxPageCount,
     maxFileSizeMb,
+    ingestionAvailable,
     appVersion,
     loaded,
     error,

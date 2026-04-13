@@ -1,0 +1,19 @@
+# Override to enable the ingestion pipeline (OpenSearch + embeddings).
+#
+# Usage:
+#   docker compose --profile ingestion -f docker-compose.yml -f docker-compose.ingestion.yml up --build
+#
+# This wires the backend to the OpenSearch and embedding services started
+# by the "ingestion" profile and ensures they are healthy before the
+# backend starts.
+
+services:
+  document-parser:
+    environment:
+      OPENSEARCH_URL: http://opensearch:9200
+      EMBEDDING_URL: http://embedding:8001
+    depends_on:
+      opensearch:
+        condition: service_healthy
+      embedding:
+        condition: service_healthy

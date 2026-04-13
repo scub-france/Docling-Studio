@@ -4,7 +4,7 @@
       <h1 class="page-title">{{ t('nav.search') }}</h1>
     </div>
 
-    <div v-if="!ingestionStore.available" class="tab-empty">
+    <div v-if="!ingestionEnabled || !ingestionStore.available" class="tab-empty">
       {{ t('ingestion.unavailable') }}
     </div>
 
@@ -50,13 +50,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useSearchStore } from '../features/search/store'
+import { useFeatureFlagStore } from '../features/feature-flags/store'
 import { useIngestionStore } from '../features/ingestion/store'
 import { useI18n } from '../shared/i18n'
 
 const searchStore = useSearchStore()
+const featureStore = useFeatureFlagStore()
 const ingestionStore = useIngestionStore()
+const ingestionEnabled = computed(() => featureStore.isEnabled('ingestion'))
 const { t } = useI18n()
 
 const searchInput = ref('')
@@ -70,7 +73,9 @@ function runSearch() {
 }
 
 onMounted(() => {
-  ingestionStore.checkAvailability()
+  if (ingestionEnabled.value) {
+    ingestionStore.checkAvailability()
+  }
 })
 </script>
 

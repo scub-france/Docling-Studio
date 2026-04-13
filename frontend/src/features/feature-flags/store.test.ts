@@ -82,6 +82,38 @@ describe('useFeatureFlagStore', () => {
     expect(store.maxFileSizeMb).toBe(0)
   })
 
+  it('enables ingestion when ingestionAvailable is true', async () => {
+    mockApiFetch.mockResolvedValue({
+      status: 'ok',
+      engine: 'local',
+      ingestionAvailable: true,
+    })
+    const store = useFeatureFlagStore()
+    await store.load()
+    expect(store.ingestionAvailable).toBe(true)
+    expect(store.isEnabled('ingestion')).toBe(true)
+  })
+
+  it('disables ingestion when ingestionAvailable is false', async () => {
+    mockApiFetch.mockResolvedValue({
+      status: 'ok',
+      engine: 'local',
+      ingestionAvailable: false,
+    })
+    const store = useFeatureFlagStore()
+    await store.load()
+    expect(store.ingestionAvailable).toBe(false)
+    expect(store.isEnabled('ingestion')).toBe(false)
+  })
+
+  it('defaults ingestionAvailable to false when missing', async () => {
+    mockApiFetch.mockResolvedValue({ status: 'ok', engine: 'local' })
+    const store = useFeatureFlagStore()
+    await store.load()
+    expect(store.ingestionAvailable).toBe(false)
+    expect(store.isEnabled('ingestion')).toBe(false)
+  })
+
   it('handles health endpoint failure gracefully', async () => {
     mockApiFetch.mockRejectedValue(new Error('Network error'))
     const store = useFeatureFlagStore()

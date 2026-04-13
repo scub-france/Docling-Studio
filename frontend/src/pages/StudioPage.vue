@@ -67,7 +67,7 @@
             {{ t('studio.prepare') }}
           </button>
           <button
-            v-if="chunkingEnabled && ingestionStore.available"
+            v-if="chunkingEnabled && ingestionEnabled && ingestionStore.available"
             class="toggle-btn"
             data-e2e="toggle-btn"
             :class="{ active: mode === 'ingest' }"
@@ -504,6 +504,7 @@ const analysisStore = useAnalysisStore()
 const ingestionStore = useIngestionStore()
 const { t } = useI18n()
 const chunkingEnabled = useFeatureFlag('chunking')
+const ingestionEnabled = useFeatureFlag('ingestion')
 
 const mode = ref('configure')
 const currentPage = ref(1)
@@ -636,7 +637,9 @@ watch(
 onMounted(async () => {
   await documentStore.load()
   analysisStore.load()
-  ingestionStore.checkAvailability()
+  if (ingestionEnabled.value) {
+    ingestionStore.checkAvailability()
+  }
 
   // Restore analysis from history via query param
   const analysisId = route.query.analysisId
