@@ -465,3 +465,68 @@ class TestRechunkEndpoint:
             },
         )
         assert resp.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Remote chunking path — hybrid local chunking from Serve's document_json
+# ---------------------------------------------------------------------------
+
+
+class TestRemoteChunkingPath:
+    """Verify that chunking works on document_json produced by Serve (remote mode)."""
+
+    @pytest.mark.asyncio
+    async def test_rechunk_with_serve_document_json(self):
+        """AnalysisService.rechunk() works with a LocalChunker even in remote mode."""
+        from infra.local_chunker import LocalChunker
+        from services.analysis_service import AnalysisService
+
+        chunker = LocalChunker()
+        analysis_repo = AsyncMock()
+        document_repo = AsyncMock()
+        converter = AsyncMock()  # ServeConverter mock — not used for rechunking
+
+        service = AnalysisService(
+            converter=converter,
+            analysis_repo=analysis_repo,
+            document_repo=document_repo,
+            chunker=chunker,
+        )
+
+        # Simulate a completed job with document_json from Serve
+        job = AnalysisJob(id="j-remote", document_id="d1")
+        job.mark_running()
+        job.mark_completed(
+            markdown="# Title\nParagraph text here.",
+            html="<h1>Title</h1><p>Paragraph text here.</p>",
+            pages_json="[]",
+            document_json=json.dumps({
+                "schema_name": "DoclingDocument",
+                "version": "1.0.0",
+                "name": "test",
+                "origin": {
+                    "mimetype": "application/pdf",
+                    "filename": "test.pdf",
+                    "binary_hash": 0,
+                },
+                "furniture": {"self_ref": "#/furniture", "children": [], "content_layer": "furniture"},
+                "body": {"self_ref": "#/body", "children": [], "content_layer": "body"},
+                "groups": [],
+                "texts": [],
+                "pictures": [],
+                "tables": [],
+                "key_value_items": [],
+                "form_items": [],
+                "pages": {},
+            }),
+        )
+        analysis_repo.find_by_id = AsyncMock(return_value=job)
+        analysis_repo.update_chunks = AsyncMock(return_value=True)
+
+        chunks = await service.rechunk(
+            "j-remote",
+            {"chunker_type": "hybrid", "max_tokens": 512},
+        )
+
+        assert isinstance(chunks, list)
+        analysis_repo.update_chunks.assert_called_once()

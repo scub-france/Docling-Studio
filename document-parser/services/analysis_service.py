@@ -324,11 +324,18 @@ class AnalysisService:
         file_path: str,
         options: ConversionOptions,
     ) -> ConversionResult | None:
-        """Run batched or single conversion. Returns None if the job was deleted mid-batch."""
+        """Run batched or single conversion. Returns None if the job was deleted mid-batch.
+
+        Batching is only used for local mode — it limits memory usage when
+        Docling runs in-process.  In remote mode the Serve instance manages
+        its own resources, and batching would discard document_json (needed
+        for chunking).
+        """
         total_pages = _count_pdf_pages(file_path)
         batch_size = self._config.batch_page_size
+        is_remote = self._is_remote_converter()
 
-        if batch_size > 0 and total_pages > batch_size:
+        if batch_size > 0 and total_pages > batch_size and not is_remote:
             return await self._run_batched_conversion(
                 job_id, file_path, options, total_pages, batch_size
             )
@@ -336,6 +343,15 @@ class AnalysisService:
             self._converter.convert(file_path, options),
             timeout=self._conversion_timeout,
         )
+
+    def _is_remote_converter(self) -> bool:
+        """Check if the converter is a remote (Serve) adapter."""
+        try:
+            from infra.serve_converter import ServeConverter
+
+            return isinstance(self._converter, ServeConverter)
+        except ImportError:
+            return False
 
     async def _finalize_analysis(
         self,

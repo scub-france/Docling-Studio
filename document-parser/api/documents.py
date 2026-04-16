@@ -85,7 +85,7 @@ async def get_document(doc_id: str, service: ServiceDep) -> DocumentResponse:
     return _to_response(doc)
 
 
-@router.delete("/{doc_id}", status_code=204)
+@router.delete("/{doc_id}", status_code=204, response_model=None)
 async def delete_document(doc_id: str, service: ServiceDep) -> None:
     """Delete a document and its file."""
     deleted = await service.delete(doc_id)
