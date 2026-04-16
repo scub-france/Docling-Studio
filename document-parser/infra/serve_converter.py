@@ -96,6 +96,13 @@ class ServeConverter:
                     headers=self._headers(),
                 )
 
+        if response.status_code >= 400:
+            logger.error(
+                "Docling Serve error %d: %s (form_data=%s)",
+                response.status_code,
+                response.text[:500],
+                {k: v for k, v in form_data.items()},
+            )
         response.raise_for_status()
         result_data = response.json()
 
@@ -122,8 +129,12 @@ def _build_form_data(
 ) -> dict[str, str | list[str]]:
     """Build form fields matching Docling Serve's multipart form contract.
 
-    Array fields (to_formats) are sent as lists — httpx encodes them as
-    repeated form keys (to_formats=md&to_formats=html&to_formats=json).
+    Serve uses FastAPI's ``Form()`` parsing — list/tuple fields are sent
+    as **repeated form keys** (httpx encodes Python lists this way
+    automatically: ``to_formats=md&to_formats=html&to_formats=json``).
+
+    Note: ``generate_page_images`` is a PdfPipelineOptions field, NOT a
+    ConvertDocumentsOptions field — sending it causes a 422.
     """
     data: dict[str, str | list[str]] = {
         "to_formats": ["md", "html", "json"],
@@ -135,11 +146,12 @@ def _build_form_data(
         "do_picture_classification": str(options.do_picture_classification).lower(),
         "do_picture_description": str(options.do_picture_description).lower(),
         "include_images": str(options.generate_picture_images).lower(),
-        "generate_page_images": str(options.generate_page_images).lower(),
         "images_scale": str(options.images_scale),
     }
     if page_range is not None:
-        data["page_range"] = f"{page_range[0]}-{page_range[1]}"
+        # Serve expects page_range as two repeated form fields:
+        # page_range=1&page_range=10
+        data["page_range"] = [str(page_range[0]), str(page_range[1])]
     return data
 
 

@@ -23,6 +23,6 @@ describe('useFeatureFlag', () => {
     expect(flag.value).toBe(true)
 
     store.$patch({ engine: 'remote' })
-    expect(flag.value).toBe(false)
+    expect(flag.value).toBe(true)
   })
 })

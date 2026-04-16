@@ -74,7 +74,7 @@ async def ingest_analysis(
     )
 
 
-@router.delete("/{doc_id}", status_code=204)
+@router.delete("/{doc_id}", status_code=204, response_model=None)
 async def delete_ingested_document(doc_id: str, ingestion: IngestionDep) -> None:
     """Delete all indexed chunks for a document."""
     await ingestion.delete_document(doc_id)

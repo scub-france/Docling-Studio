@@ -29,12 +29,12 @@ describe('useFeatureFlagStore', () => {
     expect(store.isEnabled('chunking')).toBe(true)
   })
 
-  it('disables chunking when engine is remote', async () => {
+  it('enables chunking when engine is remote', async () => {
     mockApiFetch.mockResolvedValue({ status: 'ok', engine: 'remote' })
     const store = useFeatureFlagStore()
     await store.load()
     expect(store.engine).toBe('remote')
-    expect(store.isEnabled('chunking')).toBe(false)
+    expect(store.isEnabled('chunking')).toBe(true)
   })
 
   it('enables disclaimer when deploymentMode is huggingface', async () => {

@@ -155,7 +155,7 @@ async def delete_chunk(job_id: str, chunk_index: int, service: ServiceDep) -> li
     ]
 
 
-@router.delete("/{job_id}", status_code=204)
+@router.delete("/{job_id}", status_code=204, response_model=None)
 async def delete_analysis(job_id: str, service: ServiceDep) -> None:
     """Delete an analysis job."""
     deleted = await service.delete(job_id)

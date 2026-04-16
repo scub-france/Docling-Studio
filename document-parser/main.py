@@ -57,12 +57,15 @@ def _build_converter():
 
 
 def _build_chunker():
-    """Build the chunker adapter — only available in local mode."""
-    if settings.conversion_engine == "local":
-        from infra.local_chunker import LocalChunker
+    """Build the chunker adapter.
 
-        return LocalChunker()
-    return None
+    Uses LocalChunker in all modes — in remote mode it chunks the
+    DoclingDocument JSON returned by Docling Serve, so docling-core
+    (lightweight) is the only local dependency needed.
+    """
+    from infra.local_chunker import LocalChunker
+
+    return LocalChunker()
 
 
 def _build_repos() -> tuple[SqliteDocumentRepository, SqliteAnalysisRepository]:

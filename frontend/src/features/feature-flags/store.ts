@@ -32,7 +32,7 @@ interface FeatureFlagContext {
 const featureRegistry: Record<FeatureFlag, FeatureFlagDef> = {
   chunking: {
     description: 'Document chunking for RAG preparation',
-    isEnabled: (ctx) => ctx.engine === 'local',
+    isEnabled: (ctx) => ctx.engine !== null,
   },
   disclaimer: {
     description: 'Show shared-instance disclaimer banner',
