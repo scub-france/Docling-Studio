@@ -25,6 +25,7 @@ class Settings:
     batch_page_size: int = 0  # 0 = disabled, > 0 = pages per batch
     opensearch_url: str = ""  # empty = disabled
     embedding_url: str = ""  # empty = disabled (e.g. http://localhost:8001)
+    opensearch_default_limit: int = 1000  # max chunks returned by get_chunks
     embedding_dimension: int = 384  # Granite Embedding 30M / all-MiniLM-L6-v2
     upload_dir: str = "./uploads"
     db_path: str = "./data/docling_studio.db"
@@ -54,6 +55,10 @@ class Settings:
             errors.append(f"rate_limit_rpm must be >= 0 (got {self.rate_limit_rpm})")
         if self.batch_page_size < 0:
             errors.append(f"batch_page_size must be >= 0 (got {self.batch_page_size})")
+        if self.opensearch_default_limit < 1:
+            errors.append(
+                f"opensearch_default_limit must be >= 1 (got {self.opensearch_default_limit})"
+            )
         if self.embedding_dimension < 1:
             errors.append(f"embedding_dimension must be >= 1 (got {self.embedding_dimension})")
         if self.default_table_mode not in ("accurate", "fast"):
@@ -97,6 +102,7 @@ class Settings:
             batch_page_size=int(os.environ.get("BATCH_PAGE_SIZE", "10")),
             opensearch_url=os.environ.get("OPENSEARCH_URL", ""),
             embedding_url=os.environ.get("EMBEDDING_URL", ""),
+            opensearch_default_limit=int(os.environ.get("OPENSEARCH_DEFAULT_LIMIT", "1000")),
             embedding_dimension=int(os.environ.get("EMBEDDING_DIMENSION", "384")),
             upload_dir=os.environ.get("UPLOAD_DIR", "./uploads"),
             db_path=os.environ.get("DB_PATH", "./data/docling_studio.db"),

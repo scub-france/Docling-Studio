@@ -36,6 +36,8 @@ from docling_core.types.doc import (
 )
 
 from domain.value_objects import (
+    DEFAULT_PAGE_HEIGHT,
+    DEFAULT_PAGE_WIDTH,
     ConversionOptions,
     ConversionResult,
     PageDetail,
@@ -49,10 +51,6 @@ logger = logging.getLogger(__name__)
 # Thread lock — DoclingConverter is not thread-safe.
 # Uses a timeout to prevent a frozen conversion from blocking all others.
 _converter_lock = threading.Lock()
-
-# US Letter page dimensions (points) — fallback when page size is unknown
-_DEFAULT_PAGE_WIDTH = 612.0
-_DEFAULT_PAGE_HEIGHT = 792.0
 
 # Default converter (lazy-init on first request)
 _default_converter: DoclingConverter | None = None
@@ -175,11 +173,11 @@ def _process_content_item(
                 logger.warning(
                     "Page %d not found in document metadata — using US Letter fallback (%sx%s pt)",
                     page_no,
-                    _DEFAULT_PAGE_WIDTH,
-                    _DEFAULT_PAGE_HEIGHT,
+                    DEFAULT_PAGE_WIDTH,
+                    DEFAULT_PAGE_HEIGHT,
                 )
                 pages[page_no] = PageDetail(
-                    page_number=page_no, width=_DEFAULT_PAGE_WIDTH, height=_DEFAULT_PAGE_HEIGHT
+                    page_number=page_no, width=DEFAULT_PAGE_WIDTH, height=DEFAULT_PAGE_HEIGHT
                 )
 
             page_height = pages[page_no].height
@@ -248,10 +246,10 @@ def _convert_sync(
         pages_detail = [
             PageDetail(
                 page_number=i + 1,
-                width=doc.pages[i + 1].size.width if (i + 1) in doc.pages else _DEFAULT_PAGE_WIDTH,
+                width=doc.pages[i + 1].size.width if (i + 1) in doc.pages else DEFAULT_PAGE_WIDTH,
                 height=doc.pages[i + 1].size.height
                 if (i + 1) in doc.pages
-                else _DEFAULT_PAGE_HEIGHT,
+                else DEFAULT_PAGE_HEIGHT,
             )
             for i in range(page_count)
         ]

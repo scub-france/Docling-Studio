@@ -8,6 +8,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+# US Letter page dimensions (points) — fallback when page size is unknown
+DEFAULT_PAGE_WIDTH: float = 612.0
+DEFAULT_PAGE_HEIGHT: float = 792.0
+
 
 @dataclass(frozen=True)
 class PageElement:
