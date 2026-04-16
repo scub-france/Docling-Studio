@@ -21,6 +21,8 @@ import httpx
 from docling_core.types.doc.base import BoundingBox, CoordOrigin
 
 from domain.value_objects import (
+    DEFAULT_PAGE_HEIGHT,
+    DEFAULT_PAGE_WIDTH,
     ConversionOptions,
     ConversionResult,
     PageDetail,
@@ -31,7 +33,6 @@ from infra.bbox import to_topleft_list
 logger = logging.getLogger(__name__)
 
 _API_PREFIX = "/v1"
-_DEFAULT_TIMEOUT = 600.0
 
 # Docling Serve label → our element type
 _LABEL_MAP = {
@@ -60,7 +61,7 @@ class ServeConverter:
         self,
         base_url: str,
         api_key: str | None = None,
-        timeout: float = _DEFAULT_TIMEOUT,
+        timeout: float = 600.0,
     ):
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -192,8 +193,8 @@ def _extract_pages_from_docling_document(doc: dict) -> list[PageDetail]:
         size = page_data.get("size", {})
         pages_dict[page_no] = PageDetail(
             page_number=page_no,
-            width=size.get("width", 612.0),
-            height=size.get("height", 792.0),
+            width=size.get("width", DEFAULT_PAGE_WIDTH),
+            height=size.get("height", DEFAULT_PAGE_HEIGHT),
         )
 
     # Process all element arrays
@@ -220,8 +221,8 @@ def _add_element(item: dict, pages: dict[int, PageDetail]) -> None:
         if page_no not in pages:
             pages[page_no] = PageDetail(
                 page_number=page_no,
-                width=612.0,
-                height=792.0,
+                width=DEFAULT_PAGE_WIDTH,
+                height=DEFAULT_PAGE_HEIGHT,
             )
 
         bbox_data = prov.get("bbox", {})
