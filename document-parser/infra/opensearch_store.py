@@ -69,13 +69,14 @@ class OpenSearchStore:
         verify_certs: Whether to verify TLS certificates.
     """
 
-    def __init__(self, url: str, *, verify_certs: bool = False) -> None:
+    def __init__(self, url: str, *, verify_certs: bool = False, default_limit: int = 1000) -> None:
         self._client = AsyncOpenSearch(
             hosts=[url],
             use_ssl=url.startswith("https"),
             verify_certs=verify_certs,
             ssl_show_warn=False,
         )
+        self._default_limit = default_limit
 
     # -- lifecycle -------------------------------------------------------------
 
@@ -147,9 +148,11 @@ class OpenSearchStore:
         index_name: str,
         doc_id: str,
         *,
-        limit: int = 1000,
+        limit: int | None = None,
     ) -> list[SearchResult]:
         """Retrieve all indexed chunks for a document, ordered by chunk_index."""
+        if limit is None:
+            limit = self._default_limit
         resp = await self._client.search(
             index=index_name,
             body={

@@ -47,6 +47,7 @@ def _build_converter():
         return ServeConverter(
             base_url=settings.docling_serve_url,
             api_key=settings.docling_serve_api_key,
+            timeout=settings.conversion_timeout,
         )
     else:
         from infra.local_converter import LocalConverter
@@ -99,7 +100,10 @@ def _build_ingestion_service() -> IngestionService | None:
     from infra.opensearch_store import OpenSearchStore
 
     embedding = EmbeddingClient(settings.embedding_url)
-    vector_store = OpenSearchStore(settings.opensearch_url)
+    vector_store = OpenSearchStore(
+        settings.opensearch_url,
+        default_limit=settings.opensearch_default_limit,
+    )
     config = IngestionConfig(
         embedding_dimension=settings.embedding_dimension,
     )
