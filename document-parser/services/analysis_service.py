@@ -44,6 +44,7 @@ def _chunk_to_dict(c: ChunkResult) -> dict:
         "sourcePage": c.source_page,
         "tokenCount": c.token_count,
         "bboxes": [{"page": b.page, "bbox": b.bbox} for b in c.bboxes],
+        "docItems": [{"selfRef": d.self_ref, "label": d.label} for d in c.doc_items],
     }
 
 

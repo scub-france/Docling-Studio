@@ -33,6 +33,7 @@ Upload a PDF, configure the extraction pipeline, and visualize the results — t
 - **Per-page results** — right panel syncs with the current PDF page
 - **Chunking** — split extracted content into semantic chunks (hierarchical, hybrid, or page-based) with configurable token limits and inline editing
 - **Ingestion pipeline** — Docling → chunking → embedding → OpenSearch vector indexing (one-click from Studio)
+- **Graph storage (Neo4j)** — full DoclingDocument tree (sections, paragraphs, tables, pages, chunks) mirrored as a graph with `PARENT_OF`, `NEXT`, `ON_PAGE`, `HAS_CHUNK`, `DERIVED_FROM` relations, with an in-app graph view powered by Cytoscape.js
 - **Markdown & HTML export** of extracted content
 - **Document management** — upload, list, delete, search, filter by indexing status
 - **Analysis history** — re-visit and open past analyses
@@ -243,6 +244,69 @@ When ingestion is enabled, the UI shows:
 | `OPENSEARCH_URL` | — | OpenSearch endpoint (empty = ingestion disabled) |
 | `EMBEDDING_URL` | — | Embedding service endpoint (empty = ingestion disabled) |
 | `EMBEDDING_DIMENSION` | `384` | Vector dimension (must match embedding model) |
+
+## Graph storage with Neo4j (opt-in)
+
+Docling Studio can mirror the full **DoclingDocument tree** into a [Neo4j](https://neo4j.com/) graph: sections, paragraphs, tables, figures, pages, and chunks all become first-class nodes connected by `HAS_ROOT`, `PARENT_OF`, `NEXT`, `ON_PAGE`, `HAS_CHUNK`, and `DERIVED_FROM` edges. This enables queries that are impossible with a flat chunk store — navigating a document's outline, finding all tables under a given section, or tracing a chunk back to its source elements.
+
+Enable Neo4j with the ingestion profile (it ships alongside OpenSearch):
+
+```bash
+docker compose --profile ingestion \
+  -f docker-compose.yml -f docker-compose.ingestion.yml \
+  up --build
+```
+
+The Neo4j Browser is available at <http://localhost:7474> (user `neo4j`, password `changeme` by default).
+
+### Schema at a glance
+
+```mermaid
+graph TD
+    D[Document] -->|HAS_ROOT| SH[SectionHeader]
+    D -->|HAS_CHUNK| C[Chunk]
+    SH -->|PARENT_OF| P[Paragraph]
+    SH -->|PARENT_OF| T[Table]
+    P -->|NEXT| T
+    P -->|ON_PAGE| PG[Page]
+    T -->|ON_PAGE| PG
+    C -->|DERIVED_FROM| P
+    C -->|DERIVED_FROM| T
+```
+
+### Example Cypher queries
+
+Find all "Methods" sections across documents (impossible in vector-only stores):
+
+```cypher
+MATCH (d:Document)-[:HAS_ROOT]->(:Element)-[:PARENT_OF*]->(s:SectionHeader)
+WHERE toLower(s.text) CONTAINS 'method'
+RETURN d.title, s.text, s.level
+```
+
+Get the parent section and sibling elements of a chunk (context for RAG):
+
+```cypher
+MATCH (c:Chunk {id: $chunk_id})-[:DERIVED_FROM]->(e:Element)
+MATCH (e)<-[:PARENT_OF]-(parent:Element)-[:PARENT_OF]->(sibling:Element)
+RETURN parent, collect(sibling) AS siblings
+```
+
+List all tables from documents ingested from an `invoices/` path:
+
+```cypher
+MATCH (d:Document)-[:HAS_ROOT]->(:Element)-[:PARENT_OF*]->(t:Table)
+WHERE d.source_uri CONTAINS 'invoices/'
+RETURN d.title, t.caption, t.cells_json
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEO4J_URI` | — | Neo4j Bolt endpoint (empty = graph storage disabled) |
+| `NEO4J_USER` | `neo4j` | Neo4j username |
+| `NEO4J_PASSWORD` | `changeme` | Neo4j password |
+
+The in-app **Graph** tab (under *Results*) renders the per-document graph with [Cytoscape.js](https://js.cytoscape.org/) (see [ADR-001](docs/architecture/adrs/ADR-001-graph-visualization-library.md) for the library choice). Documents with more than **200 pages** return `HTTP 413` from `GET /api/documents/{id}/graph`; pagination ships in v0.6.
 
 ## CI / Release
 

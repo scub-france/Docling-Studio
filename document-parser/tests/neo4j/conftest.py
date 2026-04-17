@@ -11,7 +11,11 @@ import os
 
 import pytest
 
-from infra.neo4j import close_driver, get_driver
+# Skip the entire module cleanly when the neo4j driver package is absent
+# (e.g. local dev without the dependency installed).
+pytest.importorskip("neo4j")
+
+from infra.neo4j import close_driver, get_driver  # noqa: E402
 
 
 def _cfg() -> tuple[str, str, str]:
