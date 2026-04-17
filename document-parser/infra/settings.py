@@ -25,6 +25,9 @@ class Settings:
     batch_page_size: int = 0  # 0 = disabled, > 0 = pages per batch
     opensearch_url: str = ""  # empty = disabled
     embedding_url: str = ""  # empty = disabled (e.g. http://localhost:8001)
+    neo4j_uri: str = ""  # empty = disabled (e.g. bolt://neo4j:7687)
+    neo4j_user: str = "neo4j"
+    neo4j_password: str = "changeme"
     opensearch_default_limit: int = 1000  # max chunks returned by get_chunks
     embedding_dimension: int = 384  # Granite Embedding 30M / all-MiniLM-L6-v2
     upload_dir: str = "./uploads"
@@ -102,6 +105,9 @@ class Settings:
             batch_page_size=int(os.environ.get("BATCH_PAGE_SIZE", "10")),
             opensearch_url=os.environ.get("OPENSEARCH_URL", ""),
             embedding_url=os.environ.get("EMBEDDING_URL", ""),
+            neo4j_uri=os.environ.get("NEO4J_URI", ""),
+            neo4j_user=os.environ.get("NEO4J_USER", "neo4j"),
+            neo4j_password=os.environ.get("NEO4J_PASSWORD", "changeme"),
             opensearch_default_limit=int(os.environ.get("OPENSEARCH_DEFAULT_LIMIT", "1000")),
             embedding_dimension=int(os.environ.get("EMBEDDING_DIMENSION", "384")),
             upload_dir=os.environ.get("UPLOAD_DIR", "./uploads"),

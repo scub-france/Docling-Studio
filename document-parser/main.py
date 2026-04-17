@@ -93,6 +93,28 @@ def _build_analysis_service(
     )
 
 
+async def _init_neo4j():
+    """Initialize the Neo4j driver and bootstrap schema — skip if not configured."""
+    if not settings.neo4j_uri:
+        logger.info("Neo4j disabled (NEO4J_URI not set)")
+        return None
+
+    from infra.neo4j import Neo4jDriver, bootstrap_schema, get_driver
+
+    try:
+        neo = await get_driver(
+            settings.neo4j_uri,
+            settings.neo4j_user,
+            settings.neo4j_password,
+        )
+        await bootstrap_schema(neo)
+        logger.info("Neo4j ready (uri=%s)", settings.neo4j_uri)
+        return neo
+    except Exception:
+        logger.exception("Neo4j init failed — continuing without graph storage")
+        return None
+
+
 def _build_ingestion_service() -> IngestionService | None:
     """Build the ingestion service — only if embedding + opensearch are configured."""
     if not settings.embedding_url or not settings.opensearch_url:
@@ -150,8 +172,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if ingestion_service is not None:
         app.include_router(ingestion_router)
         logger.info("Ingestion router mounted")
+    app.state.neo4j = await _init_neo4j()
     logger.info("Docling Studio backend ready (engine=%s)", settings.conversion_engine)
-    yield
+    try:
+        yield
+    finally:
+        if app.state.neo4j is not None:
+            from infra.neo4j import close_driver
+
+            await close_driver()
 
 
 app = FastAPI(
