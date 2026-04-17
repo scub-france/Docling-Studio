@@ -75,6 +75,7 @@ def _build_repos() -> tuple[SqliteDocumentRepository, SqliteAnalysisRepository]:
 def _build_analysis_service(
     document_repo: SqliteDocumentRepository,
     analysis_repo: SqliteAnalysisRepository,
+    neo4j_driver=None,
 ) -> AnalysisService:
     converter = _build_converter()
     chunker = _build_chunker()
@@ -90,6 +91,7 @@ def _build_analysis_service(
         conversion_timeout=settings.conversion_timeout,
         max_concurrent=settings.max_concurrent_analyses,
         config=config,
+        neo4j_driver=neo4j_driver,
     )
 
 
@@ -165,14 +167,16 @@ def _build_document_service(
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await init_db()
     document_repo, analysis_repo = _build_repos()
-    app.state.analysis_service = _build_analysis_service(document_repo, analysis_repo)
+    app.state.neo4j = await _init_neo4j()
+    app.state.analysis_service = _build_analysis_service(
+        document_repo, analysis_repo, neo4j_driver=app.state.neo4j
+    )
     app.state.document_service = _build_document_service(document_repo, analysis_repo)
     ingestion_service = _build_ingestion_service()
     app.state.ingestion_service = ingestion_service
     if ingestion_service is not None:
         app.include_router(ingestion_router)
         logger.info("Ingestion router mounted")
-    app.state.neo4j = await _init_neo4j()
     logger.info("Docling Studio backend ready (engine=%s)", settings.conversion_engine)
     try:
         yield
