@@ -1,4 +1,22 @@
 services:
+  # --- Neo4j (graph-native document structure) ---
+  neo4j:
+    profiles: ["ingestion"]
+    image: neo4j:5.15-community
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-changeme}
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1g
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u $${NEO4J_USER:-neo4j} -p $${NEO4J_PASSWORD:-changeme} 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
   # --- OpenSearch (single-node, security disabled) ---
   opensearch:
     profiles: ["ingestion"]
@@ -53,6 +71,9 @@ services:
       BATCH_PAGE_SIZE: ${BATCH_PAGE_SIZE:-10}
       OPENSEARCH_URL: ${OPENSEARCH_URL:-}
       EMBEDDING_URL: ${EMBEDDING_URL:-}
+      NEO4J_URI: ${NEO4J_URI:-}
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-changeme}
     deploy:
       resources:
         limits:
@@ -69,5 +90,7 @@ services:
 
 volumes:
   opensearch_data:
+  neo4j_data:
+  neo4j_logs:
   uploads_data:
   db_data:

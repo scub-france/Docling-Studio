@@ -9,6 +9,26 @@
 # =============================================================================
 
 services:
+  # --- Neo4j (graph-native document structure) ---
+  neo4j:
+    image: neo4j:5.15-community
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-changeme}
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1g
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u $${NEO4J_USER:-neo4j} -p $${NEO4J_PASSWORD:-changeme} 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
   # --- OpenSearch (single-node, security disabled for local dev) ---
   opensearch:
     image: opensearchproject/opensearch:2
@@ -77,11 +97,16 @@ services:
       BATCH_PAGE_SIZE: ${BATCH_PAGE_SIZE:-10}
       OPENSEARCH_URL: http://opensearch:9200
       EMBEDDING_URL: http://embedding:8001
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-changeme}
     command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
       opensearch:
         condition: service_healthy
       embedding:
+        condition: service_healthy
+      neo4j:
         condition: service_healthy
     deploy:
       resources:
@@ -105,6 +130,8 @@ services:
 
 volumes:
   opensearch_data:
+  neo4j_data:
+  neo4j_logs:
   uploads_data:
   db_data:
   frontend_node_modules:
