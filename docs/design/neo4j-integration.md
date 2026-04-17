@@ -232,8 +232,8 @@ DETACH DELETE d
   - Create `(:Chunk)-[:DERIVED_FROM]->(:Element)` via source element `self_ref`
   - Do NOT duplicate embeddings (stay in OpenSearch, keep `embedding_ref`)
 - [ ] Frontend: new "Graph view" tab in debug panel
-  - Vue component with `cytoscape` (lighter, better layout API)
-  - FastAPI endpoint `/api/documents/{doc_id}/graph` returns nodes + edges around a scope (whole doc or subtree)
+  - Vue component with `cytoscape` (lighter, better layout API — see [ADR-001](../architecture/adrs/ADR-001-graph-visualization-library.md))
+  - FastAPI endpoint `/api/documents/{doc_id}/graph` returns full nodes + edges for the document, **capped at 200 pages** (HTTP 413 beyond; pagination deferred to v0.6). The endpoint must include a `truncated: bool` flag and `node_count` / `edge_count` in the response envelope so the UI can warn the user cleanly.
   - View: vertical tree, colors per node type, click-to-zoom, hover details
 - [ ] Per-document "Graph-ready" / "RAG-ready" badge in list
 - [ ] README update:
@@ -337,10 +337,10 @@ volumes:
    - Rec: OpenSearch ref (avoid duplication; OpenSearch remains source of truth for vectors). In v0.6+, consider native Neo4j vector index.
 
 3. **Graph view UI: cytoscape or vis-network ?**
-   - Rec: **cytoscape** — lighter, better layout API, used by Neo4j itself.
+   - Decided: **Cytoscape.js** — see [ADR-001](../architecture/adrs/ADR-001-graph-visualization-library.md) for the full analysis.
 
 4. **Graph endpoint: return full doc or paginate ?**
-   - Rec: full doc for v0.5 (reasonable cap at 200 pages). Pagination in v0.6.
+   - Decided: full doc for v0.5, **hard cap at 200 pages**. Beyond the cap, the endpoint returns HTTP 413 with a `truncated: true` flag; the UI shows "Graph too large to render — reduce scope". Pagination ships in v0.6.
 
 5. **Error strategy**: if Neo4j is down at ingestion, fail or degrade gracefully ?
    - Rec: **fail fast** for v0.5 (avoid silent inconsistencies). `neo4j_required: bool` config option.
