@@ -117,7 +117,7 @@ async def _init_neo4j():
         return None
 
 
-def _build_ingestion_service() -> IngestionService | None:
+def _build_ingestion_service(neo4j_driver=None) -> IngestionService | None:
     """Build the ingestion service — only if embedding + opensearch are configured."""
     if not settings.embedding_url or not settings.opensearch_url:
         logger.info("Ingestion disabled (EMBEDDING_URL or OPENSEARCH_URL not set)")
@@ -139,7 +139,7 @@ def _build_ingestion_service() -> IngestionService | None:
         settings.embedding_url,
         settings.opensearch_url,
     )
-    return IngestionService(embedding, vector_store, config)
+    return IngestionService(embedding, vector_store, config, neo4j_driver=neo4j_driver)
 
 
 def _build_document_service(
@@ -172,7 +172,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         document_repo, analysis_repo, neo4j_driver=app.state.neo4j
     )
     app.state.document_service = _build_document_service(document_repo, analysis_repo)
-    ingestion_service = _build_ingestion_service()
+    ingestion_service = _build_ingestion_service(neo4j_driver=app.state.neo4j)
     app.state.ingestion_service = ingestion_service
     if ingestion_service is not None:
         app.include_router(ingestion_router)
@@ -209,6 +209,11 @@ if settings.rate_limit_rpm > 0:
 
 app.include_router(documents_router)
 app.include_router(analyses_router)
+
+# Graph view — mounted regardless; individual requests 503 if Neo4j is absent.
+from api.graph import router as graph_router  # noqa: E402
+
+app.include_router(graph_router)
 
 
 @app.get("/api/health", response_model=HealthResponse)
