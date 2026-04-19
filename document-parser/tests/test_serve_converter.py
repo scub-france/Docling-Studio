@@ -39,7 +39,6 @@ class TestBuildFormData:
         assert data["do_picture_classification"] == "false"
         assert data["do_picture_description"] == "false"
         assert data["include_images"] == "false"
-        assert data["generate_page_images"] == "false"
         assert data["images_scale"] == "1.0"
         assert set(data["to_formats"]) == {"md", "html", "json"}
 
@@ -56,9 +55,14 @@ class TestBuildFormData:
         assert data["images_scale"] == "2.0"
         assert data["include_images"] == "true"
 
-    def test_page_range_included_when_set(self):
+    def test_no_generate_page_images_field(self):
+        """generate_page_images is a PdfPipelineOptions field, not a Serve field."""
+        data = _build_form_data(ConversionOptions())
+        assert "generate_page_images" not in data
+
+    def test_page_range_as_repeated_fields(self):
         data = _build_form_data(ConversionOptions(), page_range=(11, 20))
-        assert data["page_range"] == "11-20"
+        assert data["page_range"] == ["11", "20"]
 
     def test_page_range_absent_when_none(self):
         data = _build_form_data(ConversionOptions())
@@ -402,11 +406,12 @@ class TestServeConverterConvert:
         assert len(result.pages[0].elements) == 1
         assert result.pages[0].elements[0].type == "title"
 
-        # Verify form fields sent as dict with list for repeated keys
+        # Verify form fields sent correctly
         call_kwargs = mock_client.post.call_args
         sent_data = call_kwargs.kwargs.get("data", {})
         assert sent_data["do_ocr"] == "true"
         assert set(sent_data["to_formats"]) == {"md", "html", "json"}
+        assert "generate_page_images" not in sent_data
 
     @pytest.mark.asyncio
     async def test_http_error_raises(self, tmp_path):
@@ -414,6 +419,8 @@ class TestServeConverterConvert:
         test_file.write_bytes(b"%PDF-1.4 fake content")
 
         mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.text = "Internal Server Error"
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "Server Error",
             request=MagicMock(),
@@ -510,3 +517,17 @@ class TestConverterWiring:
             converter = _build_converter()
         assert isinstance(converter, ServeConverter)
         assert converter._api_key == "my-key"
+
+    def test_remote_engine_builds_chunker(self):
+        """Chunker must be available in remote mode (hybrid local chunking)."""
+        from infra.local_chunker import LocalChunker
+        from infra.settings import Settings
+
+        with patch(
+            "main.settings",
+            Settings(conversion_engine="remote", docling_serve_url="http://serve:5001"),
+        ):
+            from main import _build_chunker
+
+            chunker = _build_chunker()
+        assert isinstance(chunker, LocalChunker)
