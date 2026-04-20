@@ -20,32 +20,48 @@ class GraphPayload:
 
 
 # Full graph for one doc: Document + Elements + Pages + Chunks and their edges.
-# The graph is returned as flat node + edge lists ready for cytoscape.
+# Each node/edge type is collected inside its own CALL {} subquery so every
+# block contributes a single row — avoids the cartesian product that chained
+# OPTIONAL MATCH on 6+ edge types would produce (hangs on multi-page docs).
+# See: https://neo4j.com/developer/kb/using-subqueries-to-control-the-scope-of-aggregations/
 _FETCH_GRAPH = """
 MATCH (d:Document {id: $doc_id})
-OPTIONAL MATCH (d)-[:HAS_ROOT]->(root:Element)
-OPTIONAL MATCH (e:Element {doc_id: $doc_id})
-OPTIONAL MATCH (p:Page {doc_id: $doc_id})
-OPTIONAL MATCH (c:Chunk {doc_id: $doc_id})
-WITH d,
-     collect(DISTINCT e) AS elements,
-     collect(DISTINCT p) AS pages,
-     collect(DISTINCT c) AS chunks
-OPTIONAL MATCH (pe:Element {doc_id: $doc_id})-[r_po:PARENT_OF]->(ce:Element {doc_id: $doc_id})
-OPTIONAL MATCH (a:Element {doc_id: $doc_id})-[r_nx:NEXT]->(b:Element {doc_id: $doc_id})
-OPTIONAL MATCH (er:Element {doc_id: $doc_id})-[r_op:ON_PAGE]->(pr:Page {doc_id: $doc_id})
-OPTIONAL MATCH (d)-[r_hr:HAS_ROOT]->(rr:Element {doc_id: $doc_id})
-OPTIONAL MATCH (d)-[r_hc:HAS_CHUNK]->(rc:Chunk {doc_id: $doc_id})
-OPTIONAL MATCH (cc:Chunk {doc_id: $doc_id})-[r_df:DERIVED_FROM]->(ee:Element {doc_id: $doc_id})
-RETURN
-  d AS document,
-  elements, pages, chunks,
-  collect(DISTINCT {from: pe.self_ref, to: ce.self_ref, order: r_po.order, type: 'PARENT_OF'}) AS parent_edges,
-  collect(DISTINCT {from: a.self_ref, to: b.self_ref, type: 'NEXT'}) AS next_edges,
-  collect(DISTINCT {from: er.self_ref, to: pr.page_no, type: 'ON_PAGE'}) AS on_page_edges,
-  collect(DISTINCT {from: d.id, to: rr.self_ref, type: 'HAS_ROOT'}) AS has_root_edges,
-  collect(DISTINCT {from: d.id, to: rc.id, type: 'HAS_CHUNK'}) AS has_chunk_edges,
-  collect(DISTINCT {from: cc.id, to: ee.self_ref, type: 'DERIVED_FROM'}) AS derived_from_edges
+CALL { WITH d MATCH (e:Element {doc_id: d.id}) RETURN collect(e) AS elements }
+CALL { WITH d MATCH (p:Page {doc_id: d.id})    RETURN collect(p) AS pages }
+CALL { WITH d MATCH (c:Chunk {doc_id: d.id})   RETURN collect(c) AS chunks }
+CALL {
+  WITH d
+  MATCH (pe:Element {doc_id: d.id})-[r:PARENT_OF]->(ce:Element)
+  RETURN collect({from: pe.self_ref, to: ce.self_ref, order: r.order, type: 'PARENT_OF'}) AS parent_edges
+}
+CALL {
+  WITH d
+  MATCH (a:Element {doc_id: d.id})-[:NEXT]->(b:Element)
+  RETURN collect({from: a.self_ref, to: b.self_ref, type: 'NEXT'}) AS next_edges
+}
+CALL {
+  WITH d
+  MATCH (er:Element {doc_id: d.id})-[:ON_PAGE]->(pr:Page)
+  RETURN collect({from: er.self_ref, to: pr.page_no, type: 'ON_PAGE'}) AS on_page_edges
+}
+CALL {
+  WITH d
+  MATCH (d)-[:HAS_ROOT]->(rr:Element)
+  RETURN collect({from: d.id, to: rr.self_ref, type: 'HAS_ROOT'}) AS has_root_edges
+}
+CALL {
+  WITH d
+  MATCH (d)-[:HAS_CHUNK]->(rc:Chunk)
+  RETURN collect({from: d.id, to: rc.id, type: 'HAS_CHUNK'}) AS has_chunk_edges
+}
+CALL {
+  WITH d
+  MATCH (cc:Chunk {doc_id: d.id})-[:DERIVED_FROM]->(ee:Element)
+  RETURN collect({from: cc.id, to: ee.self_ref, type: 'DERIVED_FROM'}) AS derived_from_edges
+}
+RETURN d AS document, elements, pages, chunks,
+       parent_edges, next_edges, on_page_edges,
+       has_root_edges, has_chunk_edges, derived_from_edges
 """
 
 
