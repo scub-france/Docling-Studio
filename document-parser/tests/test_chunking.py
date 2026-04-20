@@ -66,6 +66,7 @@ class TestChunkResult:
             "source_page": 1,
             "token_count": 10,
             "bboxes": [],
+            "doc_items": [],
         }
 
 
