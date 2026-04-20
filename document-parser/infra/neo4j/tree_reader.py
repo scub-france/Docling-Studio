@@ -10,8 +10,10 @@ nodes directly.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
-from infra.neo4j.driver import Neo4jDriver
+if TYPE_CHECKING:
+    from infra.neo4j.driver import Neo4jDriver
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +59,6 @@ async def delete_document(neo: Neo4jDriver, doc_id: str) -> int:
         )
         record = await result.single()
         # Also clean up orphan elements and pages tagged with this doc_id.
-        await session.run(
-            "MATCH (e:Element {doc_id: $doc_id}) DETACH DELETE e", doc_id=doc_id
-        )
-        await session.run(
-            "MATCH (p:Page {doc_id: $doc_id}) DETACH DELETE p", doc_id=doc_id
-        )
+        await session.run("MATCH (e:Element {doc_id: $doc_id}) DETACH DELETE e", doc_id=doc_id)
+        await session.run("MATCH (p:Page {doc_id: $doc_id}) DETACH DELETE p", doc_id=doc_id)
     return int(record["removed"]) if record else 0

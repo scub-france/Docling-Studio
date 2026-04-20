@@ -9,13 +9,15 @@ graph nodes is deferred to v0.6 (see docs/design/neo4j-integration.md §2).
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
-from infra.neo4j.driver import Neo4jDriver
+if TYPE_CHECKING:
+    from infra.neo4j.driver import Neo4jDriver
 
 logger = logging.getLogger(__name__)
 
@@ -96,10 +98,8 @@ def _element_props(item: dict[str, Any], doc_id: str) -> dict[str, Any]:
         props["caption"] = item.get("caption")
     if item.get("data") and isinstance(item["data"], dict):
         # Tables carry cell layout under data; stringify to keep the schema flat.
-        try:
+        with contextlib.suppress(TypeError, ValueError):
             props["cells_json"] = json.dumps(item["data"])
-        except (TypeError, ValueError):
-            pass
     return props
 
 
@@ -145,7 +145,7 @@ async def write_document(
     Fails fast (exception propagates) if Neo4j is unavailable — per design §8.5.
     """
     doc_data = json.loads(document_json)
-    ingested_at = datetime.now(tz=timezone.utc).isoformat()
+    ingested_at = datetime.now(tz=UTC).isoformat()
 
     elements: list[dict[str, Any]] = []
     for _, item in _iter_items(doc_data):
@@ -179,26 +179,24 @@ async def write_document(
 
     reading_order = _dfs_order(doc_data)
 
-    async with neo.driver.session(database=neo.database) as session:
-        async with await session.begin_transaction() as tx:
-            # 1. Wipe existing graph for this doc_id (replace strategy).
-            await tx.run(
-                "MATCH (d:Document {id: $doc_id}) "
-                "OPTIONAL MATCH (d)-[:HAS_ROOT|HAS_CHUNK*0..]->(n) "
-                "DETACH DELETE d, n",
-                doc_id=doc_id,
-            )
-            # Also wipe orphan elements/chunks that may still reference this doc.
-            await tx.run(
-                "MATCH (e:Element {doc_id: $doc_id}) DETACH DELETE e", doc_id=doc_id
-            )
-            await tx.run(
-                "MATCH (p:Page {doc_id: $doc_id}) DETACH DELETE p", doc_id=doc_id
-            )
+    async with (
+        neo.driver.session(database=neo.database) as session,
+        await session.begin_transaction() as tx,
+    ):
+        # 1. Wipe existing graph for this doc_id (replace strategy).
+        await tx.run(
+            "MATCH (d:Document {id: $doc_id}) "
+            "OPTIONAL MATCH (d)-[:HAS_ROOT|HAS_CHUNK*0..]->(n) "
+            "DETACH DELETE d, n",
+            doc_id=doc_id,
+        )
+        # Also wipe orphan elements/chunks that may still reference this doc.
+        await tx.run("MATCH (e:Element {doc_id: $doc_id}) DETACH DELETE e", doc_id=doc_id)
+        await tx.run("MATCH (p:Page {doc_id: $doc_id}) DETACH DELETE p", doc_id=doc_id)
 
-            # 2. Document node (carries the verbatim JSON for TreeReader).
-            await tx.run(
-                """
+        # 2. Document node (carries the verbatim JSON for TreeReader).
+        await tx.run(
+            """
                 CREATE (d:Document {
                   id: $doc_id,
                   title: $title,
@@ -211,32 +209,32 @@ async def write_document(
                   document_json: $document_json
                 })
                 """,
-                doc_id=doc_id,
-                title=filename,
-                source_uri=source_uri or "",
-                ingested_at=ingested_at,
-                docling_version=docling_version or "",
-                tenant_id=tenant_id,
-                document_json=document_json,
+            doc_id=doc_id,
+            title=filename,
+            source_uri=source_uri or "",
+            ingested_at=ingested_at,
+            docling_version=docling_version or "",
+            tenant_id=tenant_id,
+            document_json=document_json,
+        )
+
+        # 3. Page nodes.
+        if pages:
+            await tx.run(
+                "UNWIND $pages AS p "
+                "CREATE (:Page {doc_id: p.doc_id, page_no: p.page_no, "
+                "width: p.width, height: p.height})",
+                pages=pages,
             )
 
-            # 3. Page nodes.
-            if pages:
-                await tx.run(
-                    "UNWIND $pages AS p "
-                    "CREATE (:Page {doc_id: p.doc_id, page_no: p.page_no, "
-                    "width: p.width, height: p.height})",
-                    pages=pages,
-                )
-
-            # 4. Element nodes — use dynamic :Element:<specific> labels via APOC-free trick.
-            # We split by specific label so the CREATE statement is static (no APOC).
-            by_specific: dict[str, list[dict[str, Any]]] = {}
-            for e in elements:
-                by_specific.setdefault(e["specific_label"], []).append(e)
-            for specific, batch in by_specific.items():
-                await tx.run(
-                    f"""
+        # 4. Element nodes — use dynamic :Element:<specific> labels via APOC-free trick.
+        # We split by specific label so the CREATE statement is static (no APOC).
+        by_specific: dict[str, list[dict[str, Any]]] = {}
+        for e in elements:
+            by_specific.setdefault(e["specific_label"], []).append(e)
+        for specific, batch in by_specific.items():
+            await tx.run(
+                f"""
                     UNWIND $batch AS e
                     CREATE (n:Element:{specific} {{
                       doc_id: e.doc_id,
@@ -250,83 +248,83 @@ async def write_document(
                       cells_json: e.cells_json
                     }})
                     """,
-                    batch=batch,
-                )
+                batch=batch,
+            )
 
-            # 5. PARENT_OF relations (tree structure). Order tracked inline.
-            parent_rows = [
-                {
-                    "doc_id": doc_id,
-                    "parent_ref": e["parent_ref"],
-                    "child_ref": e["self_ref"],
-                    "order": idx,
-                }
-                for idx, e in enumerate(elements)
-                if e["parent_ref"] and e["parent_ref"] != "#/body"
-            ]
-            if parent_rows:
-                await tx.run(
-                    """
+        # 5. PARENT_OF relations (tree structure). Order tracked inline.
+        parent_rows = [
+            {
+                "doc_id": doc_id,
+                "parent_ref": e["parent_ref"],
+                "child_ref": e["self_ref"],
+                "order": idx,
+            }
+            for idx, e in enumerate(elements)
+            if e["parent_ref"] and e["parent_ref"] != "#/body"
+        ]
+        if parent_rows:
+            await tx.run(
+                """
                     UNWIND $rows AS r
                     MATCH (p:Element {doc_id: r.doc_id, self_ref: r.parent_ref})
                     MATCH (c:Element {doc_id: r.doc_id, self_ref: r.child_ref})
                     MERGE (p)-[rel:PARENT_OF]->(c)
                     SET rel.order = r.order
                     """,
-                    rows=parent_rows,
-                )
+                rows=parent_rows,
+            )
 
-            # 6. HAS_ROOT for top-level children of the document body.
-            root_rows = [
-                {"doc_id": doc_id, "child_ref": e["self_ref"]}
-                for e in elements
-                if e["parent_ref"] == "#/body"
-            ]
-            if root_rows:
-                await tx.run(
-                    """
+        # 6. HAS_ROOT for top-level children of the document body.
+        root_rows = [
+            {"doc_id": doc_id, "child_ref": e["self_ref"]}
+            for e in elements
+            if e["parent_ref"] == "#/body"
+        ]
+        if root_rows:
+            await tx.run(
+                """
                     UNWIND $rows AS r
                     MATCH (d:Document {id: r.doc_id})
                     MATCH (c:Element {doc_id: r.doc_id, self_ref: r.child_ref})
                     MERGE (d)-[:HAS_ROOT]->(c)
                     """,
-                    rows=root_rows,
-                )
+                rows=root_rows,
+            )
 
-            # 7. ON_PAGE from first provenance.
-            on_page_rows = [
-                {"doc_id": doc_id, "self_ref": e["self_ref"], "page_no": e["prov_page"]}
-                for e in elements
-                if e["prov_page"] is not None
-            ]
-            if on_page_rows:
-                await tx.run(
-                    """
+        # 7. ON_PAGE from first provenance.
+        on_page_rows = [
+            {"doc_id": doc_id, "self_ref": e["self_ref"], "page_no": e["prov_page"]}
+            for e in elements
+            if e["prov_page"] is not None
+        ]
+        if on_page_rows:
+            await tx.run(
+                """
                     UNWIND $rows AS r
                     MATCH (e:Element {doc_id: r.doc_id, self_ref: r.self_ref})
                     MATCH (p:Page {doc_id: r.doc_id, page_no: r.page_no})
                     MERGE (e)-[:ON_PAGE]->(p)
                     """,
-                    rows=on_page_rows,
-                )
+                rows=on_page_rows,
+            )
 
-            # 8. NEXT chain in DFS pre-order.
-            if len(reading_order) > 1:
-                pairs = [
-                    {"doc_id": doc_id, "a": reading_order[i], "b": reading_order[i + 1]}
-                    for i in range(len(reading_order) - 1)
-                ]
-                await tx.run(
-                    """
+        # 8. NEXT chain in DFS pre-order.
+        if len(reading_order) > 1:
+            pairs = [
+                {"doc_id": doc_id, "a": reading_order[i], "b": reading_order[i + 1]}
+                for i in range(len(reading_order) - 1)
+            ]
+            await tx.run(
+                """
                     UNWIND $pairs AS p
                     MATCH (a:Element {doc_id: p.doc_id, self_ref: p.a})
                     MATCH (b:Element {doc_id: p.doc_id, self_ref: p.b})
                     MERGE (a)-[:NEXT]->(b)
                     """,
-                    pairs=pairs,
-                )
+                pairs=pairs,
+            )
 
-            await tx.commit()
+        await tx.commit()
 
     logger.info(
         "Neo4j: wrote doc %s (%d elements, %d pages)",

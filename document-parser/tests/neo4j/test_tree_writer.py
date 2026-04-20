@@ -13,7 +13,6 @@ import json
 from infra.neo4j import read_document_json, write_document
 from infra.neo4j.schema import bootstrap_schema
 
-
 FIXTURE = {
     "name": "fixture.pdf",
     "pages": {
@@ -89,41 +88,59 @@ async def test_write_creates_expected_structure(neo4j_driver):
     assert result.pages_written == 2
 
     async with neo4j_driver.driver.session(database=neo4j_driver.database) as s:
-        assert await _count(
-            s,
-            "MATCH (d:Document {id: $id}) RETURN count(d) AS n",
-            id="doc-fixture",
-        ) == 1
-        assert await _count(
-            s,
-            "MATCH (:Document {id: $id})-[:HAS_ROOT]->(e:Element) RETURN count(e) AS n",
-            id="doc-fixture",
-        ) == 4
-        assert await _count(
-            s,
-            "MATCH (e:Element:SectionHeader {doc_id: $id, self_ref: '#/texts/0'}) "
-            "RETURN count(e) AS n",
-            id="doc-fixture",
-        ) == 1
-        assert await _count(
-            s,
-            "MATCH (e:Element:Table {doc_id: $id}) RETURN count(e) AS n",
-            id="doc-fixture",
-        ) == 1
+        assert (
+            await _count(
+                s,
+                "MATCH (d:Document {id: $id}) RETURN count(d) AS n",
+                id="doc-fixture",
+            )
+            == 1
+        )
+        assert (
+            await _count(
+                s,
+                "MATCH (:Document {id: $id})-[:HAS_ROOT]->(e:Element) RETURN count(e) AS n",
+                id="doc-fixture",
+            )
+            == 4
+        )
+        assert (
+            await _count(
+                s,
+                "MATCH (e:Element:SectionHeader {doc_id: $id, self_ref: '#/texts/0'}) "
+                "RETURN count(e) AS n",
+                id="doc-fixture",
+            )
+            == 1
+        )
+        assert (
+            await _count(
+                s,
+                "MATCH (e:Element:Table {doc_id: $id}) RETURN count(e) AS n",
+                id="doc-fixture",
+            )
+            == 1
+        )
         # Reading-order chain: 3 NEXT edges for 4 elements.
-        assert await _count(
-            s,
-            "MATCH (a:Element {doc_id: $id})-[:NEXT]->(b:Element {doc_id: $id}) "
-            "RETURN count(*) AS n",
-            id="doc-fixture",
-        ) == 3
+        assert (
+            await _count(
+                s,
+                "MATCH (a:Element {doc_id: $id})-[:NEXT]->(b:Element {doc_id: $id}) "
+                "RETURN count(*) AS n",
+                id="doc-fixture",
+            )
+            == 3
+        )
         # ON_PAGE: one per element with prov.
-        assert await _count(
-            s,
-            "MATCH (:Element {doc_id: $id})-[:ON_PAGE]->(:Page {doc_id: $id}) "
-            "RETURN count(*) AS n",
-            id="doc-fixture",
-        ) == 4
+        assert (
+            await _count(
+                s,
+                "MATCH (:Element {doc_id: $id})-[:ON_PAGE]->(:Page {doc_id: $id}) "
+                "RETURN count(*) AS n",
+                id="doc-fixture",
+            )
+            == 4
+        )
 
 
 async def test_rewrite_is_idempotent_replace(neo4j_driver):
@@ -145,14 +162,18 @@ async def test_rewrite_is_idempotent_replace(neo4j_driver):
     )
 
     async with neo4j_driver.driver.session(database=neo4j_driver.database) as s:
-        assert await _count(
-            s, "MATCH (d:Document {id: $id}) RETURN count(d) AS n", id="doc-fixture"
-        ) == 1
-        assert await _count(
-            s,
-            "MATCH (e:Element {doc_id: $id}) RETURN count(e) AS n",
-            id="doc-fixture",
-        ) == 4
+        assert (
+            await _count(s, "MATCH (d:Document {id: $id}) RETURN count(d) AS n", id="doc-fixture")
+            == 1
+        )
+        assert (
+            await _count(
+                s,
+                "MATCH (e:Element {doc_id: $id}) RETURN count(e) AS n",
+                id="doc-fixture",
+            )
+            == 4
+        )
 
 
 async def test_reader_returns_verbatim_json(neo4j_driver):

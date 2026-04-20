@@ -12,7 +12,6 @@ from infra.neo4j import fetch_graph, write_chunks, write_document
 from infra.neo4j.schema import bootstrap_schema
 from tests.neo4j.test_tree_writer import FIXTURE
 
-
 CHUNKS = [
     {
         "text": "Introduction. First paragraph on page 1.",
@@ -66,8 +65,7 @@ async def test_write_chunks_and_derived_from(neo4j_driver):
         for idx, expected in [(0, 2), (1, 1)]:
             cnt = await (
                 await s.run(
-                    "MATCH (c:Chunk {id: $cid})-[:DERIVED_FROM]->(e:Element) "
-                    "RETURN count(e) AS n",
+                    "MATCH (c:Chunk {id: $cid})-[:DERIVED_FROM]->(e:Element) RETURN count(e) AS n",
                     cid=f"doc-fixture::chunk::{idx}",
                 )
             ).single()

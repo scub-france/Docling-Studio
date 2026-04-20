@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from infra.neo4j.driver import Neo4jDriver
+if TYPE_CHECKING:
+    from infra.neo4j.driver import Neo4jDriver
 
 
 @dataclass

@@ -101,7 +101,7 @@ async def _init_neo4j():
         logger.info("Neo4j disabled (NEO4J_URI not set)")
         return None
 
-    from infra.neo4j import Neo4jDriver, bootstrap_schema, get_driver
+    from infra.neo4j import bootstrap_schema, get_driver
 
     try:
         neo = await get_driver(
