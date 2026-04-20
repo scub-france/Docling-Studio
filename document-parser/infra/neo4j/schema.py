@@ -7,21 +7,21 @@ this multiple times is safe — it's the contract integration tests rely on.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
-from infra.neo4j.driver import Neo4jDriver
+if TYPE_CHECKING:
+    from infra.neo4j.driver import Neo4jDriver
 
 logger = logging.getLogger(__name__)
 
 
 CONSTRAINTS: tuple[str, ...] = (
-    "CREATE CONSTRAINT document_id IF NOT EXISTS "
-    "FOR (d:Document) REQUIRE d.id IS UNIQUE",
+    "CREATE CONSTRAINT document_id IF NOT EXISTS FOR (d:Document) REQUIRE d.id IS UNIQUE",
     "CREATE CONSTRAINT element_composite IF NOT EXISTS "
     "FOR (e:Element) REQUIRE (e.doc_id, e.self_ref) IS UNIQUE",
     "CREATE CONSTRAINT page_composite IF NOT EXISTS "
     "FOR (p:Page) REQUIRE (p.doc_id, p.page_no) IS UNIQUE",
-    "CREATE CONSTRAINT chunk_id IF NOT EXISTS "
-    "FOR (c:Chunk) REQUIRE c.id IS UNIQUE",
+    "CREATE CONSTRAINT chunk_id IF NOT EXISTS FOR (c:Chunk) REQUIRE c.id IS UNIQUE",
 )
 
 INDEXES: tuple[str, ...] = (
@@ -30,8 +30,7 @@ INDEXES: tuple[str, ...] = (
 )
 
 FULLTEXT_INDEXES: tuple[str, ...] = (
-    "CREATE FULLTEXT INDEX element_text IF NOT EXISTS "
-    "FOR (e:Element) ON EACH [e.text]",
+    "CREATE FULLTEXT INDEX element_text IF NOT EXISTS FOR (e:Element) ON EACH [e.text]",
 )
 
 

@@ -15,7 +15,7 @@ import pytest
 # (e.g. local dev without the dependency installed).
 pytest.importorskip("neo4j")
 
-from infra.neo4j import close_driver, get_driver  # noqa: E402
+from infra.neo4j import close_driver, get_driver
 
 
 def _cfg() -> tuple[str, str, str]:

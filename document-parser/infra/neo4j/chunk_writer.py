@@ -16,9 +16,10 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from infra.neo4j.driver import Neo4jDriver
+if TYPE_CHECKING:
+    from infra.neo4j.driver import Neo4jDriver
 
 logger = logging.getLogger(__name__)
 
@@ -63,23 +64,23 @@ async def write_chunks(
             if ref:
                 derived_rows.append({"chunk_id": cid, "doc_id": doc_id, "self_ref": ref})
 
-    async with neo.driver.session(database=neo.database) as session:
-        async with await session.begin_transaction() as tx:
-            # Replace existing chunks.
-            await tx.run(
-                """
+    async with (
+        neo.driver.session(database=neo.database) as session,
+        await session.begin_transaction() as tx,
+    ):
+        # Replace existing chunks.
+        await tx.run(
+            """
                 MATCH (d:Document {id: $doc_id})-[:HAS_CHUNK]->(c:Chunk)
                 DETACH DELETE c
                 """,
-                doc_id=doc_id,
-            )
-            await tx.run(
-                "MATCH (c:Chunk {doc_id: $doc_id}) DETACH DELETE c", doc_id=doc_id
-            )
+            doc_id=doc_id,
+        )
+        await tx.run("MATCH (c:Chunk {doc_id: $doc_id}) DETACH DELETE c", doc_id=doc_id)
 
-            if chunk_rows:
-                await tx.run(
-                    """
+        if chunk_rows:
+            await tx.run(
+                """
                     MATCH (d:Document {id: $doc_id})
                     UNWIND $rows AS r
                     CREATE (c:Chunk {
@@ -92,33 +93,33 @@ async def write_chunks(
                     })
                     MERGE (d)-[:HAS_CHUNK]->(c)
                     """,
-                    doc_id=doc_id,
-                    rows=chunk_rows,
-                )
+                doc_id=doc_id,
+                rows=chunk_rows,
+            )
 
-            if derived_rows:
-                await tx.run(
-                    """
+        if derived_rows:
+            await tx.run(
+                """
                     UNWIND $rows AS r
                     MATCH (c:Chunk {id: r.chunk_id})
                     MATCH (e:Element {doc_id: r.doc_id, self_ref: r.self_ref})
                     MERGE (c)-[:DERIVED_FROM]->(e)
                     """,
-                    rows=derived_rows,
-                )
+                rows=derived_rows,
+            )
 
-            # Flag the Document with the new stage.
-            await tx.run(
-                """
+        # Flag the Document with the new stage.
+        await tx.run(
+            """
                 MATCH (d:Document {id: $doc_id})
                 SET d.stages_applied = [s IN coalesce(d.stages_applied, []) WHERE s <> 'chunks']
                                        + ['chunks'],
                     d.last_chunk_write = datetime()
                 """,
-                doc_id=doc_id,
-            )
+            doc_id=doc_id,
+        )
 
-            await tx.commit()
+        await tx.commit()
 
     logger.info(
         "Neo4j: wrote %d chunks (%d DERIVED_FROM) for doc %s",
