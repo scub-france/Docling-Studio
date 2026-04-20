@@ -114,6 +114,7 @@ const messages: Messages = {
     // Chunking
     'studio.prepare': 'Préparer',
     'studio.ingest': 'Ingérer',
+    'studio.maintain': 'Maintenir',
     'chunking.settings': 'Chunking',
     'chunking.chunkerType': 'Type de chunker',
     'chunking.maxTokens': 'Tokens max',
@@ -287,6 +288,7 @@ const messages: Messages = {
 
     'studio.prepare': 'Prepare',
     'studio.ingest': 'Ingest',
+    'studio.maintain': 'Maintain',
     'chunking.settings': 'Chunking',
     'chunking.chunkerType': 'Chunker type',
     'chunking.maxTokens': 'Max tokens',

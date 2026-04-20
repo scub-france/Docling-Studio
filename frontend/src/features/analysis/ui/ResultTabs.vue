@@ -106,12 +106,6 @@
 
       <!-- IMAGES -->
       <ImageGallery v-else-if="activeTab === 'images'" :pages="currentPageAsArray" />
-
-      <!-- GRAPH -->
-      <GraphView
-        v-else-if="activeTab === 'graph'"
-        :doc-id="store.currentAnalysis?.documentId ?? null"
-      />
     </div>
   </div>
   <div v-else-if="store.currentAnalysis?.status === 'RUNNING'" class="result-placeholder">
@@ -199,7 +193,6 @@ import { ref, computed, reactive } from 'vue'
 import { useAnalysisStore } from '../store'
 import MarkdownViewer from './MarkdownViewer.vue'
 import ImageGallery from './ImageGallery.vue'
-import GraphView from './GraphView.vue'
 import { useI18n } from '../../../shared/i18n'
 import type { PageElement } from '../../../shared/types'
 
@@ -230,7 +223,6 @@ const tabs = computed(() => [
   { id: 'elements', label: t('results.elements') },
   { id: 'markdown', label: t('results.markdown') },
   { id: 'images', label: t('results.images') },
-  { id: 'graph', label: t('results.graph') },
 ])
 
 const totalPages = computed(() => store.currentPages.length)

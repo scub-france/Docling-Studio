@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import { useI18n } from '../../../shared/i18n'
 import { fetchDocumentGraph, type GraphPayload } from '../graphApi'
 
@@ -90,11 +90,12 @@ async function load(): Promise<void> {
     payload.value = await fetchDocumentGraph(props.docId)
     if (!payload.value.nodes.length) {
       empty.value = true
-    } else {
-      // Wait for template to render the canvas before initializing Cytoscape.
-      await new Promise((r) => requestAnimationFrame(r))
-      await renderGraph()
+      return
     }
+    // Flip loading off so the canvas <div> mounts, then wait a tick before init.
+    loading.value = false
+    await nextTick()
+    await renderGraph()
   } catch (e) {
     error.value = (e as Error).message || 'Failed to load graph'
     console.error('Failed to load graph', e)
