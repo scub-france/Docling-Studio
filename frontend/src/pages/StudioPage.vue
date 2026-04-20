@@ -84,6 +84,27 @@
             </svg>
             {{ t('studio.ingest') }}
           </button>
+          <button
+            v-if="chunkingEnabled && ingestionEnabled && ingestionStore.available"
+            class="toggle-btn"
+            data-e2e="toggle-btn maintain-btn"
+            :class="{ active: mode === 'maintain' }"
+            @click="mode = 'maintain'"
+            :disabled="!analysisStore.currentAnalysis"
+          >
+            <svg class="toggle-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                d="M10 3.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM6 10a4 4 0 118 0 4 4 0 01-8 0zm4-2a2 2 0 100 4 2 2 0 000-4z"
+              />
+              <path
+                d="M10 1v2M10 17v2M1 10h2M17 10h2M3.5 3.5l1.4 1.4M15.1 15.1l1.4 1.4M3.5 16.5l1.4-1.4M15.1 4.9l1.4-1.4"
+                stroke="currentColor"
+                stroke-width="1.5"
+                fill="none"
+              />
+            </svg>
+            {{ t('studio.maintain') }}
+          </button>
         </div>
       </div>
       <div class="topbar-actions">
@@ -475,6 +496,11 @@
             :chunk-count="analysisStore.currentChunks?.length ?? 0"
           />
         </div>
+
+        <!-- MAINTAIN MODE -->
+        <div v-if="mode === 'maintain'" class="maintain-panel">
+          <GraphView :doc-id="analysisStore.currentAnalysis?.documentId ?? null" />
+        </div>
       </div>
     </div>
   </div>
@@ -489,6 +515,7 @@ import { useIngestionStore } from '../features/ingestion/store'
 import { DocumentUpload, DocumentList } from '../features/document/index'
 import { ResultTabs } from '../features/analysis/index'
 import BboxOverlay from '../features/analysis/ui/BboxOverlay.vue'
+import GraphView from '../features/analysis/ui/GraphView.vue'
 import { ChunkPanel } from '../features/chunking'
 import { IngestPanel } from '../features/ingestion'
 import { useFeatureFlag } from '../features/feature-flags'
@@ -1404,10 +1431,11 @@ onBeforeUnmount(() => {
   padding-top: 16px;
 }
 
-/* Verify / Prepare / Ingest panels */
+/* Verify / Prepare / Ingest / Maintain panels */
 .verify-panel,
 .prepare-panel,
-.ingest-panel-wrapper {
+.ingest-panel-wrapper,
+.maintain-panel {
   height: 100%;
   overflow: hidden;
   display: flex;

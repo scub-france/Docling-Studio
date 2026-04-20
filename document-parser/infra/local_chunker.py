@@ -15,7 +15,7 @@ from docling_core.transforms.chunker import HierarchicalChunker
 from docling_core.transforms.chunker.hybrid_chunker import HybridChunker
 from docling_core.types.doc.document import DoclingDocument
 
-from domain.value_objects import ChunkBbox, ChunkingOptions, ChunkResult
+from domain.value_objects import ChunkBbox, ChunkDocItem, ChunkingOptions, ChunkResult
 from infra.bbox import EMPTY_BBOX, to_topleft_list
 
 logger = logging.getLogger(__name__)
@@ -39,9 +39,18 @@ def _chunk_sync(document_json: str, options: ChunkingOptions) -> list[ChunkResul
         source_page = None
         token_count = 0
         bboxes: list[ChunkBbox] = []
+        doc_items: list[ChunkDocItem] = []
 
         if hasattr(chunk, "meta") and chunk.meta and chunk.meta.doc_items:
             for doc_item in chunk.meta.doc_items:
+                ref = getattr(doc_item, "self_ref", None)
+                if ref:
+                    doc_items.append(
+                        ChunkDocItem(
+                            self_ref=ref,
+                            label=str(getattr(doc_item, "label", "") or ""),
+                        )
+                    )
                 if not hasattr(doc_item, "prov") or not doc_item.prov:
                     continue
                 for prov in doc_item.prov:
@@ -67,6 +76,7 @@ def _chunk_sync(document_json: str, options: ChunkingOptions) -> list[ChunkResul
                 source_page=source_page,
                 token_count=token_count,
                 bboxes=bboxes,
+                doc_items=doc_items,
             )
         )
 

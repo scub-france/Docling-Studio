@@ -44,6 +44,7 @@ def _chunk_to_dict(c: ChunkResult) -> dict:
         "sourcePage": c.source_page,
         "tokenCount": c.token_count,
         "bboxes": [{"page": b.page, "bbox": b.bbox} for b in c.bboxes],
+        "docItems": [{"selfRef": d.self_ref, "label": d.label} for d in c.doc_items],
     }
 
 
@@ -69,6 +70,7 @@ class AnalysisConfig:
 
     default_table_mode: str = "accurate"
     batch_page_size: int = 0
+    neo4j_required: bool = False  # if True, ingestion fails when Neo4j write fails
 
 
 class AnalysisService:
@@ -83,6 +85,7 @@ class AnalysisService:
         conversion_timeout: int = 600,
         max_concurrent: int = _DEFAULT_MAX_CONCURRENT,
         config: AnalysisConfig | None = None,
+        neo4j_driver=None,
     ):
         self._converter = converter
         self._chunker = chunker
@@ -93,6 +96,7 @@ class AnalysisService:
         self._running_tasks: dict[str, asyncio.Task] = {}
         self._background_tasks: set[asyncio.Task] = set()
         self._config = config or AnalysisConfig()
+        self._neo4j = neo4j_driver
 
     async def create(
         self,
@@ -386,7 +390,31 @@ class AnalysisService:
         if result.page_count:
             await self._document_repo.update_page_count(job.document_id, result.page_count)
 
+        await self._write_tree_to_neo4j(job, result.document_json)
+
         logger.info("Analysis completed: %s (%d pages)", job_id, result.page_count)
+
+    async def _write_tree_to_neo4j(self, job, document_json: str | None) -> None:
+        """Mirror the DoclingDocument tree into Neo4j if configured.
+
+        Silent no-op when Neo4j isn't wired in. Logs but does not fail the
+        analysis when the write fails, unless `config.neo4j_required` is set.
+        """
+        if self._neo4j is None or not document_json:
+            return
+        try:
+            from infra.neo4j import write_document
+
+            await write_document(
+                self._neo4j,
+                doc_id=job.document_id,
+                filename=job.document_filename or job.document_id,
+                document_json=document_json,
+            )
+        except Exception:
+            logger.exception("Neo4j TreeWriter failed for doc %s", job.document_id)
+            if self._config.neo4j_required:
+                raise
 
     async def _run_analysis_inner(
         self,

@@ -76,9 +76,18 @@ class ChunkBbox:
 
 
 @dataclass(frozen=True)
+class ChunkDocItem:
+    """Source element referenced by a chunk. Enables Neo4j DERIVED_FROM edges."""
+
+    self_ref: str
+    label: str
+
+
+@dataclass(frozen=True)
 class ChunkResult:
     text: str
     headings: list[str] = field(default_factory=list)
     source_page: int | None = None
     token_count: int = 0
     bboxes: list[ChunkBbox] = field(default_factory=list)
+    doc_items: list[ChunkDocItem] = field(default_factory=list)

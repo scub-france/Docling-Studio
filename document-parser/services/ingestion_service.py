@@ -54,10 +54,12 @@ class IngestionService:
         embedding_service: EmbeddingService,
         vector_store: VectorStore,
         config: IngestionConfig | None = None,
+        neo4j_driver=None,
     ) -> None:
         self._embedding = embedding_service
         self._vector_store = vector_store
         self._config = config or IngestionConfig()
+        self._neo4j = neo4j_driver
 
     async def ensure_index(self) -> None:
         """Ensure the vector index exists with the correct mapping."""
@@ -138,6 +140,15 @@ class IngestionService:
         # 4. Index new chunks
         indexed = await self._vector_store.index_chunks(self._config.index_name, indexed_chunks)
         logger.info("Indexed %d/%d chunks for doc %s", indexed, len(indexed_chunks), doc_id)
+
+        # 5. Mirror chunks in Neo4j if configured (with DERIVED_FROM edges).
+        if self._neo4j is not None:
+            try:
+                from infra.neo4j import write_chunks
+
+                await write_chunks(self._neo4j, doc_id=doc_id, chunks_json=chunks_json)
+            except Exception:
+                logger.exception("Neo4j ChunkWriter failed for doc %s", doc_id)
 
         return IngestionResult(
             doc_id=doc_id,
