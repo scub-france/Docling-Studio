@@ -8,11 +8,18 @@
         {{ docFilename ?? docId }}
       </div>
       <button
-        class="rw-action-btn"
+        class="rw-action-btn rw-action-ghost"
         data-e2e="reasoning-workspace-import"
         @click="reasoningStore.openImportDialog()"
       >
         {{ t('reasoning.importBtn') }}
+      </button>
+      <button
+        class="rw-action-btn"
+        data-e2e="reasoning-workspace-run"
+        @click="reasoningStore.openRunDialog()"
+      >
+        {{ t('reasoning.runBtn') }}
       </button>
     </header>
 
@@ -20,6 +27,8 @@
       <GraphView ref="graphViewRef" :doc-id="docId" :fetcher="fetchReasoningGraph" />
       <ReasoningPanel :cy="graphCy" />
     </div>
+
+    <RunReasoningDialog :doc-id="docId" :doc-filename="docFilename" />
   </div>
 </template>
 
@@ -31,6 +40,7 @@ import { useI18n } from '../../../shared/i18n'
 import { fetchReasoningGraph } from '../api'
 import { useReasoningStore } from '../store'
 import ReasoningPanel from './ReasoningPanel.vue'
+import RunReasoningDialog from './RunReasoningDialog.vue'
 
 const props = defineProps<{
   docId: string
@@ -113,6 +123,19 @@ onBeforeUnmount(() => reasoningStore.reset())
 
 .rw-action-btn:hover {
   filter: brightness(0.95);
+}
+
+/* Secondary action next to the primary Run button — import is a rarer path. */
+.rw-action-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.rw-action-ghost:hover {
+  background: var(--border-light);
+  color: var(--text);
+  filter: none;
 }
 
 .rw-body {

@@ -20,9 +20,8 @@
         {{ statusLabel }}
       </span>
     </div>
-    <p v-if="iteration.reason" class="it-reason">{{ iteration.reason }}</p>
-    <p v-if="iteration.response && iteration.canAnswer" class="it-response">
-      {{ iteration.response }}
+    <p v-if="iteration.reason" class="it-reason" :class="{ placeholder: isPlaceholderReason }">
+      {{ isPlaceholderReason ? t('reasoning.reasonPlaceholder') : iteration.reason }}
     </p>
     <div class="it-meta">
       <span v-if="iteration.sectionTextLength">
@@ -51,6 +50,15 @@ const statusLabel = computed(() => {
   if (!props.iteration.present) return t('reasoning.statusMissing')
   if (props.iteration.canAnswer) return t('reasoning.statusAnswered')
   return t('reasoning.statusMore')
+})
+
+// docling-agent emits the literal string "fallback" for `reason` when its
+// `select_from_failure` branch runs (the model's structured output didn't
+// parse N times in a row). Don't show that noise — render a dash-style
+// placeholder the user can visually skip.
+const isPlaceholderReason = computed(() => {
+  const r = (props.iteration.reason || '').trim().toLowerCase()
+  return r === '' || r === 'fallback'
 })
 </script>
 
@@ -151,16 +159,9 @@ const statusLabel = computed(() => {
   color: var(--text);
 }
 
-.it-response {
-  margin: 6px 0 0;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--text-secondary);
+.it-reason.placeholder {
+  color: var(--text-muted);
   font-style: italic;
-  padding: 6px 8px;
-  border-left: 2px solid #ea580c;
-  background: rgba(234, 88, 12, 0.04);
-  border-radius: 2px;
 }
 
 .it-meta {

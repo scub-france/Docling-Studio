@@ -39,6 +39,11 @@ function isRAGResult(x: RAGResult | undefined): boolean {
 
 export const useReasoningStore = defineStore('reasoning', () => {
   const importDialogOpen = ref(false)
+  // Separate modal for the live runner (POST /api/documents/:id/rag), so it
+  // can coexist with the import dialog conceptually even if only one is ever
+  // open at a time.
+  const runDialogOpen = ref(false)
+  const running = ref(false)
   const rawResult = ref<RAGResult | null>(null)
   const envelope = ref<SidecarEnvelope | null>(null)
   const overlay = ref<OverlayResult | null>(null)
@@ -60,6 +65,18 @@ export const useReasoningStore = defineStore('reasoning', () => {
 
   function closeImportDialog(): void {
     importDialogOpen.value = false
+  }
+
+  function openRunDialog(): void {
+    runDialogOpen.value = true
+  }
+
+  function closeRunDialog(): void {
+    runDialogOpen.value = false
+  }
+
+  function setRunning(v: boolean): void {
+    running.value = v
   }
 
   /**
@@ -98,12 +115,16 @@ export const useReasoningStore = defineStore('reasoning', () => {
     activeIteration.value = null
     error.value = null
     importDialogOpen.value = false
+    runDialogOpen.value = false
+    running.value = false
     focusMode.value = true
   }
 
   return {
     // state
     importDialogOpen,
+    runDialogOpen,
+    running,
     rawResult,
     envelope,
     overlay,
@@ -118,6 +139,9 @@ export const useReasoningStore = defineStore('reasoning', () => {
     // actions
     openImportDialog,
     closeImportDialog,
+    openRunDialog,
+    closeRunDialog,
+    setRunning,
     setResult,
     setOverlay,
     setActiveIteration,

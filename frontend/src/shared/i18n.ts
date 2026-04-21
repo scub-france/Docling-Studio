@@ -91,6 +91,7 @@ const messages: Messages = {
     'graph.page': 'Page',
     'graph.text': 'Texte',
     'graph.provenances': 'Provenances ({n})',
+    'graph.contains': 'Contenu ({n})',
     'results.retry': 'Réessayer',
     'results.pageOf': 'Page {current} sur {total}',
     'results.noElements': 'Aucun élément détecté sur cette page',
@@ -147,6 +148,11 @@ const messages: Messages = {
     'reasoning.converged': 'Convergé',
     'reasoning.notConverged': 'Itérations max atteintes',
     'reasoning.resolved': 'sections résolues',
+    'reasoning.answerLabel': 'Réponse',
+    'reasoning.copy': 'Copier',
+    'reasoning.copied': 'Copié ✓',
+    'reasoning.copyAnswer': 'Copier la réponse dans le presse-papier',
+    'reasoning.reasonPlaceholder': '— pas de justification structurée',
     'reasoning.missingWarn':
       '{n} section(s) introuvable(s) dans le graphe. Le document a peut-être été re-analysé — relance « Maintenir » ou régénère la trace.',
     'reasoning.graphNotLoadedWarn':
@@ -172,6 +178,19 @@ const messages: Messages = {
     'reasoning.analyzing': 'Analyse du document...',
     'reasoning.analyzingHint':
       'Docling analyse le PDF avec la configuration par défaut. Cela peut prendre 1 à 3 minutes selon la taille.',
+    'reasoning.runBtn': 'Lancer le reasoning',
+    'reasoning.runTitle': 'Lancer docling-agent',
+    'reasoning.runHint':
+      'Pose une question au document. Le backend appelle docling-agent via Ollama et renvoie la trace dès que la boucle converge (20-40s).',
+    'reasoning.runQueryLabel': 'Question',
+    'reasoning.runQueryPlaceholder': 'Ex : Quelles sont les obligations du fournisseur ?',
+    'reasoning.runModelLabel': 'Modèle (optionnel)',
+    'reasoning.runModelPlaceholder': 'gpt-oss:20b',
+    'reasoning.runModelSub':
+      'Nom du modèle Ollama. Laisser vide pour utiliser le défaut serveur (RAG_MODEL_ID).',
+    'reasoning.runSubmit': 'Lancer',
+    'reasoning.running': 'docling-agent tourne... (20-40s)',
+    'reasoning.runErrUnknown': 'Erreur inconnue lors de l\u2019appel à docling-agent.',
     'reasoning.cancel': 'Annuler',
     'reasoning.retry': 'Réessayer',
     'reasoning.pickAnother': 'Choisir un autre document',
@@ -332,6 +351,7 @@ const messages: Messages = {
     'graph.page': 'Page',
     'graph.text': 'Text',
     'graph.provenances': 'Provenances ({n})',
+    'graph.contains': 'Contents ({n})',
     'results.retry': 'Retry',
     'results.pageOf': 'Page {current} of {total}',
     'results.noElements': 'No elements detected on this page',
@@ -383,6 +403,11 @@ const messages: Messages = {
     'reasoning.converged': 'Converged',
     'reasoning.notConverged': 'Max iterations',
     'reasoning.resolved': 'sections resolved',
+    'reasoning.answerLabel': 'Answer',
+    'reasoning.copy': 'Copy',
+    'reasoning.copied': 'Copied ✓',
+    'reasoning.copyAnswer': 'Copy answer to clipboard',
+    'reasoning.reasonPlaceholder': '— no structured rationale',
     'reasoning.missingWarn':
       '{n} section(s) missing from the graph. The document may have been re-analyzed — re-run Maintain or regenerate the trace.',
     'reasoning.graphNotLoadedWarn':
@@ -408,6 +433,19 @@ const messages: Messages = {
     'reasoning.analyzing': 'Analyzing document...',
     'reasoning.analyzingHint':
       'Docling is parsing the PDF with default settings. May take 1–3 minutes depending on size.',
+    'reasoning.runBtn': 'Run reasoning',
+    'reasoning.runTitle': 'Run docling-agent',
+    'reasoning.runHint':
+      'Ask a question against this document. The backend calls docling-agent over Ollama and returns the trace once the loop converges (20–40s).',
+    'reasoning.runQueryLabel': 'Question',
+    'reasoning.runQueryPlaceholder': 'e.g. What are the supplier obligations?',
+    'reasoning.runModelLabel': 'Model (optional)',
+    'reasoning.runModelPlaceholder': 'gpt-oss:20b',
+    'reasoning.runModelSub':
+      'Ollama model name. Leave empty to use the server default (RAG_MODEL_ID).',
+    'reasoning.runSubmit': 'Run',
+    'reasoning.running': 'docling-agent is thinking… (20–40s)',
+    'reasoning.runErrUnknown': 'Unknown error while calling docling-agent.',
     'reasoning.cancel': 'Cancel',
     'reasoning.retry': 'Retry',
     'reasoning.pickAnother': 'Pick another document',

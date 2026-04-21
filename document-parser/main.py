@@ -221,6 +221,13 @@ from api.graph import router as graph_router  # noqa: E402
 
 app.include_router(graph_router)
 
+# Live reasoning (docling-agent runner). Router is mounted unconditionally so
+# the route is introspectable in OpenAPI; the handler itself 503s when
+# `RAG_ENABLED` is off or the deps aren't installed.
+from api.reasoning import router as reasoning_router  # noqa: E402
+
+app.include_router(reasoning_router)
+
 
 @app.get("/api/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
@@ -243,4 +250,18 @@ async def health() -> HealthResponse:
         max_page_count=settings.max_page_count if settings.max_page_count > 0 else None,
         max_file_size_mb=settings.max_file_size_mb if settings.max_file_size_mb > 0 else None,
         ingestion_available=getattr(app.state, "ingestion_service", None) is not None,
+        # True when the live-reasoning runner is wired (flag on + deps present).
+        # The actual Ollama reachability is checked lazily at call-time to avoid
+        # blocking health checks on the LLM host.
+        rag_available=settings.rag_enabled and _rag_deps_present(),
     )
+
+
+def _rag_deps_present() -> bool:
+    """Import-check only — does not hit Ollama."""
+    try:
+        import docling_agent.agents  # noqa: F401
+        import mellea  # noqa: F401
+    except ImportError:
+        return False
+    return True
