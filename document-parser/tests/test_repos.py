@@ -153,6 +153,49 @@ class TestAnalysisRepo:
         deleted = await analysis_repo.delete("nonexistent")
         assert deleted is False
 
+    async def test_find_latest_completed_by_document(self, document_repo, analysis_repo):
+        """Reasoning tunnel helper: latest COMPLETED analysis with document_json."""
+        await self._insert_doc(document_repo)
+
+        # Each job must be insert()'d before update_status can touch it.
+        # Scenarios: pending (excluded — not COMPLETED), old completed without
+        # document_json (excluded — NULL json), recent completed with
+        # document_json (the one we want), running (excluded).
+        pending = AnalysisJob(id="job-pending", document_id="doc-1")
+        await analysis_repo.insert(pending)
+
+        old_completed = AnalysisJob(id="job-old", document_id="doc-1")
+        await analysis_repo.insert(old_completed)
+        old_completed.mark_running()
+        old_completed.mark_completed(markdown="", html="", pages_json="[]")
+        await analysis_repo.update_status(old_completed)
+
+        latest = AnalysisJob(id="job-latest", document_id="doc-1")
+        await analysis_repo.insert(latest)
+        latest.mark_running()
+        latest.mark_completed(
+            markdown="md",
+            html="<p/>",
+            pages_json="[]",
+            document_json='{"body":{"children":[]},"texts":[]}',
+        )
+        await analysis_repo.update_status(latest)
+
+        running = AnalysisJob(id="job-running", document_id="doc-1")
+        await analysis_repo.insert(running)
+        running.mark_running()
+        await analysis_repo.update_status(running)
+
+        found = await analysis_repo.find_latest_completed_by_document("doc-1")
+        assert found is not None
+        assert found.id == "job-latest"
+        assert found.document_json is not None
+
+    async def test_find_latest_completed_by_document_none(self, document_repo, analysis_repo):
+        await self._insert_doc(document_repo)
+        found = await analysis_repo.find_latest_completed_by_document("doc-1")
+        assert found is None
+
     async def test_delete_by_document(self, document_repo, analysis_repo):
         await self._insert_doc(document_repo)
         for i in range(3):

@@ -501,25 +501,31 @@ class TestRemoteChunkingPath:
             markdown="# Title\nParagraph text here.",
             html="<h1>Title</h1><p>Paragraph text here.</p>",
             pages_json="[]",
-            document_json=json.dumps({
-                "schema_name": "DoclingDocument",
-                "version": "1.0.0",
-                "name": "test",
-                "origin": {
-                    "mimetype": "application/pdf",
-                    "filename": "test.pdf",
-                    "binary_hash": 0,
-                },
-                "furniture": {"self_ref": "#/furniture", "children": [], "content_layer": "furniture"},
-                "body": {"self_ref": "#/body", "children": [], "content_layer": "body"},
-                "groups": [],
-                "texts": [],
-                "pictures": [],
-                "tables": [],
-                "key_value_items": [],
-                "form_items": [],
-                "pages": {},
-            }),
+            document_json=json.dumps(
+                {
+                    "schema_name": "DoclingDocument",
+                    "version": "1.0.0",
+                    "name": "test",
+                    "origin": {
+                        "mimetype": "application/pdf",
+                        "filename": "test.pdf",
+                        "binary_hash": 0,
+                    },
+                    "furniture": {
+                        "self_ref": "#/furniture",
+                        "children": [],
+                        "content_layer": "furniture",
+                    },
+                    "body": {"self_ref": "#/body", "children": [], "content_layer": "body"},
+                    "groups": [],
+                    "texts": [],
+                    "pictures": [],
+                    "tables": [],
+                    "key_value_items": [],
+                    "form_items": [],
+                    "pages": {},
+                }
+            ),
         )
         analysis_repo.find_by_id = AsyncMock(return_value=job)
         analysis_repo.update_chunks = AsyncMock(return_value=True)

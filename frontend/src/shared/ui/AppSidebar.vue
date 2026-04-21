@@ -63,6 +63,23 @@
       </RouterLink>
 
       <RouterLink
+        v-if="reasoningEnabled"
+        to="/reasoning"
+        class="nav-item"
+        data-e2e="nav-reasoning"
+        :class="{
+          active: route.name === 'reasoning' || route.name === 'reasoning-doc',
+        }"
+      >
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path
+            d="M10 2a5 5 0 00-5 5c0 1.72.87 3.24 2.2 4.14.47.32.8.84.8 1.4V14a1 1 0 001 1h2a1 1 0 001-1v-1.46c0-.56.33-1.08.8-1.4A5 5 0 0010 2zM8 17a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"
+          />
+        </svg>
+        <span class="nav-label">{{ t('nav.reasoning') }}</span>
+      </RouterLink>
+
+      <RouterLink
         to="/history"
         class="nav-item"
         data-e2e="nav-history"
@@ -138,6 +155,7 @@ import { useIngestionStore } from '../../features/ingestion/store'
 const featureStore = useFeatureFlagStore()
 const ingestionStore = useIngestionStore()
 const ingestionEnabled = computed(() => featureStore.isEnabled('ingestion'))
+const reasoningEnabled = computed(() => featureStore.isEnabled('reasoning'))
 const version = computed(() => featureStore.appVersion)
 const route = useRoute()
 const { t } = useI18n()

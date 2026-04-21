@@ -25,9 +25,31 @@ class GraphPayload:
 # block contributes a single row — avoids the cartesian product that chained
 # OPTIONAL MATCH on 6+ edge types would produce (hangs on multi-page docs).
 # See: https://neo4j.com/developer/kb/using-subqueries-to-control-the-scope-of-aggregations/
+#
+# Provenance nodes (post-v0.6 refactor) are NOT returned as top-level graph
+# nodes — they're metadata of their owning Element. We aggregate them inline
+# per element, and derive a dedup'd ON_PAGE edge set from them.
 _FETCH_GRAPH = """
 MATCH (d:Document {id: $doc_id})
-CALL { WITH d MATCH (e:Element {doc_id: d.id}) RETURN collect(e) AS elements }
+CALL {
+  WITH d
+  MATCH (e:Element {doc_id: d.id})
+  OPTIONAL MATCH (e)-[hp:HAS_PROV]->(pv:Provenance)
+  WITH e, pv ORDER BY hp.order
+  WITH e,
+    collect(
+      CASE WHEN pv IS NULL THEN NULL ELSE {
+        order: pv.prov_order,
+        page_no: pv.page_no,
+        bbox_l: pv.bbox_l, bbox_t: pv.bbox_t,
+        bbox_r: pv.bbox_r, bbox_b: pv.bbox_b,
+        coord_origin: pv.coord_origin,
+        charspan_start: pv.charspan_start,
+        charspan_end: pv.charspan_end
+      } END
+    ) AS all_provs
+  RETURN collect({element: e, provs: [p IN all_provs WHERE p IS NOT NULL]}) AS elements
+}
 CALL { WITH d MATCH (p:Page {doc_id: d.id})    RETURN collect(p) AS pages }
 CALL { WITH d MATCH (c:Chunk {doc_id: d.id})   RETURN collect(c) AS chunks }
 CALL {
@@ -42,7 +64,10 @@ CALL {
 }
 CALL {
   WITH d
-  MATCH (er:Element {doc_id: d.id})-[:ON_PAGE]->(pr:Page)
+  // ON_PAGE is stored on Provenance since v0.6; surface it at the Element
+  // level (dedup'd per Element/Page pair) for the Cytoscape viz.
+  MATCH (er:Element {doc_id: d.id})-[:HAS_PROV]->(:Provenance)-[:ON_PAGE]->(pr:Page)
+  WITH DISTINCT er, pr
   RETURN collect({from: er.self_ref, to: pr.page_no, type: 'ON_PAGE'}) AS on_page_edges
 }
 CALL {
@@ -66,17 +91,25 @@ RETURN d AS document, elements, pages, chunks,
 """
 
 
-def _element_node(doc_id: str, e: dict[str, Any]) -> dict[str, Any]:
+def _element_node(
+    doc_id: str, e: dict[str, Any], provs: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
     # Determine the specific element label: Neo4j returns it via labels(e) on the
     # driver side; when we project nodes via RETURN, the driver wraps them as Node
     # objects, so we convert below.
+    first_page: int | None = None
+    if provs:
+        # Convenience: the first provenance's page — the old `prov_page` property,
+        # useful for label rendering in Cytoscape. Full list is in `provs`.
+        first_page = provs[0].get("page_no")
     return {
         "id": f"elem::{e.get('self_ref')}",
         "group": "element",
         "docling_label": e.get("docling_label"),
         "self_ref": e.get("self_ref"),
         "text": (e.get("text") or "")[:200],
-        "prov_page": e.get("prov_page"),
+        "prov_page": first_page,
+        "provs": provs or [],
         "level": e.get("level"),
         "doc_id": doc_id,
     }
@@ -171,11 +204,17 @@ async def fetch_graph(
         )
 
     # Element nodes, keeping the specific label (:SectionHeader, etc.).
-    for e in record["elements"] or []:
+    # Each row is a {element, provs} dict from the CALL above; provs is a list
+    # of per-provenance dicts in original order.
+    for row in record["elements"] or []:
+        if row is None:
+            continue
+        e = row.get("element") if isinstance(row, dict) else None
         if e is None:
             continue
+        provs = [p for p in (row.get("provs") or []) if p is not None]
         labels = [label for label in e.labels if label != "Element"]
-        node = _element_node(doc_id, dict(e))
+        node = _element_node(doc_id, dict(e), provs=provs)
         node["label"] = labels[0] if labels else "TextElement"
         nodes.append(node)
 

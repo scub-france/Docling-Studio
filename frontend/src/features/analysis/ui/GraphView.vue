@@ -18,26 +18,65 @@
           {{ payload?.page_count }} pages
         </span>
         <span class="graph-legend">
-          <span class="legend-chip legend-document">Document</span>
-          <span class="legend-chip legend-section">Section</span>
-          <span class="legend-chip legend-paragraph">Paragraph</span>
-          <span class="legend-chip legend-table">Table</span>
-          <span class="legend-chip legend-figure">Figure</span>
-          <span class="legend-chip legend-page">Page</span>
-          <span class="legend-chip legend-chunk">Chunk</span>
+          <button
+            v-for="chip in LEGEND_CHIPS"
+            :key="chip.key"
+            type="button"
+            class="legend-chip"
+            :class="[`legend-${chip.key}`, { 'legend-off': hiddenChips.has(chip.key) }]"
+            :data-e2e="`legend-${chip.key}`"
+            :title="
+              hiddenChips.has(chip.key) ? `Show ${chip.label} nodes` : `Hide ${chip.label} nodes`
+            "
+            :aria-pressed="!hiddenChips.has(chip.key)"
+            @click="toggleChip(chip.key)"
+          >
+            {{ chip.label }}
+          </button>
         </span>
       </div>
-      <div ref="containerRef" class="graph-canvas" data-e2e="graph-canvas" />
+      <div class="graph-body">
+        <div class="graph-canvas-wrap">
+          <div ref="containerRef" class="graph-canvas" data-e2e="graph-canvas" />
+          <!-- Hover tooltip, positioned inside the canvas wrap so its
+               coords match cy.renderedPosition() exactly. -->
+          <div
+            v-if="tooltip"
+            class="graph-tooltip"
+            data-e2e="graph-tooltip"
+            :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
+          >
+            {{ tooltip.text }}
+          </div>
+        </div>
+        <NodeDetailsPanel :node="selectedNode" @close="closeDetails" />
+      </div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { Core } from 'cytoscape'
 import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import { useI18n } from '../../../shared/i18n'
-import { fetchDocumentGraph, type GraphPayload } from '../graphApi'
+import { reasoningOverlayStyles } from '../../reasoning/graphReasoningOverlay'
+import { fetchDocumentGraph, type GraphNode, type GraphPayload } from '../graphApi'
+import { LEGEND_CHIPS, findChip } from '../legendFilters'
+import { computeSectionParents, explicitParentMap, mergeParentMaps } from '../sectionParenting'
+import NodeDetailsPanel from './NodeDetailsPanel.vue'
 
-const props = defineProps<{ docId: string | null }>()
+// `fetcher` is optional so Maintain can keep using the Neo4j-backed endpoint
+// (`fetchDocumentGraph`, the default) while the reasoning-trace page can
+// inject a SQLite-backed fetcher that returns the same `GraphPayload` shape
+// without requiring Neo4j. Keeping this at the component boundary means the
+// rendering pipeline below doesn't care where the graph came from.
+const props = withDefaults(
+  defineProps<{
+    docId: string | null
+    fetcher?: (docId: string) => Promise<GraphPayload>
+  }>(),
+  { fetcher: fetchDocumentGraph },
+)
 const { t } = useI18n()
 
 const containerRef = ref<HTMLDivElement | null>(null)
@@ -45,8 +84,22 @@ const payload = ref<GraphPayload | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const empty = ref(false)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let cy: any | null = null
+// Exposed via defineExpose so parent components (e.g. the reasoning trace
+// overlay) can read the live Cytoscape instance reactively. Null while the
+// graph is loading / empty / unmounted.
+const cy = ref<Core | null>(null)
+
+// Legend-driven visibility: user clicks a chip → its key lands here and the
+// matching nodes get the `.hidden` Cytoscape class. Reset to empty every time
+// the doc changes (see the `watch(() => props.docId)` below) — kept as a Set
+// because order doesn't matter and membership checks are the hot path.
+const hiddenChips = ref<Set<string>>(new Set())
+
+// Click → details panel. Null = panel hidden.
+const selectedNode = ref<GraphNode | null>(null)
+
+// Hover tooltip: position (px within .graph-canvas) + text. Null hides it.
+const tooltip = ref<{ x: number; y: number; text: string } | null>(null)
 
 const NODE_COLORS: Record<string, string> = {
   document: '#1E293B',
@@ -87,7 +140,7 @@ async function load(): Promise<void> {
   error.value = null
   empty.value = false
   try {
-    payload.value = await fetchDocumentGraph(props.docId)
+    payload.value = await props.fetcher(props.docId)
     if (!payload.value.nodes.length) {
       empty.value = true
       return
@@ -96,6 +149,9 @@ async function load(): Promise<void> {
     loading.value = false
     await nextTick()
     await renderGraph()
+    // Re-apply any chips the user had toggled before this load (e.g. they
+    // hid Pages on doc A, then navigated to doc B — keep Pages hidden).
+    applyHiddenChips()
   } catch (e) {
     error.value = (e as Error).message || 'Failed to load graph'
     console.error('Failed to load graph', e)
@@ -106,26 +162,47 @@ async function load(): Promise<void> {
 
 async function renderGraph(): Promise<void> {
   if (!containerRef.value || !payload.value) return
-  // Dynamic import keeps cytoscape out of the main chunk.
-  const [{ default: cytoscape }, { default: dagre }] = await Promise.all([
+  // Dynamic imports keep the heavy Cytoscape bundle out of the main chunk.
+  const [{ default: cytoscape }, { default: dagre }, ecMod] = await Promise.all([
     import('cytoscape'),
     import('cytoscape-dagre'),
+    import('cytoscape-expand-collapse'),
   ])
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ;(cytoscape as any).use(dagre)
 
-  if (cy) {
-    cy.destroy()
-    cy = null
+  const C = cytoscape as any
+  C.use(dagre)
+  // Plugin registration is idempotent — calling use() twice is a no-op.
+  C.use((ecMod as any).default ?? ecMod)
+
+  if (cy.value) {
+    cy.value.destroy()
+    cy.value = null
   }
+
+  // Compute compound parenting: merge docling-native PARENT_OF with the
+  // synthetic section-scope parents so every non-root element sits inside
+  // its section visually (enables per-section collapse via the legend chips
+  // and the expand-collapse plugin).
+  const parentMap = mergeParentMaps(
+    explicitParentMap(payload.value.edges),
+    computeSectionParents(payload.value.nodes, payload.value.edges),
+  )
 
   const elements = [
     ...payload.value.nodes.map((n) => ({
       data: {
         id: n.id,
         label: nodeLabel(n),
+        // `kindLabel` is the specific Neo4j label (SectionHeader, Paragraph,
+        // Figure, …) — kept as a data attribute so legend filters can match
+        // on it. `label` above is the human display string for Cytoscape.
+        kindLabel: n.label ?? null,
         bg: nodeColor(n),
         group: n.group,
+        // Compound-node parent: used by the expand-collapse plugin to
+        // fold/unfold a section's scope. `undefined` = this node is a root
+        // of the compound hierarchy (Documents, unparented sections, etc.).
+        parent: parentMap.get(n.id),
         raw: n,
       },
     })),
@@ -139,7 +216,7 @@ async function renderGraph(): Promise<void> {
     })),
   ]
 
-  cy = cytoscape({
+  cy.value = cytoscape({
     container: containerRef.value,
     elements,
     style: [
@@ -200,8 +277,47 @@ async function renderGraph(): Promise<void> {
         selector: 'edge[type = "DERIVED_FROM"]',
         style: { 'line-color': '#DC2626', 'target-arrow-color': '#DC2626' },
       },
+      // Reasoning-trace overlay: visited-node class + synthetic REASONING_NEXT edges.
+      ...reasoningOverlayStyles,
+      // Legend-driven visibility: chips toggle the `.hidden` class on
+      // matching nodes. `display: none` cascades to connected edges for free.
+      { selector: 'node.hidden', style: { display: 'none' } },
+      // Compound nodes (section scope + explicit PARENT_OF containers). A
+      // node with :parent children is rendered as a bounding box here —
+      // visually groups the section's content together. Minimal padding so
+      // the layout stays compact.
+      {
+        selector: ':parent',
+        style: {
+          'background-opacity': 0.08,
+          'background-color': '#F97316',
+          'border-color': '#FDBA74',
+          'border-width': 1,
+          'padding-top': '12px',
+          'padding-bottom': '12px',
+          'padding-left': '12px',
+          'padding-right': '12px',
+          'text-valign': 'top',
+          'text-halign': 'center',
+          'text-margin-y': -4,
+          shape: 'round-rectangle',
+        },
+      },
+      // Click-selected node: stronger border so the user sees which one
+      // populated the details panel.
+      {
+        selector: 'node.nd-selected',
+        style: {
+          'border-width': 4,
+          'border-color': '#0EA5E9',
+          'overlay-color': '#0EA5E9',
+          'overlay-opacity': 0.12,
+          'overlay-padding': 4,
+          'z-index': 60,
+        },
+      },
     ],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     layout: {
       name: 'dagre',
       rankDir: 'TB',
@@ -211,13 +327,117 @@ async function renderGraph(): Promise<void> {
     } as any,
     wheelSensitivity: 0.15,
   })
+
+  // --- Plugin activation ---------------------------------------------------
+  // Expand/collapse on compound nodes. `layoutBy` re-runs dagre after each
+  // toggle so the graph stays tidy. Don't animate — on big docs the per-node
+  // tween is choppy and the user just wants the end state.
+  ;(cy.value as any).expandCollapse({
+    layoutBy: { name: 'dagre', rankDir: 'TB', nodeSep: 30, rankSep: 40 },
+    fisheye: false,
+    animate: false,
+    undoable: false,
+    cueEnabled: true, // shows the +/- cue on compound nodes
+    expandCollapseCuePosition: 'top-left',
+    expandCollapseCueSize: 12,
+  })
+
+  // --- Interactions --------------------------------------------------------
+  cy.value.on('tap', 'node', (evt) => {
+    const raw = evt.target.data('raw') as GraphNode | undefined
+    if (!raw) return
+    selectedNode.value = raw
+    // Visual feedback — clear previous selection class first.
+    cy.value?.nodes('.nd-selected').removeClass('nd-selected')
+    evt.target.addClass('nd-selected')
+  })
+  // Click on background → close details panel.
+  cy.value.on('tap', (evt) => {
+    if (evt.target === cy.value) {
+      selectedNode.value = null
+      cy.value?.nodes('.nd-selected').removeClass('nd-selected')
+    }
+  })
+
+  // Hover tooltip — shows the full node text (backend truncates to 200 chars).
+  cy.value.on('mouseover', 'node', (evt) => {
+    const raw = evt.target.data('raw') as GraphNode | undefined
+    if (!raw) return
+    const text = tooltipTextFor(raw)
+    if (!text) return
+    const pos = evt.target.renderedPosition()
+    tooltip.value = { x: pos.x, y: pos.y, text }
+  })
+  cy.value.on('mouseout', 'node', () => {
+    tooltip.value = null
+  })
+  cy.value.on('pan zoom', () => {
+    // Tooltip coordinates are in rendered space; on pan/zoom they're stale.
+    tooltip.value = null
+  })
+}
+
+/**
+ * What to show on hover: prefer the node's full text, then title, then ref.
+ * Keeps the tooltip useful across node kinds (Document/Page/Chunk too).
+ */
+function tooltipTextFor(n: GraphNode): string {
+  if (n.group === 'document') return (n.title as string | undefined) ?? n.id
+  if (n.group === 'page') return `Page ${n.page_no ?? '?'}`
+  if (n.group === 'chunk') {
+    const head = ((n.text as string | undefined) ?? '').slice(0, 160)
+    return head ? `chunk #${n.chunk_index ?? '?'}\n${head}` : `chunk #${n.chunk_index ?? '?'}`
+  }
+  const text = (n.text as string | undefined) ?? ''
+  const ref = n.self_ref ?? ''
+  if (text) return text
+  return ref || n.label || ''
+}
+
+function closeDetails(): void {
+  selectedNode.value = null
+  cy.value?.nodes('.nd-selected').removeClass('nd-selected')
 }
 
 function disposeGraph(): void {
-  if (cy) {
-    cy.destroy()
-    cy = null
+  if (cy.value) {
+    cy.value.destroy()
+    cy.value = null
   }
+  selectedNode.value = null
+  tooltip.value = null
+}
+
+/**
+ * Apply the current `hiddenChips` set to the Cytoscape instance — marks
+ * every node whose chip is in the set with the `.hidden` class, and clears
+ * the class from nodes whose chip is no longer hidden.
+ *
+ * Called after every re-render (so chip state survives a doc reload) and
+ * whenever the user toggles a chip.
+ */
+function applyHiddenChips(): void {
+  const c = cy.value
+  if (!c) return
+
+  c.nodes().forEach((n: any) => {
+    const raw = n.data('raw')
+    if (!raw) return
+    const hiddenByChip = [...hiddenChips.value].some((key) => {
+      const chip = findChip(key)
+      return chip?.match(raw) ?? false
+    })
+    if (hiddenByChip) n.addClass('hidden')
+    else n.removeClass('hidden')
+  })
+}
+
+function toggleChip(key: string): void {
+  const next = new Set(hiddenChips.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  hiddenChips.value = next
+  applyHiddenChips()
 }
 
 onMounted(load)
@@ -229,6 +449,10 @@ watch(
     load()
   },
 )
+
+// Let parent components observe the live Cytoscape instance (e.g. the
+// reasoning-trace overlay reads it via `graphViewRef.value?.cy`).
+defineExpose({ cy, load })
 </script>
 
 <style scoped>
@@ -267,6 +491,21 @@ watch(
   padding: 2px 8px;
   border-radius: 10px;
   color: #f8fafc;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity var(--transition);
+}
+
+.legend-chip:hover {
+  filter: brightness(1.12);
+}
+
+/* Inactive (user clicked the chip to hide that node kind). */
+.legend-chip.legend-off {
+  opacity: 0.32;
+  text-decoration: line-through;
+  filter: saturate(0.4);
 }
 
 .legend-document {
@@ -292,10 +531,41 @@ watch(
   background: #dc2626;
 }
 
-.graph-canvas {
+.graph-body {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+}
+
+.graph-canvas-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.graph-canvas {
+  position: absolute;
+  inset: 0;
   background: var(--bg);
+}
+
+.graph-tooltip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 14px));
+  max-width: 280px;
+  padding: 6px 10px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #f8fafc;
+  font-size: 11px;
+  line-height: 1.4;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  white-space: pre-wrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 20;
 }
 
 .graph-placeholder {

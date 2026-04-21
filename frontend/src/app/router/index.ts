@@ -28,6 +28,22 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../../pages/SearchPage.vue'),
   },
   {
+    // Reasoning-trace tunnel. Route is always registered; the page shows
+    // an empty state when the `reasoning` feature flag is off (same pattern
+    // as /search does for ingestion).
+    path: '/reasoning',
+    name: 'reasoning',
+    component: () => import('../../pages/ReasoningPage.vue'),
+  },
+  {
+    // Deep-link into a specific document's reasoning workspace, e.g. shared
+    // by Peter to a teammate.
+    path: '/reasoning/:docId',
+    name: 'reasoning-doc',
+    component: () => import('../../pages/ReasoningPage.vue'),
+    props: true,
+  },
+  {
     path: '/settings',
     name: 'settings',
     component: () => import('../../pages/SettingsPage.vue'),
