@@ -102,8 +102,10 @@ async def test_fetch_graph_returns_full_payload(neo4j_driver):
     assert groups == {"document", "element", "page", "chunk"}
 
     edge_types = {e["type"] for e in payload.edges}
-    # Every edge kind written by TreeWriter and ChunkWriter should be present.
-    assert {"HAS_ROOT", "PARENT_OF", "NEXT", "ON_PAGE", "HAS_CHUNK", "DERIVED_FROM"} <= edge_types
+    # Every edge kind this fixture can produce should be present.
+    # PARENT_OF is intentionally excluded: all FIXTURE items have
+    # `parent = #/body`, so they're roots (→ HAS_ROOT) with no nested hierarchy.
+    assert {"HAS_ROOT", "NEXT", "ON_PAGE", "HAS_CHUNK", "DERIVED_FROM"} <= edge_types
 
 
 async def test_fetch_graph_missing_doc_returns_none(neo4j_driver):

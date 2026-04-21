@@ -1,5 +1,22 @@
 import { apiFetch } from '../../shared/api/http'
 
+/**
+ * A single provenance entry for an element — matches Docling's
+ * `ProvenanceItem`. One element may have multiple (e.g. a paragraph that
+ * spans a page break has two entries, one per page).
+ */
+export interface GraphProvenance {
+  order: number
+  page_no: number | null
+  bbox_l: number
+  bbox_t: number
+  bbox_r: number
+  bbox_b: number
+  coord_origin: string
+  charspan_start: number | null
+  charspan_end: number | null
+}
+
 export interface GraphNode {
   id: string
   group: 'document' | 'element' | 'page' | 'chunk'
@@ -8,6 +25,8 @@ export interface GraphNode {
   self_ref?: string
   text?: string
   prov_page?: number | null
+  /** Full list of provenances (page + bbox) — used by the bbox-highlight UI. */
+  provs?: GraphProvenance[]
   level?: number | null
   page_no?: number
   chunk_index?: number

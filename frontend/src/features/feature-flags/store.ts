@@ -16,7 +16,7 @@ interface HealthResponse {
   ingestionAvailable?: boolean
 }
 
-export type FeatureFlag = 'chunking' | 'disclaimer' | 'ingestion'
+export type FeatureFlag = 'chunking' | 'disclaimer' | 'ingestion' | 'reasoning'
 
 interface FeatureFlagDef {
   description: string
@@ -41,6 +41,13 @@ const featureRegistry: Record<FeatureFlag, FeatureFlagDef> = {
   ingestion: {
     description: 'OpenSearch ingestion pipeline (embedding + vector indexing)',
     isEnabled: (ctx) => ctx.ingestionAvailable,
+  },
+  reasoning: {
+    // SQLite-backed (builds the graph from `document_json` on the fly), so no
+    // server-side gating needed. Kept as a flag so a future deployment can
+    // still kill-switch the UI if it wants to.
+    description: 'Reasoning trace tunnel (docling-agent RAGResult viewer)',
+    isEnabled: () => true,
   },
 }
 

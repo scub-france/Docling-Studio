@@ -167,6 +167,12 @@ def _build_document_service(
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await init_db()
     document_repo, analysis_repo = _build_repos()
+    # Exposed on app.state so routers that need direct repo access (e.g. the
+    # reasoning-graph endpoint, which reads `document_json` from SQLite to
+    # build the graph without touching Neo4j) can reach them without going
+    # through a service.
+    app.state.analysis_repo = analysis_repo
+    app.state.document_repo = document_repo
     app.state.neo4j = await _init_neo4j()
     app.state.analysis_service = _build_analysis_service(
         document_repo, analysis_repo, neo4j_driver=app.state.neo4j

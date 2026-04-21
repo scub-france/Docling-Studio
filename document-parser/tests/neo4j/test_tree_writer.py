@@ -86,6 +86,8 @@ async def test_write_creates_expected_structure(neo4j_driver):
 
     assert result.elements_written == 4
     assert result.pages_written == 2
+    # Every item in FIXTURE has exactly one prov entry → 4 Provenance nodes.
+    assert result.provenances_written == 4
 
     async with neo4j_driver.driver.session(database=neo4j_driver.database) as s:
         assert (
@@ -131,12 +133,24 @@ async def test_write_creates_expected_structure(neo4j_driver):
             )
             == 3
         )
-        # ON_PAGE: one per element with prov.
+        # Post-v0.6: ON_PAGE attaches Provenance to Page, not Element directly.
+        # Traverse through the Provenance node.
         assert (
             await _count(
                 s,
-                "MATCH (:Element {doc_id: $id})-[:ON_PAGE]->(:Page {doc_id: $id}) "
+                "MATCH (:Element {doc_id: $id})-[:HAS_PROV]->"
+                "(:Provenance)-[:ON_PAGE]->(:Page {doc_id: $id}) "
                 "RETURN count(*) AS n",
+                id="doc-fixture",
+            )
+            == 4
+        )
+        # Each element has exactly one Provenance here (single-page fixture).
+        assert (
+            await _count(
+                s,
+                "MATCH (e:Element {doc_id: $id})-[:HAS_PROV]->(pv:Provenance) "
+                "RETURN count(pv) AS n",
                 id="doc-fixture",
             )
             == 4
