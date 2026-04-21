@@ -49,7 +49,12 @@
             {{ tooltip.text }}
           </div>
         </div>
-        <NodeDetailsPanel :node="selectedNode" @close="closeDetails" />
+        <NodeDetailsPanel
+          :node="selectedNode"
+          :contents="selectedNodeContents"
+          @close="closeDetails"
+          @navigate="navigateToNode"
+        />
       </div>
     </template>
   </div>
@@ -57,7 +62,7 @@
 
 <script setup lang="ts">
 import type { Core } from 'cytoscape'
-import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import { useI18n } from '../../../shared/i18n'
 import { reasoningOverlayStyles } from '../../reasoning/graphReasoningOverlay'
 import { fetchDocumentGraph, type GraphNode, type GraphPayload } from '../graphApi'
@@ -97,6 +102,32 @@ const hiddenChips = ref<Set<string>>(new Set())
 
 // Click → details panel. Null = panel hidden.
 const selectedNode = ref<GraphNode | null>(null)
+
+// Compound parenting map (childId → parentId), kept in sync with the
+// Cytoscape render so the details panel can show "this section contains …".
+// Updated at the end of `renderGraph` — before that it's empty.
+const parentMap = ref<Map<string, string>>(new Map())
+
+// Inverse index of parentMap: parentId → childId[]. Enables the
+// NodeDetailsPanel "contents" section (click a section → see what's in it).
+const childrenByParent = computed<Map<string, GraphNode[]>>(() => {
+  const out = new Map<string, GraphNode[]>()
+  const byId = new Map<string, GraphNode>()
+  for (const n of payload.value?.nodes ?? []) byId.set(n.id, n)
+  for (const [childId, parentId] of parentMap.value) {
+    const child = byId.get(childId)
+    if (!child) continue
+    if (!out.has(parentId)) out.set(parentId, [])
+    out.get(parentId)!.push(child)
+  }
+  return out
+})
+
+const selectedNodeContents = computed<GraphNode[]>(() => {
+  const id = selectedNode.value?.id
+  if (!id) return []
+  return childrenByParent.value.get(id) ?? []
+})
 
 // Hover tooltip: position (px within .graph-canvas) + text. Null hides it.
 const tooltip = ref<{ x: number; y: number; text: string } | null>(null)
@@ -182,11 +213,13 @@ async function renderGraph(): Promise<void> {
   // Compute compound parenting: merge docling-native PARENT_OF with the
   // synthetic section-scope parents so every non-root element sits inside
   // its section visually (enables per-section collapse via the legend chips
-  // and the expand-collapse plugin).
-  const parentMap = mergeParentMaps(
+  // and the expand-collapse plugin). Also persisted on `parentMap` so the
+  // NodeDetailsPanel can list what a given section contains.
+  const computedParentMap = mergeParentMaps(
     explicitParentMap(payload.value.edges),
     computeSectionParents(payload.value.nodes, payload.value.edges),
   )
+  parentMap.value = computedParentMap
 
   const elements = [
     ...payload.value.nodes.map((n) => ({
@@ -202,7 +235,7 @@ async function renderGraph(): Promise<void> {
         // Compound-node parent: used by the expand-collapse plugin to
         // fold/unfold a section's scope. `undefined` = this node is a root
         // of the compound hierarchy (Documents, unparented sections, etc.).
-        parent: parentMap.get(n.id),
+        parent: computedParentMap.get(n.id),
         raw: n,
       },
     })),
@@ -397,6 +430,22 @@ function tooltipTextFor(n: GraphNode): string {
 function closeDetails(): void {
   selectedNode.value = null
   cy.value?.nodes('.nd-selected').removeClass('nd-selected')
+}
+
+/**
+ * Triggered when the user clicks a child row inside the NodeDetailsPanel
+ * (e.g. the "Contents" list of a section). Switch the selection, center the
+ * viewport on the target, and flash the node briefly so the eye can catch it.
+ */
+function navigateToNode(target: GraphNode): void {
+  selectedNode.value = target
+  if (!cy.value) return
+  cy.value.nodes('.nd-selected').removeClass('nd-selected')
+  const el = cy.value.getElementById(target.id)
+  if (el && el.length > 0) {
+    el.addClass('nd-selected')
+    cy.value.animate({ center: { eles: el }, duration: 250 })
+  }
 }
 
 function disposeGraph(): void {

@@ -40,14 +40,28 @@
 
     <section v-if="result" class="rp-answer">
       <div class="rp-answer-header">
-        <span class="rp-converged" :class="{ yes: result.converged, no: !result.converged }">
-          {{ result.converged ? t('reasoning.converged') : t('reasoning.notConverged') }}
+        <span class="rp-answer-label">{{ t('reasoning.answerLabel') }}</span>
+        <span class="rp-answer-actions">
+          <span class="rp-converged" :class="{ yes: result.converged, no: !result.converged }">
+            {{ result.converged ? t('reasoning.converged') : t('reasoning.notConverged') }}
+          </span>
+          <button
+            class="rp-copy-btn"
+            :title="t('reasoning.copyAnswer')"
+            data-e2e="reasoning-copy-answer"
+            @click="copyAnswer"
+          >
+            {{ copied ? t('reasoning.copied') : t('reasoning.copy') }}
+          </button>
         </span>
+      </div>
+      <!-- eslint-disable-next-line vue/no-v-html -- sanitized by DOMPurify -->
+      <div class="rp-answer-body markdown-body" v-html="renderedAnswer" />
+      <div class="rp-answer-footer">
         <span class="rp-stats">
           {{ store.presentCount }} / {{ store.iterations.length }} {{ t('reasoning.resolved') }}
         </span>
       </div>
-      <p class="rp-answer-text">{{ result.answer }}</p>
     </section>
 
     <section v-if="store.missingCount > 0" class="rp-warn" data-e2e="reasoning-missing-warn">
@@ -76,7 +90,9 @@
 
 <script setup lang="ts">
 import type { Core } from 'cytoscape'
-import { computed, watch } from 'vue'
+import DOMPurify from 'dompurify'
+import { marked } from 'marked'
+import { computed, ref, watch } from 'vue'
 
 import { useI18n } from '../../../shared/i18n'
 import {
@@ -104,6 +120,34 @@ const { t } = useI18n()
 
 const result = computed(() => store.rawResult)
 const envelope = computed(() => store.envelope)
+
+// Render the answer as markdown so numbered lists, bold, etc. render properly.
+// Models tend to produce markdown-formatted answers (numbered lists especially),
+// and plain-text `pre-wrap` made them near-unreadable.
+const renderedAnswer = computed(() => {
+  const raw = result.value?.answer ?? ''
+  if (!raw.trim()) return ''
+  return DOMPurify.sanitize(marked.parse(raw, { async: false }) as string)
+})
+
+const copied = ref(false)
+let copyResetTimer: ReturnType<typeof setTimeout> | null = null
+
+async function copyAnswer(): Promise<void> {
+  const text = result.value?.answer
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    copied.value = true
+    if (copyResetTimer) clearTimeout(copyResetTimer)
+    copyResetTimer = setTimeout(() => {
+      copied.value = false
+    }, 1800)
+  } catch (e) {
+    console.warn('Copy failed', e)
+  }
+}
+
 const missingWarning = computed(() => {
   // Full miss + no cy → the graph simply isn't loaded. Different message
   // than "N sections are actually missing from the graph".
@@ -273,16 +317,31 @@ function onClear(): void {
 .rp-answer {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  background: var(--accent-muted, rgba(234, 88, 12, 0.04));
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--bg);
+  border: 1px solid #ea580c;
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(234, 88, 12, 0.08);
 }
 
 .rp-answer-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.rp-answer-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #ea580c;
+}
+
+.rp-answer-actions {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
 }
@@ -306,18 +365,97 @@ function onClear(): void {
   color: #a16207;
 }
 
+.rp-copy-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  font-size: 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.rp-copy-btn:hover {
+  background: var(--border-light);
+  color: var(--text);
+}
+
 .rp-stats {
   font-size: 10px;
   color: var(--text-muted);
   font-family: 'IBM Plex Mono', monospace;
 }
 
-.rp-answer-text {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
+.rp-answer-footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border-light);
+  padding-top: 6px;
+}
+
+/* Markdown-rendered answer body. Mirrors a subset of MarkdownViewer styles,
+ * tuned for a narrow right-rail context (tighter sizes than the full viewer). */
+.rp-answer-body {
+  font-size: 13.5px;
+  line-height: 1.6;
   color: var(--text);
-  white-space: pre-wrap;
+}
+
+.rp-answer-body :deep(p) {
+  margin: 0 0 8px;
+}
+
+.rp-answer-body :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.rp-answer-body :deep(ol),
+.rp-answer-body :deep(ul) {
+  margin: 4px 0 8px;
+  padding-left: 22px;
+}
+
+.rp-answer-body :deep(li) {
+  margin: 2px 0;
+}
+
+.rp-answer-body :deep(strong) {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.rp-answer-body :deep(code) {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  background: var(--border-light);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.rp-answer-body :deep(pre) {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  background: var(--border-light);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  margin: 6px 0;
+}
+
+.rp-answer-body :deep(h1),
+.rp-answer-body :deep(h2),
+.rp-answer-body :deep(h3),
+.rp-answer-body :deep(h4) {
+  margin: 10px 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.rp-answer-body :deep(a) {
+  color: #ea580c;
+  text-decoration: underline;
 }
 
 .rp-warn {

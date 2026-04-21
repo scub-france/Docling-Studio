@@ -57,6 +57,31 @@
         </li>
       </ul>
     </section>
+
+    <section v-if="contents && contents.length > 0" class="nd-contents-block">
+      <h4 class="nd-section-title">
+        {{ t('graph.contains').replace('{n}', String(contents.length)) }}
+      </h4>
+      <ul class="nd-contents">
+        <li v-for="child in contents" :key="child.id">
+          <button
+            type="button"
+            class="nd-child"
+            :data-e2e="`node-details-child-${child.id}`"
+            @click="$emit('navigate', child)"
+          >
+            <span
+              class="nd-child-chip"
+              :style="{ background: kindColorFor(child) }"
+              :title="child.label ?? child.group"
+            >
+              {{ kindLabelFor(child) }}
+            </span>
+            <span class="nd-child-text">{{ previewText(child) }}</span>
+          </button>
+        </li>
+      </ul>
+    </section>
   </aside>
 </template>
 
@@ -66,8 +91,20 @@ import { computed } from 'vue'
 import { useI18n } from '../../../shared/i18n'
 import type { GraphNode, GraphProvenance } from '../graphApi'
 
-const props = defineProps<{ node: GraphNode | null }>()
-defineEmits<{ close: [] }>()
+const props = defineProps<{
+  node: GraphNode | null
+  /**
+   * Nodes whose compound parent (PARENT_OF or synthetic section scope) is the
+   * currently-selected node. Computed upstream in GraphView so we don't have
+   * to re-walk the whole edge list here. Empty or null for leaf nodes.
+   */
+  contents?: readonly GraphNode[] | null
+}>()
+defineEmits<{
+  close: []
+  /** User clicked a child row — GraphView pans + swaps selection. */
+  navigate: [node: GraphNode]
+}>()
 
 const { t } = useI18n()
 
@@ -132,6 +169,35 @@ const provs = computed<GraphProvenance[]>(() => (props.node?.provs as GraphProve
 function fmt(n: number | null | undefined): string {
   if (n == null) return '—'
   return n.toFixed(1)
+}
+
+// Label + color helpers factored so they work for children too, not just the
+// currently-selected node. Keep them consistent with the chips above.
+function kindLabelFor(n: GraphNode): string {
+  if (n.group === 'document') return 'Document'
+  if (n.group === 'page') return 'Page'
+  if (n.group === 'chunk') return 'Chunk'
+  return n.label ?? 'Element'
+}
+
+function kindColorFor(n: GraphNode): string {
+  if (n.group === 'document') return KIND_COLORS.document
+  if (n.group === 'page') return KIND_COLORS.Page
+  if (n.group === 'chunk') return KIND_COLORS.Chunk
+  return KIND_COLORS[n.label ?? ''] || KIND_COLORS.TextElement
+}
+
+/**
+ * Short label for a child row. Prefer the node's own text (truncated), fall
+ * back to its self_ref so users can still recognise / debug missing text.
+ */
+function previewText(n: GraphNode): string {
+  const raw = (n.text as string | undefined) ?? ''
+  const clean = raw.replace(/\s+/g, ' ').trim()
+  if (clean) return clean.length > 80 ? clean.slice(0, 80) + '…' : clean
+  if (n.group === 'page') return `p.${n.page_no ?? '?'}`
+  if (n.group === 'chunk') return `chunk #${n.chunk_index ?? '?'}`
+  return n.self_ref ?? n.id
 }
 </script>
 
@@ -274,5 +340,70 @@ function fmt(n: number | null | undefined): string {
   color: var(--text-muted);
   font-size: 9px;
   text-transform: lowercase;
+}
+
+.nd-contents-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+}
+
+.nd-contents {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* Cap the list height so a section with hundreds of paragraphs doesn't
+   * blow the panel out. Scroll internally above that. */
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.nd-child {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: all var(--transition);
+}
+
+.nd-child:hover {
+  background: var(--border-light);
+  border-color: var(--border);
+}
+
+.nd-child-chip {
+  flex: 0 0 auto;
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 8px;
+  color: #f8fafc;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.nd-child-text {
+  flex: 1 1 auto;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 </style>
