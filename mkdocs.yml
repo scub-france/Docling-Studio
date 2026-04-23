@@ -57,7 +57,7 @@ nav:
   - Audit:
       - Audit Master: audit/master.md
       - Audits:
-          - Clean Architecture: audit/audits/01-clean-architecture.md
+          - Hexagonal Architecture: audit/audits/01-clean-architecture.md
           - DDD: audit/audits/02-ddd.md
           - Clean Code: audit/audits/03-clean-code.md
           - KISS: audit/audits/04-kiss.md
