@@ -96,6 +96,11 @@ export const useReasoningStore = defineStore('reasoning', () => {
   }
 
   function setActiveIteration(n: number | null): void {
+    // Flip via null first so a click on the *same* iteration still fires
+    // downstream watchers (PDF scroll, graph pan). Otherwise Vue sees
+    // "no change" and the second click is a silent no-op — painful UX when
+    // only one iteration exists.
+    activeIteration.value = null
     activeIteration.value = n
   }
 

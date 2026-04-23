@@ -67,6 +67,10 @@ export interface PageElement {
   bbox: [number, number, number, number]
   content: string
   level: number
+  /** Docling `self_ref` — "#/texts/12", "#/tables/3", etc. Empty string for
+   * items that don't have one (rare). Lets callers correlate a bbox with
+   * the matching graph node without fuzzy bbox matching. */
+  self_ref?: string
 }
 
 // Backend serializes with snake_case (dataclasses.asdict)

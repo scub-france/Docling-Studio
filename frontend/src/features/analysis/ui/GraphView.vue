@@ -19,7 +19,7 @@
         </span>
         <span class="graph-legend">
           <button
-            v-for="chip in LEGEND_CHIPS"
+            v-for="chip in visibleChips"
             :key="chip.key"
             type="button"
             class="legend-chip"
@@ -82,6 +82,13 @@ const props = withDefaults(
   }>(),
   { fetcher: fetchDocumentGraph },
 )
+const emit = defineEmits<{
+  /** Emitted on node tap with the element's `self_ref` (null when the tap
+   * cleared the selection, or when the tapped node has no self_ref —
+   * Document / Page / Chunk). Consumers can mirror the selection elsewhere
+   * (e.g. the ReasoningWorkspace syncs it to the PDF viewer). */
+  nodeFocus: [selfRef: string | null]
+}>()
 const { t } = useI18n()
 
 const containerRef = ref<HTMLDivElement | null>(null)
@@ -127,6 +134,16 @@ const selectedNodeContents = computed<GraphNode[]>(() => {
   const id = selectedNode.value?.id
   if (!id) return []
   return childrenByParent.value.get(id) ?? []
+})
+
+// Only surface chips that actually have matching nodes in the current
+// payload. Keeps the legend in sync with the source (e.g. Reasoning view
+// never emits Chunk nodes, so the Chunk chip would dangle) without
+// hardcoding per-view chip lists.
+const visibleChips = computed(() => {
+  const nodes = payload.value?.nodes ?? []
+  if (nodes.length === 0) return []
+  return LEGEND_CHIPS.filter((chip) => nodes.some((n) => chip.match(n)))
 })
 
 // Hover tooltip: position (px within .graph-canvas) + text. Null hides it.
@@ -383,12 +400,17 @@ async function renderGraph(): Promise<void> {
     // Visual feedback — clear previous selection class first.
     cy.value?.nodes('.nd-selected').removeClass('nd-selected')
     evt.target.addClass('nd-selected')
+    // Let the outer workspace mirror the selection (e.g. into the PDF view).
+    // Nodes without a `self_ref` (Document / Page / Chunk) emit `null` so
+    // the consumer can reset its focus.
+    emit('nodeFocus', raw.self_ref ?? null)
   })
-  // Click on background → close details panel.
+  // Click on background → close details panel + clear cross-view focus.
   cy.value.on('tap', (evt) => {
     if (evt.target === cy.value) {
       selectedNode.value = null
       cy.value?.nodes('.nd-selected').removeClass('nd-selected')
+      emit('nodeFocus', null)
     }
   })
 
@@ -448,6 +470,18 @@ function navigateToNode(target: GraphNode): void {
   }
 }
 
+/**
+ * Mirror an external selection (e.g. user clicked a bbox in the PDF view)
+ * onto the graph: select the matching node, scroll it into view, update
+ * the details panel. No-op if the element isn't in the current graph
+ * (common for a PDF-only element that the reasoning graph didn't emit).
+ */
+function selectBySelfRef(selfRef: string): void {
+  const node = payload.value?.nodes.find((n) => n.self_ref === selfRef) ?? null
+  if (!node) return
+  navigateToNode(node)
+}
+
 function disposeGraph(): void {
   if (cy.value) {
     cy.value.destroy()
@@ -501,7 +535,7 @@ watch(
 
 // Let parent components observe the live Cytoscape instance (e.g. the
 // reasoning-trace overlay reads it via `graphViewRef.value?.cy`).
-defineExpose({ cy, load })
+defineExpose({ cy, load, selectBySelfRef })
 </script>
 
 <style scoped>
