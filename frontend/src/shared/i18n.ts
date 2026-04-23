@@ -175,6 +175,10 @@ const messages: Messages = {
       'Aucun des documents existants n\u2019a encore été analysé — lance-en un depuis Studio, ou dépose un nouveau PDF ci-dessus.',
     'reasoning.pagesCount': '{n} pages',
     'reasoning.changeDoc': 'Changer de document',
+    'reasoning.modeSwitchLabel': 'Mode d\u2019affichage',
+    'reasoning.modeGraph': 'Graphe',
+    'reasoning.modeDocument': 'Document',
+    'reasoning.docNoContent': 'Aucun contenu rendu disponible pour ce document.',
     'reasoning.analyzing': 'Analyse du document...',
     'reasoning.analyzingHint':
       'Docling analyse le PDF avec la configuration par défaut. Cela peut prendre 1 à 3 minutes selon la taille.',
@@ -430,6 +434,10 @@ const messages: Messages = {
       'None of your existing documents have been analyzed yet — run one from Studio, or drop a new PDF above.',
     'reasoning.pagesCount': '{n} pages',
     'reasoning.changeDoc': 'Change document',
+    'reasoning.modeSwitchLabel': 'View mode',
+    'reasoning.modeGraph': 'Graph',
+    'reasoning.modeDocument': 'Document',
+    'reasoning.docNoContent': 'No rendered content available for this document.',
     'reasoning.analyzing': 'Analyzing document...',
     'reasoning.analyzingHint':
       'Docling is parsing the PDF with default settings. May take 1–3 minutes depending on size.',

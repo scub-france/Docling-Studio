@@ -194,7 +194,13 @@ def _process_content_item(
                     content = item.export_to_markdown()
 
             pages[page_no].elements.append(
-                PageElement(type=element_type, bbox=bbox, content=content, level=level)
+                PageElement(
+                    type=element_type,
+                    bbox=bbox,
+                    content=content,
+                    level=level,
+                    self_ref=getattr(item, "self_ref", "") or "",
+                )
             )
         except (AttributeError, KeyError, TypeError, ValueError):
             logger.warning(
