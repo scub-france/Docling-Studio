@@ -18,6 +18,8 @@ class TestSettingsDefaults:
         assert s.lock_timeout == 300
         assert s.max_page_count == 0
         assert s.max_file_size_mb == 50
+        assert s.max_paste_image_size_mb == 10
+        assert s.paste_allowed_image_types == ["image/png", "image/jpeg", "image/webp"]
         assert s.batch_page_size == 0
         assert s.opensearch_default_limit == 1000
         assert s.upload_dir == "./uploads"
@@ -75,6 +77,18 @@ class TestSettingsValidation:
 
         with pytest.raises(ValueError, match="max_file_size_mb must be >= 0"):
             Settings(max_file_size_mb=-1)
+
+    def test_negative_max_paste_image_size_mb_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="max_paste_image_size_mb must be >= 0"):
+            Settings(max_paste_image_size_mb=-1)
+
+    def test_empty_paste_allowed_image_types_rejected(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="paste_allowed_image_types must not be empty"):
+            Settings(paste_allowed_image_types=[])
 
     def test_zero_max_file_size_mb_accepted(self):
         s = Settings(max_file_size_mb=0)
