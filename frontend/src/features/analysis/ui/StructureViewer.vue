@@ -40,8 +40,10 @@
       <canvas
         ref="canvasRef"
         class="overlay-canvas"
+        :class="{ selectable }"
         @mousemove="onMouseMove"
         @mouseleave="hoveredElement = null"
+        @click="onCanvasClick"
       />
       <!-- Tooltip -->
       <div v-if="hoveredElement" class="tooltip" :style="tooltipStyle">
@@ -76,7 +78,38 @@ const ELEMENT_COLORS: Record<string, string> = {
 const props = defineProps({
   pages: { type: Array as () => Page[], default: () => [] },
   documentId: String,
+  /**
+   * Reasoning-trace integration hooks. Optional — when unset, StructureViewer
+   * renders like before (Studio "Structure" tab). When set, enables overlays
+   * for the reasoning viewer without forking the component:
+   *
+   * - `visitedBySelfRef`: elements whose `self_ref` is in this map render in
+   *   the reasoning accent color with a numbered badge (the visit order).
+   * - `focusedSelfRef`: when it changes, auto-scroll to the page of that
+   *   element and pulse its bbox briefly.
+   * - `selectable`: when true, clicking a bbox emits `elementFocus` so a
+   *   parent can sync the selection with the graph view.
+   */
+  visitedBySelfRef: {
+    type: Object as () => Map<string, number> | null,
+    default: null,
+  },
+  focusedSelfRef: { type: String as () => string | null, default: null },
+  selectable: { type: Boolean, default: false },
+  /**
+   * When true AND `visitedBySelfRef` is set, non-visited elements are drawn
+   * with reduced alpha so the visited ones pop. Matches the reasoning
+   * panel's "Focus" toggle behavior on the graph.
+   */
+  dimNonVisited: { type: Boolean, default: false },
 })
+
+const emit = defineEmits<{
+  /** Fired when the user clicks a bbox — only if `selectable` is true. */
+  elementFocus: [selfRef: string]
+}>()
+
+const REASONING_COLOR = '#EA580C'
 
 const selectedPage = ref(1)
 const hiddenTypes = reactive(new Set<string>())
@@ -136,39 +169,94 @@ function drawOverlay() {
 
   const scale = computeScale(img.clientWidth, img.clientHeight, page.width, page.height)
 
+  // Two-pass draw so reasoning overlays (highlight + pulse) sit on top of
+  // the base element strokes without being painted over by subsequent
+  // elements. First pass = base, second pass = accents.
   for (const el of visibleElements.value) {
     const rect = bboxToRect(el.bbox, scale)
-    const color = ELEMENT_COLORS[el.type] || ELEMENT_COLORS.text
+    const baseColor = ELEMENT_COLORS[el.type] || ELEMENT_COLORS.text
+    const isVisited =
+      props.visitedBySelfRef !== null && !!el.self_ref && props.visitedBySelfRef.has(el.self_ref)
 
-    ctx.strokeStyle = color
-    ctx.lineWidth = 2
-    ctx.strokeRect(rect.x, rect.y, rect.w, rect.h)
-
-    ctx.fillStyle = color + '20'
-    ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
+    if (isVisited) {
+      // Reasoning-visited element — reasoning accent color, bolder stroke,
+      // more saturated fill than the base element. The visit-order badge
+      // is drawn in the second pass below.
+      ctx.strokeStyle = REASONING_COLOR
+      ctx.lineWidth = 3
+      ctx.strokeRect(rect.x, rect.y, rect.w, rect.h)
+      ctx.fillStyle = REASONING_COLOR + '33'
+      ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
+    } else {
+      // Dim non-visited when focus mode is on and a visited set is present,
+      // so visited bboxes pop. Otherwise keep the regular styling.
+      const dim = props.dimNonVisited && props.visitedBySelfRef !== null
+      ctx.strokeStyle = baseColor + (dim ? '22' : '')
+      ctx.lineWidth = dim ? 1 : 2
+      ctx.strokeRect(rect.x, rect.y, rect.w, rect.h)
+      ctx.fillStyle = baseColor + (dim ? '08' : '20')
+      ctx.fillRect(rect.x, rect.y, rect.w, rect.h)
+    }
   }
+
+  // Second pass — numbered badges on visited elements + focus pulse ring.
+  for (const el of visibleElements.value) {
+    const rect = bboxToRect(el.bbox, scale)
+    const order =
+      props.visitedBySelfRef !== null && el.self_ref
+        ? props.visitedBySelfRef.get(el.self_ref)
+        : undefined
+    if (order !== undefined) {
+      drawVisitBadge(ctx, rect.x, rect.y, order)
+    }
+    if (props.focusedSelfRef && el.self_ref === props.focusedSelfRef) {
+      ctx.strokeStyle = REASONING_COLOR
+      ctx.lineWidth = 2
+      ctx.setLineDash([6, 4])
+      ctx.strokeRect(rect.x - 4, rect.y - 4, rect.w + 8, rect.h + 8)
+      ctx.setLineDash([])
+    }
+  }
+}
+
+function drawVisitBadge(ctx: CanvasRenderingContext2D, x: number, y: number, order: number): void {
+  const radius = 10
+  const cx = x
+  const cy = y
+  ctx.fillStyle = REASONING_COLOR
+  ctx.beginPath()
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#ffffff'
+  ctx.font = 'bold 11px -apple-system, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(String(order), cx, cy + 0.5)
+}
+
+function elementAt(e: MouseEvent): PageElement | null {
+  const canvas = canvasRef.value
+  const page = currentPageData.value
+  const img = imageRef.value
+  if (!canvas || !page || !img) return null
+  const canvasRect = canvas.getBoundingClientRect()
+  const mx = e.clientX - canvasRect.left
+  const my = e.clientY - canvasRect.top
+  const scale = computeScale(img.clientWidth, img.clientHeight, page.width, page.height)
+  for (const el of visibleElements.value) {
+    if (pointInRect(mx, my, bboxToRect(el.bbox, scale))) return el
+  }
+  return null
 }
 
 function onMouseMove(e: MouseEvent) {
   const canvas = canvasRef.value
-  const page = currentPageData.value
-  const img = imageRef.value
-  if (!canvas || !page || !img) return
-
+  if (!canvas) return
   const canvasRect = canvas.getBoundingClientRect()
   const mx = e.clientX - canvasRect.left
   const my = e.clientY - canvasRect.top
 
-  const scale = computeScale(img.clientWidth, img.clientHeight, page.width, page.height)
-
-  let found: PageElement | null = null
-  for (const el of visibleElements.value) {
-    if (pointInRect(mx, my, bboxToRect(el.bbox, scale))) {
-      found = el
-      break
-    }
-  }
-
+  const found = elementAt(e)
   hoveredElement.value = found
   if (found) {
     tooltipStyle.value = {
@@ -178,9 +266,51 @@ function onMouseMove(e: MouseEvent) {
   }
 }
 
+function onCanvasClick(e: MouseEvent): void {
+  if (!props.selectable) return
+  const el = elementAt(e)
+  if (el?.self_ref) emit('elementFocus', el.self_ref)
+}
+
 watch([() => props.pages, selectedPage, hiddenTypes], () => {
   nextTick(drawOverlay)
 })
+
+watch(
+  () => [props.visitedBySelfRef, props.dimNonVisited],
+  () => nextTick(drawOverlay),
+)
+
+// When the caller sets a focused self_ref (e.g. the user clicked a node in
+// the graph), find which page that element lives on and jump to it. The
+// overlay redraw will then show the dashed focus ring around its bbox.
+function scrollToFocused(ref: string | null): void {
+  if (!ref) {
+    nextTick(drawOverlay)
+    return
+  }
+  for (const page of props.pages) {
+    if (page.elements.some((e) => e.self_ref === ref)) {
+      if (selectedPage.value !== page.page_number) {
+        selectedPage.value = page.page_number
+        // Let <img> reload before drawing — drawOverlay runs on @load.
+      } else {
+        nextTick(drawOverlay)
+      }
+      return
+    }
+  }
+  // Ref not on any page (e.g. a #/body node) — just redraw to clear the
+  // previous focus ring.
+  nextTick(drawOverlay)
+}
+
+watch(() => props.focusedSelfRef, scrollToFocused)
+
+// Imperative entry point so callers can re-trigger a scroll on the same
+// self_ref (the watch above only fires on value change). Used by the
+// reasoning workspace when the user re-clicks the active iteration card.
+defineExpose({ scrollToFocused })
 </script>
 
 <style scoped>
@@ -280,6 +410,10 @@ watch([() => props.pages, selectedPage, hiddenTypes], () => {
   width: 100%;
   height: 100%;
   pointer-events: auto;
+}
+
+.overlay-canvas.selectable {
+  cursor: pointer;
 }
 
 .tooltip {

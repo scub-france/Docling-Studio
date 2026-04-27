@@ -19,6 +19,11 @@ class PageElement:
     bbox: list[float]
     content: str
     level: int = 0
+    # Docling `self_ref` ("#/texts/12", "#/tables/3", …). Empty for items
+    # that don't have one (rare — defensive default). Lets callers correlate
+    # a rendered bbox with the corresponding node in the graph without
+    # resorting to fuzzy bbox matching.
+    self_ref: str = ""
 
 
 @dataclass(frozen=True)

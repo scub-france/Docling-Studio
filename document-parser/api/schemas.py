@@ -35,6 +35,10 @@ class HealthResponse(_CamelModel):
     max_page_count: int | None = None
     max_file_size_mb: int | None = None
     ingestion_available: bool = False
+    # True when the live-reasoning runner (docling-agent + Ollama) is
+    # available: RAG_ENABLED=true AND deps importable. Doesn't imply Ollama
+    # itself is reachable — that's checked per-call.
+    rag_available: bool = False
 
 
 class DocumentResponse(_CamelModel):

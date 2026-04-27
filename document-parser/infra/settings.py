@@ -28,6 +28,12 @@ class Settings:
     neo4j_uri: str = ""  # empty = disabled (e.g. bolt://neo4j:7687)
     neo4j_user: str = "neo4j"
     neo4j_password: str = "changeme"
+    # Live reasoning via docling-agent — off by default (heavy deps, needs an
+    # Ollama host reachable from the backend). Toggle RAG_ENABLED=true + point
+    # OLLAMA_HOST at a running instance (default http://localhost:11434).
+    rag_enabled: bool = False
+    ollama_host: str = "http://localhost:11434"
+    rag_model_id: str = "gpt-oss:20b"  # matches docling-agent's example_05
     opensearch_default_limit: int = 1000  # max chunks returned by get_chunks
     embedding_dimension: int = 384  # Granite Embedding 30M / all-MiniLM-L6-v2
     upload_dir: str = "./uploads"
@@ -102,12 +108,20 @@ class Settings:
             max_file_size=int(os.environ.get("MAX_FILE_SIZE", "0")),
             max_file_size_mb=int(os.environ.get("MAX_FILE_SIZE_MB", "50")),
             rate_limit_rpm=int(os.environ.get("RATE_LIMIT_RPM", "100")),
-            batch_page_size=int(os.environ.get("BATCH_PAGE_SIZE", "10")),
+            # 0 = batching disabled (matches dataclass default). Batching
+            # preserves memory on very large docs but `merge_results` drops
+            # `document_json`, which breaks the reasoning tunnel. Enable
+            # explicitly (e.g. 50+) for memory-bound deploys.
+            batch_page_size=int(os.environ.get("BATCH_PAGE_SIZE", "0")),
             opensearch_url=os.environ.get("OPENSEARCH_URL", ""),
             embedding_url=os.environ.get("EMBEDDING_URL", ""),
             neo4j_uri=os.environ.get("NEO4J_URI", ""),
             neo4j_user=os.environ.get("NEO4J_USER", "neo4j"),
             neo4j_password=os.environ.get("NEO4J_PASSWORD", "changeme"),
+            rag_enabled=os.environ.get("RAG_ENABLED", "false").lower()
+            in ("1", "true", "yes", "on"),
+            ollama_host=os.environ.get("OLLAMA_HOST", "http://localhost:11434"),
+            rag_model_id=os.environ.get("RAG_MODEL_ID", "gpt-oss:20b"),
             opensearch_default_limit=int(os.environ.get("OPENSEARCH_DEFAULT_LIMIT", "1000")),
             embedding_dimension=int(os.environ.get("EMBEDDING_DIMENSION", "384")),
             upload_dir=os.environ.get("UPLOAD_DIR", "./uploads"),

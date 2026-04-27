@@ -18,6 +18,7 @@
   "dependencies": {
     "cytoscape": "^3.30.0",
     "cytoscape-dagre": "^2.5.0",
+    "cytoscape-expand-collapse": "^4.1.1",
     "dompurify": "^3.3.3",
     "marked": "^17.0.4",
     "pinia": "^2.3.0",
@@ -28,9 +29,9 @@
     "@eslint/js": "^9.0.0",
     "@types/cytoscape": "^3.21.4",
     "@types/cytoscape-dagre": "^2.3.3",
-    "@vitest/mocker": "^4.1.2",
     "@types/dompurify": "^3.2.0",
     "@vitejs/plugin-vue": "^6.0.5",
+    "@vitest/mocker": "^4.1.2",
     "eslint": "^9.0.0",
     "eslint-plugin-vue": "^9.32.0",
     "prettier": "^3.4.0",

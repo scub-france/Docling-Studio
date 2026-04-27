@@ -27,6 +27,12 @@ CONSTRAINTS: tuple[str, ...] = (
 INDEXES: tuple[str, ...] = (
     "CREATE INDEX element_doc IF NOT EXISTS FOR (e:Element) ON (e.doc_id)",
     "CREATE INDEX chunk_doc IF NOT EXISTS FOR (c:Chunk) ON (c.doc_id)",
+    # Reasoning tunnel / bbox-highlight: looking up a Provenance by its owner
+    # element is a hot path (one lookup per visited section). Composite index
+    # avoids a full scan of every Provenance in the DB.
+    "CREATE INDEX provenance_element IF NOT EXISTS "
+    "FOR (pv:Provenance) ON (pv.doc_id, pv.element_ref)",
+    "CREATE INDEX provenance_page IF NOT EXISTS FOR (pv:Provenance) ON (pv.doc_id, pv.page_no)",
 )
 
 FULLTEXT_INDEXES: tuple[str, ...] = (
