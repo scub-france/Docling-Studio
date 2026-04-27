@@ -79,7 +79,7 @@
           :key="it.iteration"
           :iteration="it"
           :active="store.activeIteration === it.iteration"
-          @focus="onFocus"
+          @focus="(n) => emit('iterationFocus', n)"
         />
       </div>
     </section>
@@ -99,8 +99,6 @@ import {
   applyReasoningOverlay,
   buildDegradedOverlay,
   clearReasoningOverlay,
-  focusIteration,
-  nodeIdForSectionRef,
 } from '../graphReasoningOverlay'
 import { useReasoningStore } from '../store'
 import IterationCard from './IterationCard.vue'
@@ -114,6 +112,11 @@ const props = defineProps<{
    */
   cy: Core | null
 }>()
+
+// Iteration clicks bubble up to the workspace, which dispatches focus to
+// both the graph and the PDF directly — keeping the panel ignorant of its
+// siblings and avoiding watch-based plumbing that misfires on repeat clicks.
+const emit = defineEmits<{ iterationFocus: [iteration: number] }>()
 
 const store = useReasoningStore()
 const { t } = useI18n()
@@ -185,14 +188,6 @@ watch(
   () => reapplyOverlay(),
   { immediate: true },
 )
-
-function onFocus(iteration: number): void {
-  store.setActiveIteration(iteration)
-  if (!props.cy) return
-  const hit = store.iterations.find((i) => i.iteration === iteration)
-  if (!hit || !hit.present) return
-  focusIteration(props.cy, nodeIdForSectionRef(hit.sectionRef))
-}
 
 function onClear(): void {
   if (props.cy) clearReasoningOverlay(props.cy)

@@ -5,6 +5,7 @@
     </div>
     <StructureViewer
       v-else
+      ref="structureViewerRef"
       :pages="pages"
       :document-id="docId"
       :visited-by-self-ref="visitedBySelfRef"
@@ -28,7 +29,7 @@
  *   - clicking a bbox emits `elementFocus` so the graph can mirror the
  *     selection (bidirectional sync handled in ReasoningWorkspace).
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import StructureViewer from '../../analysis/ui/StructureViewer.vue'
 import { useAnalysisStore } from '../../analysis/store'
@@ -41,6 +42,17 @@ const props = defineProps<{
   focusedSelfRef: string | null
 }>()
 const emit = defineEmits<{ elementFocus: [selfRef: string] }>()
+
+const structureViewerRef = ref<InstanceType<typeof StructureViewer> | null>(null)
+
+// Imperative passthrough so the reasoning workspace can re-trigger a scroll
+// on the same self_ref (e.g. user re-clicks the active iteration card —
+// the prop hasn't changed so the watch wouldn't fire).
+function scrollToFocused(selfRef: string | null): void {
+  structureViewerRef.value?.scrollToFocused(selfRef)
+}
+
+defineExpose({ scrollToFocused })
 
 const analysisStore = useAnalysisStore()
 const reasoningStore = useReasoningStore()
