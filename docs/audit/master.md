@@ -74,7 +74,7 @@ Les audits sont executes dans l'ordre ci-dessous. Chacun est une fiche autonome 
 
 | # | Audit | Fichier | Focus |
 |---|-------|---------|-------|
-| 01 | Clean Architecture | [01-clean-architecture.md](audits/01-clean-architecture.md) | Respect des couches, flux de dependances |
+| 01 | Hexagonal Architecture | [01-clean-architecture.md](audits/01-clean-architecture.md) | Ports & adapters, respect des couches, flux de dependances |
 | 02 | DDD | [02-ddd.md](audits/02-ddd.md) | Bounded contexts, entites, value objects, ubiquitous language |
 | 03 | Clean Code | [03-clean-code.md](audits/03-clean-code.md) | Nommage, taille, lisibilite |
 | 04 | KISS | [04-kiss.md](audits/04-kiss.md) | Simplicite, pas de sur-ingenierie |
@@ -161,7 +161,7 @@ Le fichier `reports/release-X.Y.Z/summary.md` consolide tous les audits :
 
 | # | Audit | Score | CRIT | MAJ | MIN | INFO | Verdict |
 |---|-------|-------|------|-----|-----|------|---------|
-| 01 | Clean Architecture | XX | N | N | N | N | GO |
+| 01 | Hexagonal Architecture | XX | N | N | N | N | GO |
 | 02 | DDD | XX | N | N | N | N | GO |
 | ... | ... | ... | ... | ... | ... | ... | ... |
 

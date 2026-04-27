@@ -249,6 +249,10 @@ async def health() -> HealthResponse:
         database=db_status,
         max_page_count=settings.max_page_count if settings.max_page_count > 0 else None,
         max_file_size_mb=settings.max_file_size_mb if settings.max_file_size_mb > 0 else None,
+        max_paste_image_size_mb=(
+            settings.max_paste_image_size_mb if settings.max_paste_image_size_mb > 0 else None
+        ),
+        paste_allowed_image_types=settings.paste_allowed_image_types,
         ingestion_available=getattr(app.state, "ingestion_service", None) is not None,
         # True when the live-reasoning runner is wired (flag on + deps present).
         # The actual Ollama reachability is checked lazily at call-time to avoid
