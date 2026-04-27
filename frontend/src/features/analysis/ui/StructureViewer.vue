@@ -284,29 +284,33 @@ watch(
 // When the caller sets a focused self_ref (e.g. the user clicked a node in
 // the graph), find which page that element lives on and jump to it. The
 // overlay redraw will then show the dashed focus ring around its bbox.
-watch(
-  () => props.focusedSelfRef,
-  (ref) => {
-    if (!ref) {
-      nextTick(drawOverlay)
+function scrollToFocused(ref: string | null): void {
+  if (!ref) {
+    nextTick(drawOverlay)
+    return
+  }
+  for (const page of props.pages) {
+    if (page.elements.some((e) => e.self_ref === ref)) {
+      if (selectedPage.value !== page.page_number) {
+        selectedPage.value = page.page_number
+        // Let <img> reload before drawing — drawOverlay runs on @load.
+      } else {
+        nextTick(drawOverlay)
+      }
       return
     }
-    for (const page of props.pages) {
-      if (page.elements.some((e) => e.self_ref === ref)) {
-        if (selectedPage.value !== page.page_number) {
-          selectedPage.value = page.page_number
-          // Let <img> reload before drawing — drawOverlay runs on @load.
-        } else {
-          nextTick(drawOverlay)
-        }
-        return
-      }
-    }
-    // Ref not on any page (e.g. a #/body node) — just redraw to clear the
-    // previous focus ring.
-    nextTick(drawOverlay)
-  },
-)
+  }
+  // Ref not on any page (e.g. a #/body node) — just redraw to clear the
+  // previous focus ring.
+  nextTick(drawOverlay)
+}
+
+watch(() => props.focusedSelfRef, scrollToFocused)
+
+// Imperative entry point so callers can re-trigger a scroll on the same
+// self_ref (the watch above only fires on value change). Used by the
+// reasoning workspace when the user re-clicks the active iteration card.
+defineExpose({ scrollToFocused })
 </script>
 
 <style scoped>

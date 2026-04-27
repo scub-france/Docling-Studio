@@ -69,11 +69,12 @@
            and the initial scroll never fires. -->
       <DocumentView
         v-show="mode === 'document'"
+        ref="documentViewRef"
         :doc-id="docId"
         :focused-self-ref="focusedSelfRef"
         @element-focus="onPdfElementFocus"
       />
-      <ReasoningPanel :cy="graphCy" />
+      <ReasoningPanel :cy="graphCy" @iteration-focus="onIterationFocus" />
     </div>
 
     <RunReasoningDialog :doc-id="docId" :doc-filename="docFilename" />
@@ -86,6 +87,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import GraphView from '../../analysis/ui/GraphView.vue'
 import { useI18n } from '../../../shared/i18n'
 import { fetchReasoningGraph } from '../api'
+import { focusIteration, nodeIdForSectionRef } from '../graphReasoningOverlay'
 import { useReasoningStore } from '../store'
 import DocumentView from './DocumentView.vue'
 import ReasoningPanel from './ReasoningPanel.vue'
@@ -105,6 +107,7 @@ const reasoningStore = useReasoningStore()
 
 const graphViewRef = ref<InstanceType<typeof GraphView> | null>(null)
 const graphCy = computed(() => graphViewRef.value?.cy ?? null)
+const documentViewRef = ref<InstanceType<typeof DocumentView> | null>(null)
 
 const mode = ref<WorkspaceMode>('graph')
 
@@ -126,24 +129,21 @@ function onPdfElementFocus(selfRef: string): void {
   graphViewRef.value?.selectBySelfRef(selfRef)
 }
 
-// Click on an iteration card in the reasoning panel flows through
-// `reasoningStore.setActiveIteration(n)`. That path already focuses the
-// cytoscape node (in ReasoningPanel.onFocus); we mirror it into the PDF
-// viewer by resolving the active iteration's section_ref and piping it
-// into our shared focus. Done at the workspace level — not inside the
-// panel — because the panel doesn't know it has a PDF sibling.
-watch(
-  () => reasoningStore.activeIteration,
-  (n) => {
-    if (n === null) return
-    const hit = reasoningStore.iterations.find((i) => i.iteration === n)
-    if (!hit?.present || !hit.sectionRef) return
-    // Flip via null so StructureViewer's watch on `focusedSelfRef` re-fires
-    // even when clicking the same iteration twice (same sectionRef).
-    focusedSelfRef.value = null
-    focusedSelfRef.value = hit.sectionRef
-  },
-)
+// Click on an iteration card in the reasoning panel. We dispatch focus to
+// both the graph and the PDF imperatively (rather than via watches on
+// `activeIteration` / `focusedSelfRef`). Watches misfire when the user
+// re-clicks the same iteration: Vue collapses synchronous "flip via null"
+// mutations and only sees the final value, equal to the previous one — so
+// nothing scrolls. Calling `focusIteration` and `scrollToFocused` directly
+// works on every click regardless of state.
+function onIterationFocus(iteration: number): void {
+  reasoningStore.setActiveIteration(iteration)
+  const hit = reasoningStore.iterations.find((i) => i.iteration === iteration)
+  if (!hit?.present || !hit.sectionRef) return
+  if (graphCy.value) focusIteration(graphCy.value, nodeIdForSectionRef(hit.sectionRef))
+  focusedSelfRef.value = hit.sectionRef
+  documentViewRef.value?.scrollToFocused(hit.sectionRef)
+}
 
 // Reset the reasoning store when switching docs — a trace imported for one
 // document is meaningless on another. The main-pane mode resets too so a

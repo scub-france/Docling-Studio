@@ -96,11 +96,10 @@ export const useReasoningStore = defineStore('reasoning', () => {
   }
 
   function setActiveIteration(n: number | null): void {
-    // Flip via null first so a click on the *same* iteration still fires
-    // downstream watchers (PDF scroll, graph pan). Otherwise Vue sees
-    // "no change" and the second click is a silent no-op — painful UX when
-    // only one iteration exists.
-    activeIteration.value = null
+    // Pure state — drives the active-card highlight in the iteration list.
+    // Side effects (graph pan, PDF scroll) are dispatched imperatively from
+    // ReasoningWorkspace.onIterationFocus so re-clicking the same iteration
+    // still re-focuses both views (a watch here would no-op on same value).
     activeIteration.value = n
   }
 
