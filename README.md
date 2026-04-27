@@ -59,7 +59,7 @@ Upload a PDF, configure the extraction pipeline, and visualize the results — t
 | **frontend** | Vue 3, TypeScript, Vite, Pinia | UI, PDF viewer, results display |
 | **document-parser** | FastAPI, Docling, SQLite, pdf2image | REST API, document parsing, storage |
 
-### Backend structure (clean architecture)
+### Backend structure (hexagonal architecture — ports & adapters)
 
 ```
 document-parser/

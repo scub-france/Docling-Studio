@@ -8,7 +8,7 @@ Two services communicating via REST. The frontend is a Vue 3 SPA served by Nginx
 
 ### Zooming into the backend
 
-The schema above shows the macro view. Inside the backend, the code follows a **Clean Architecture** with strict layer boundaries:
+The schema above shows the macro view. Inside the backend, the code follows a **Hexagonal Architecture** (ports & adapters) with strict layer boundaries:
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -34,9 +34,9 @@ The schema above shows the macro view. Inside the backend, the code follows a **
 
 Dependencies flow **inward**: `api → services → domain`. The domain layer has zero knowledge of HTTP or database.
 
-## Backend — Clean Architecture
+## Backend — Hexagonal Architecture (ports & adapters)
 
-The backend follows a strict layered architecture. Dependencies flow inward: API → Services → Domain. The domain layer has zero knowledge of HTTP or database.
+The backend follows the hexagonal / ports-and-adapters pattern. The domain layer defines **ports** (abstract protocols in `domain/ports.py`); `infra/` provides **adapters** that implement them. Dependencies flow inward: API → Services → Domain. The domain layer has zero knowledge of HTTP, database, or any framework.
 
 ```
 document-parser/

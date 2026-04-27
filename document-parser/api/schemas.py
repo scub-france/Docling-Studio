@@ -34,6 +34,8 @@ class HealthResponse(_CamelModel):
     database: str
     max_page_count: int | None = None
     max_file_size_mb: int | None = None
+    max_paste_image_size_mb: int | None = None
+    paste_allowed_image_types: list[str] = Field(default_factory=list)
     ingestion_available: bool = False
     # True when the live-reasoning runner (docling-agent + Ollama) is
     # available: RAG_ENABLED=true AND deps importable. Doesn't imply Ollama

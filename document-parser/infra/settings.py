@@ -38,6 +38,10 @@ class Settings:
     embedding_dimension: int = 384  # Granite Embedding 30M / all-MiniLM-L6-v2
     upload_dir: str = "./uploads"
     db_path: str = "./data/docling_studio.db"
+    max_paste_image_size_mb: int = 10  # clipboard-paste image limit in MB (0 = unlimited)
+    paste_allowed_image_types: list[str] = field(
+        default_factory=lambda: ["image/png", "image/jpeg", "image/webp"]
+    )
     cors_origins: list[str] = field(
         default_factory=lambda: ["http://localhost:3000", "http://localhost:5173"]
     )
@@ -60,6 +64,12 @@ class Settings:
             errors.append(f"max_file_size must be >= 0 (got {self.max_file_size})")
         if self.max_file_size_mb < 0:
             errors.append(f"max_file_size_mb must be >= 0 (got {self.max_file_size_mb})")
+        if self.max_paste_image_size_mb < 0:
+            errors.append(
+                f"max_paste_image_size_mb must be >= 0 (got {self.max_paste_image_size_mb})"
+            )
+        if not self.paste_allowed_image_types:
+            errors.append("paste_allowed_image_types must not be empty")
         if self.rate_limit_rpm < 0:
             errors.append(f"rate_limit_rpm must be >= 0 (got {self.rate_limit_rpm})")
         if self.batch_page_size < 0:
@@ -93,6 +103,9 @@ class Settings:
     def from_env(cls) -> Settings:
         """Build a Settings instance from environment variables."""
         cors_raw = os.environ.get("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173")
+        paste_types_raw = os.environ.get(
+            "PASTE_ALLOWED_IMAGE_TYPES", "image/png,image/jpeg,image/webp"
+        )
         return cls(
             app_version=os.environ.get("APP_VERSION", "dev"),
             conversion_engine=os.environ.get("CONVERSION_ENGINE", "local"),
@@ -126,6 +139,8 @@ class Settings:
             embedding_dimension=int(os.environ.get("EMBEDDING_DIMENSION", "384")),
             upload_dir=os.environ.get("UPLOAD_DIR", "./uploads"),
             db_path=os.environ.get("DB_PATH", "./data/docling_studio.db"),
+            max_paste_image_size_mb=int(os.environ.get("MAX_PASTE_IMAGE_SIZE_MB", "10")),
+            paste_allowed_image_types=[t.strip() for t in paste_types_raw.split(",") if t.strip()],
             cors_origins=[o.strip() for o in cors_raw.split(",")],
         )
 

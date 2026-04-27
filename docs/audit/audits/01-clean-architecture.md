@@ -1,6 +1,6 @@
-# Audit 01 — Clean Architecture
+# Audit 01 — Hexagonal Architecture (ports & adapters)
 
-**Objectif** : verifier que le backend respecte le flux de dependances strict `api -> services -> domain` et que chaque couche a une responsabilite claire.
+**Objectif** : verifier que le backend respecte le pattern hexagonal (ports dans `domain/ports.py`, adaptateurs dans `infra/`), le flux de dependances strict `api -> services -> domain`, et que chaque couche a une responsabilite claire.
 
 **Cible** : `document-parser/` (hors `.venv/`, `__pycache__/`, `tests/`)
 

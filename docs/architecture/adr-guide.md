@@ -34,7 +34,7 @@ These decisions were made before the ADR process was introduced. They are docume
 
 | Decision | Rationale | Date |
 |----------|-----------|------|
-| Clean Architecture (hexagonal) for backend | Decouple domain from framework — enable converter swapping (local/remote) | 2025-01 |
+| Hexagonal Architecture (ports & adapters) for backend | Decouple domain from framework — enable converter swapping (local/remote) via ports | 2025-01 |
 | FastAPI over Django | Async-first, lightweight, Pydantic-native — better fit for a single-purpose API | 2025-01 |
 | Vue 3 + Pinia over React | Composition API + built-in reactivity — smaller bundle for this use case | 2025-01 |
 | SQLite over PostgreSQL | Single-file DB, zero ops — appropriate for a document processing tool | 2025-01 |
