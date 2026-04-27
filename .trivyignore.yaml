@@ -1,0 +1,12 @@
+vulnerabilities:
+  - id: CVE-2026-40393
+    paths:
+      - "usr/lib/x86_64-linux-gnu/libgbm.so.*"
+      - "usr/lib/x86_64-linux-gnu/dri/*"
+      - "usr/lib/x86_64-linux-gnu/libGLX_mesa.so.*"
+      - "usr/lib/x86_64-linux-gnu/libgallium-*.so"
+    statement: >-
+      Mesa OOB read (fix: Mesa 25.3.6 / 26.0.1). No Debian 13 backport available.
+      Pulled transitively by libgl1 (required by OpenCV/RapidOCR). Tracked in #189
+      with follow-up to drop libgl1 via opencv-python-headless.
+    expired_at: 2026-06-30
