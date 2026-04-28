@@ -215,6 +215,166 @@ def test_title_is_surfaced_on_document_node():
     assert doc_node["title"] == "My Doc.pdf"
 
 
+def test_inline_group_collapses_into_single_paragraph():
+    """Issue #197: an InlineGroup + N child `text` items must yield ONE
+    Paragraph node carrying the joined text and the union of children's provs."""
+    fixture = {
+        "pages": {"1": {"page_no": 1, "size": {"width": 595, "height": 842}}},
+        "body": {
+            "self_ref": "#/body",
+            "children": [{"$ref": "#/texts/0"}, {"$ref": "#/groups/0"}],
+        },
+        "texts": [
+            {
+                "self_ref": "#/texts/0",
+                "parent": {"$ref": "#/body"},
+                "label": "section_header",
+                "text": "Heading",
+                "level": 1,
+                "prov": [{"page_no": 1, "bbox": {"l": 10, "t": 10, "r": 100, "b": 30}}],
+            },
+            {
+                "self_ref": "#/texts/1",
+                "parent": {"$ref": "#/groups/0"},
+                "label": "text",
+                "text": "Hello",
+                "prov": [{"page_no": 1, "bbox": {"l": 10, "t": 40, "r": 50, "b": 60}}],
+            },
+            {
+                "self_ref": "#/texts/2",
+                "parent": {"$ref": "#/groups/0"},
+                "label": "text",
+                "text": "world",
+                "prov": [{"page_no": 1, "bbox": {"l": 55, "t": 40, "r": 100, "b": 60}}],
+            },
+            {
+                "self_ref": "#/texts/3",
+                "parent": {"$ref": "#/groups/0"},
+                "label": "text",
+                "text": "!",
+                "prov": [{"page_no": 1, "bbox": {"l": 105, "t": 40, "r": 110, "b": 60}}],
+            },
+        ],
+        "tables": [],
+        "pictures": [],
+        "groups": [
+            {
+                "self_ref": "#/groups/0",
+                "parent": {"$ref": "#/body"},
+                "label": "inline",
+                "children": [
+                    {"$ref": "#/texts/1"},
+                    {"$ref": "#/texts/2"},
+                    {"$ref": "#/texts/3"},
+                ],
+            },
+        ],
+    }
+    payload = build_graph_payload(json.dumps(fixture), doc_id="doc-inline")
+
+    # Section header + collapsed inline group only — NOT 5 (+3 style runs).
+    elements = [n for n in payload.nodes if n.get("group") == "element"]
+    assert {e["self_ref"] for e in elements} == {"#/texts/0", "#/groups/0"}
+
+    inline = next(n for n in elements if n["self_ref"] == "#/groups/0")
+    assert inline["label"] == "Paragraph"
+    assert inline["text"] == "Hello world !"
+    # Provs union: 3 children x 1 prov each = 3 provs on the collapsed node.
+    assert len(inline["provs"]) == 3
+    assert all(p.get("page_no") == 1 for p in inline["provs"])
+
+    # NEXT follows the post-collapse reading order — section_header → inline only.
+    nexts = [(e["source"], e["target"]) for e in payload.edges if e["type"] == "NEXT"]
+    assert nexts == [("elem::#/texts/0", "elem::#/groups/0")]
+
+    # ON_PAGE edges still wire the surviving elements to the page (one per
+    # element, deduped by `seen_pages`).
+    on_page = [e for e in payload.edges if e["type"] == "ON_PAGE"]
+    assert sorted(e["source"] for e in on_page) == ["elem::#/groups/0", "elem::#/texts/0"]
+
+
+def test_picture_internal_labels_are_skipped():
+    """Issue #197: a Picture's `children` (flowchart / diagram text labels
+    extracted by Docling's layout model) must not become standalone graph
+    nodes — they drown the figure in dozens of tiny labels. The picture
+    itself stays, and a caption (separate `parent` chain on body) is
+    unaffected."""
+    fixture = {
+        "pages": {"1": {"page_no": 1, "size": {"width": 595, "height": 842}}},
+        "body": {
+            "self_ref": "#/body",
+            "children": [{"$ref": "#/texts/0"}, {"$ref": "#/pictures/0"}],
+        },
+        "texts": [
+            # Caption — separate item under body, referenced from the picture's
+            # `captions` field (not its `children`). Survives the collapse.
+            {
+                "self_ref": "#/texts/0",
+                "parent": {"$ref": "#/body"},
+                "label": "caption",
+                "text": "Figure 1: Sketch of Docling's pipelines.",
+                "prov": [{"page_no": 1, "bbox": {"l": 0, "t": 700, "r": 500, "b": 720}}],
+            },
+            # Internal labels of the figure (flowchart boxes). Live in
+            # `texts[]` with `parent` pointing at the picture.
+            *[
+                {
+                    "self_ref": f"#/texts/{i}",
+                    "parent": {"$ref": "#/pictures/0"},
+                    "label": "text",
+                    "text": label,
+                    "prov": [
+                        {
+                            "page_no": 1,
+                            "bbox": {"l": 100 + i * 30, "t": 200, "r": 130 + i * 30, "b": 220},
+                        }
+                    ],
+                }
+                for i, label in enumerate(
+                    ["Parse", "Build", "Enrich", "Assemble", "Document"], start=1
+                )
+            ],
+        ],
+        "tables": [],
+        "pictures": [
+            {
+                "self_ref": "#/pictures/0",
+                "parent": {"$ref": "#/body"},
+                "label": "picture",
+                "children": [
+                    {"$ref": "#/texts/1"},
+                    {"$ref": "#/texts/2"},
+                    {"$ref": "#/texts/3"},
+                    {"$ref": "#/texts/4"},
+                    {"$ref": "#/texts/5"},
+                ],
+                "captions": [{"$ref": "#/texts/0"}],
+                "prov": [{"page_no": 1, "bbox": {"l": 90, "t": 100, "r": 510, "b": 600}}],
+            }
+        ],
+        "groups": [],
+    }
+    payload = build_graph_payload(json.dumps(fixture), doc_id="doc-pic")
+
+    elements = [n for n in payload.nodes if n.get("group") == "element"]
+    refs = {e["self_ref"] for e in elements}
+    # Picture + caption only — the 5 internal labels must be dropped.
+    assert refs == {"#/pictures/0", "#/texts/0"}
+
+    # Picture keeps its own label / text / prov (no inline-style override).
+    pic = next(e for e in elements if e["self_ref"] == "#/pictures/0")
+    assert pic["label"] == "Figure"
+    assert pic["docling_label"] == "picture"
+
+    # No PARENT_OF edges from the picture to its (skipped) children.
+    parent_edges = [e for e in payload.edges if e["type"] == "PARENT_OF"]
+    assert all(e["source"] != "elem::#/pictures/0" for e in parent_edges)
+
+    # NEXT chain only includes surviving elements.
+    next_targets = [e["target"] for e in payload.edges if e["type"] == "NEXT"]
+    assert all(t in {"elem::#/texts/0", "elem::#/pictures/0"} for t in next_targets)
+
+
 def test_element_text_is_capped_at_200_chars():
     long = "x" * 500
     fixture = {
