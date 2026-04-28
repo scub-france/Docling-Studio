@@ -17,8 +17,10 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from infra.docling_tree import (
+    build_collapse_index,
     dfs_order,
     element_label,
+    is_inline_group,
     iter_items,
     iter_pages,
     iter_provs,
@@ -82,6 +84,12 @@ async def write_document(
     doc_data = json.loads(document_json)
     ingested_at = datetime.now(tz=UTC).isoformat()
 
+    # Issue #197: collapse two noise patterns from Docling into the projection.
+    # InlineGroups (paragraph style runs) are merged into a single :Paragraph,
+    # and Pictures' internal text labels (flowchart/diagram/chart annotations)
+    # are dropped. Both produce refs that land in `skip_refs`.
+    skip_refs, inline_meta = build_collapse_index(doc_data)
+
     elements: list[dict[str, Any]] = []
     # Parallel list: one row per Provenance — each refers back to its owner
     # element via `self_ref`, so we can batch MATCH-and-link after both node
@@ -89,22 +97,29 @@ async def write_document(
     provenances: list[dict[str, Any]] = []
     for _, item in iter_items(doc_data):
         ref = item.get("self_ref")
-        if not ref:
+        if not ref or ref in skip_refs:
             continue
         specific = element_label(item.get("label") or "")
+        props = _element_props(item, doc_id)
+        if is_inline_group(item):
+            meta = inline_meta.get(ref, {"text": "", "provs": []})
+            props["text"] = meta["text"]
+            item_provs = meta["provs"]
+        else:
+            item_provs = iter_provs(item)
         elements.append(
             {
                 "specific_label": specific,
                 "parent_ref": parent_ref(item),
-                **_element_props(item, doc_id),
+                **props,
             }
         )
-        for prov in iter_provs(item):
+        for prov in item_provs:
             provenances.append({"doc_id": doc_id, "self_ref": ref, **prov})
 
     pages: list[dict[str, Any]] = [{"doc_id": doc_id, **p} for p in iter_pages(doc_data)]
 
-    reading_order = dfs_order(doc_data)
+    reading_order = dfs_order(doc_data, skip_refs)
 
     async with (
         neo.driver.session(database=neo.database) as session,

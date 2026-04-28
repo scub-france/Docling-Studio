@@ -17,8 +17,10 @@ from itertools import pairwise
 from typing import Any
 
 from infra.docling_tree import (
+    build_collapse_index,
     dfs_order,
     element_label,
+    is_inline_group,
     iter_items,
     iter_pages,
     iter_provs,
@@ -27,15 +29,22 @@ from infra.docling_tree import (
 from infra.neo4j.queries import GraphPayload
 
 
-def _element_node(doc_id: str, item: dict[str, Any], provs: list[dict[str, Any]]) -> dict[str, Any]:
+def _element_node(
+    doc_id: str,
+    item: dict[str, Any],
+    provs: list[dict[str, Any]],
+    *,
+    text_override: str | None = None,
+) -> dict[str, Any]:
     first_page = provs[0].get("page_no") if provs else None
+    raw_text = text_override if text_override is not None else (item.get("text") or "")
     return {
         "id": f"elem::{item.get('self_ref')}",
         "group": "element",
         "label": element_label(item.get("label") or ""),
         "docling_label": (item.get("label") or "").lower(),
         "self_ref": item.get("self_ref"),
-        "text": (item.get("text") or "")[:200],
+        "text": raw_text[:200],
         "prov_page": first_page,
         "provs": provs,
         "level": item.get("level"),
@@ -112,6 +121,10 @@ def build_graph_payload(
     for p in pages_raw:
         nodes.append(_page_node(doc_id, p))
 
+    # Issue #197: collapse Docling noise — InlineGroup style runs and the
+    # internal text labels Docling extracts from pictures/charts.
+    skip_refs, inline_meta = build_collapse_index(doc_data)
+
     # Element nodes + collect parent/body metadata for edges below. The
     # `element_idx` mirrors TreeWriter's `enumerate(elements)` so PARENT_OF
     # carries the same `order` the Neo4j projection does.
@@ -119,11 +132,17 @@ def build_graph_payload(
     element_idx = 0
     for _, item in iter_items(doc_data):
         ref = item.get("self_ref")
-        if not ref:
+        if not ref or ref in skip_refs:
             continue
         by_ref[ref] = item
-        provs = iter_provs(item)
-        nodes.append(_element_node(doc_id, item, provs))
+        if is_inline_group(item):
+            meta = inline_meta.get(ref, {"text": "", "provs": []})
+            provs = meta["provs"]
+            text_override: str | None = meta["text"]
+        else:
+            provs = iter_provs(item)
+            text_override = None
+        nodes.append(_element_node(doc_id, item, provs, text_override=text_override))
 
         pref = parent_ref(item)
         if pref == "#/body":
@@ -143,8 +162,8 @@ def build_graph_payload(
 
         element_idx += 1
 
-    # NEXT chain (DFS pre-order from body).
-    for a, b in pairwise(dfs_order(doc_data)):
+    # NEXT chain (DFS pre-order from body), inline-group children skipped.
+    for a, b in pairwise(dfs_order(doc_data, skip_refs)):
         if a in by_ref and b in by_ref:
             edges.append(_edge(f"elem::{a}", f"elem::{b}", "NEXT"))
 
