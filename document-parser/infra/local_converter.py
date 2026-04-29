@@ -281,6 +281,10 @@ def _convert_sync(
 class LocalConverter:
     """Adapter that runs Docling locally as a Python library."""
 
+    # In-process — the orchestrator may slice long docs into page batches
+    # and merge results (cf. AnalysisService._run_batched_conversion).
+    supports_page_batching: bool = True
+
     async def convert(
         self,
         file_path: str,

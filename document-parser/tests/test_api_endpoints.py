@@ -196,7 +196,9 @@ class TestAnalysisEndpoints:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "RUNNING"
-        assert data["startedAt"] is not None
+        # ISO-8601 datetime string from `mark_running()`
+        assert isinstance(data["startedAt"], str)
+        assert data["startedAt"]  # not empty
 
     def test_get_analysis_not_found(self, client, mock_analysis_service):
         mock_analysis_service.find_by_id = AsyncMock(return_value=None)

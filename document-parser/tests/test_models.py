@@ -58,7 +58,7 @@ class TestAnalysisJob:
         job.mark_running()
 
         assert job.status == AnalysisStatus.RUNNING
-        assert job.started_at is not None
+        assert isinstance(job.started_at, datetime)
 
     def test_mark_completed(self):
         job = AnalysisJob()
@@ -74,7 +74,8 @@ class TestAnalysisJob:
         assert job.content_markdown == "# Title"
         assert job.content_html == "<h1>Title</h1>"
         assert job.pages_json == '[{"page": 1}]'
-        assert job.completed_at is not None
+        assert isinstance(job.completed_at, datetime)
+        assert job.completed_at >= job.started_at
 
     def test_mark_failed(self):
         job = AnalysisJob()
@@ -84,7 +85,8 @@ class TestAnalysisJob:
 
         assert job.status == AnalysisStatus.FAILED
         assert job.error_message == "Something went wrong"
-        assert job.completed_at is not None
+        assert isinstance(job.completed_at, datetime)
+        assert job.completed_at >= job.started_at
 
     def test_status_transitions(self):
         """Test full lifecycle: PENDING -> RUNNING -> COMPLETED."""

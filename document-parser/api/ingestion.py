@@ -38,18 +38,18 @@ IngestionDep = Annotated[IngestionService, Depends(_get_ingestion_service)]
 AnalysisDep = Annotated[AnalysisService, Depends(_get_analysis_service)]
 
 
-@router.post("/{job_id}", response_model=IngestionResponse)
+@router.post("/{analysis_id}", response_model=IngestionResponse)
 async def ingest_analysis(
-    job_id: str,
+    analysis_id: str,
     ingestion: IngestionDep,
     analysis: AnalysisDep,
 ) -> IngestionResponse:
     """Ingest a completed analysis into the vector index.
 
-    Takes the chunks from an existing analysis job, embeds them,
+    Takes the chunks from an existing analysis, embeds them,
     and indexes them into OpenSearch.
     """
-    job = await analysis.find_by_id(job_id)
+    job = await analysis.find_by_id(analysis_id)
     if not job:
         raise HTTPException(status_code=404, detail="Analysis not found")
     if job.status.value != "COMPLETED":
@@ -64,7 +64,7 @@ async def ingest_analysis(
             chunks_json=job.chunks_json,
         )
     except Exception as e:
-        logger.exception("Ingestion failed for job %s", job_id)
+        logger.exception("Ingestion failed for analysis %s", analysis_id)
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {e}") from e
 
     return IngestionResponse(
