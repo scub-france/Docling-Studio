@@ -4,6 +4,47 @@ All notable changes to Docling Studio will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-04-28
+
+### Added
+
+- Reasoning-trace viewer: SQLite-backed graph built from `document_json`, iteration-by-iteration overlay on the document outline (StructureViewer + GraphView), bidirectional PDF ↔ graph focus
+- Live reasoning runner via [docling-agent](https://github.com/docling-project/docling-agent) (Ollama backend): `POST /api/documents/:id/reasoning` returns answer + iteration trace + convergence flag (gated by `REASONING_ENABLED`, off by default)
+- `LLMProvider` port abstraction with `OllamaProvider` adapter — opens the door to alternate LLM backends once docling-agent supports them
+- Neo4j graph storage pipeline: `TreeWriter` + `ChunkWriter` adapters, schema bootstrap, graph fetch endpoint, `Maintain` step with cytoscape-based graph visualization
+- Architecture decision record (ADR-001): graph visualization library choice and 200-page endpoint cap
+- Remote chunking: enabled in Docling Serve mode (previously local-only)
+- Hexagonal architecture tests powered by `pytestarch` (CI-enforced)
+- Centralized magic numbers for page dimensions, limits, and timeouts
+- Paste image size/type limits (env vars `MAX_PASTE_IMAGE_SIZE_MB`, `PASTE_ALLOWED_IMAGE_TYPES`); surfaced in `/api/health`
+
+### Changed
+
+- **Breaking — `RAG_*` env vars renamed to `REASONING_*`**: `RAG_ENABLED` → `REASONING_ENABLED`, `RAG_MODEL_ID` → `REASONING_MODEL_ID`. Health response field `ragAvailable` → `reasoningAvailable`. New `LLM_PROVIDER_TYPE` env var (default `ollama`) materializes the LLM-provider abstraction.
+- **Breaking — reasoning endpoint renamed `/rag` → `/reasoning`**: `POST /api/documents/:id/rag` is now `POST /api/documents/:id/reasoning`. Aligns with frontend `reasoning` feature naming.
+- `api/reasoning.py` refactored to depend on `ReasoningRunnerPort`; concrete `docling-agent` integration moved to `infra/docling_agent_reasoning.py` (clean architecture)
+- Frontend `reasoning` feature flag now reads `reasoningAvailable` from `/api/health`; sidebar entry hides when the backend is not wired (instead of failing with 503 on click)
+- Documented that `docker-compose.yml` ships dev-only defaults (Neo4j `changeme` password, OpenSearch `DISABLE_SECURITY_PLUGIN=true`); operators must harden their own production deployments
+- Backend logs a loud warning at boot if Neo4j is wired (`NEO4J_URI` set) with the default `changeme` password, so prod operators can't silently inherit it
+- `DocumentConverter` port exposes `supports_page_batching: bool` so the analysis service no longer relies on `isinstance(converter, ServeConverter)` (LSP fix)
+- `VectorStore` port gains a `ping()` method; `IngestionService.ping()` now goes through the port instead of reaching into `_vector_store._client` (encapsulation)
+- API path parameters renamed `{job_id}` → `{analysis_id}` across `api/analyses.py` and `api/ingestion.py` to align the OpenAPI surface with the user-facing terminology (URL paths unchanged)
+- Centralised `localStorage` keys (`docling-theme`, `docling-locale`) into `frontend/src/shared/storage/keys.ts` (`STORAGE_KEYS`)
+- Removed the dead `apiUrl` ref from the settings store and its orphan `settings.apiUrl` i18n entries
+- Document-status string `"uploaded"` extracted to `DOCUMENT_STATUS_UPLOADED` in `api/schemas.py`
+- PDF preview endpoint (`GET /api/documents/{id}/preview`) now offloads the synchronous file read + rasterisation to a worker thread (`asyncio.to_thread`), unblocking the FastAPI event loop
+
+### Fixed
+
+- Graph: collapse Docling `InlineGroup` and `Picture` children to avoid empty leaf nodes (#197)
+- Neo4j: rewrite `fetch_graph` using `CALL` subqueries for proper relationship traversal
+- CI: install `pytestarch` in backend tests job (#177)
+- CI: ignore CVE-2026-40393 (Mesa) with expiry — Debian has no backport (#190)
+- Reasoning: re-scroll PDF when re-clicking the active iteration
+- `infra/docling_tree.py:101` migrated `isinstance(bbox, (list, tuple))` to PEP 604 union (Ruff UP038)
+- Cross-feature integration test moved out of `features/history/` into `src/__tests__/integration/` so feature folders stay self-contained
+- Tightened terminal `assert X is not None` checks in domain/repo/service tests to compare the value (e.g. `isinstance(.., datetime)` after `mark_running()`/`mark_completed()`)
+
 ## [0.4.0] - 2026-04-13
 
 ### Added
