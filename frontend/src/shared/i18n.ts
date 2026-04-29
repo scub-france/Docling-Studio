@@ -19,6 +19,26 @@ const messages: Messages = {
     // Top bar
     'topbar.newAnalysis': 'Nouvelle analyse',
 
+    // Coming-soon placeholders (0.6.0 doc-centric routes — #207)
+    'comingSoon.title': 'Bientôt disponible',
+    'comingSoon.subtitle.docsLibrary':
+      "La bibliothèque de documents arrive avec la 0.6.0. Vous y verrez l'état du cycle de vie de chaque document, ses stores et ses dernières mises à jour.",
+    'comingSoon.subtitle.docsNew':
+      "L'import multi-fichiers (drop d'un dossier ou sélection multiple) arrive avec la 0.6.0.",
+    'comingSoon.subtitle.docWorkspace':
+      "L'espace de travail document (Inspect / Chunks / Ask) arrive avec la 0.6.0.",
+    'comingSoon.subtitle.stores': 'La liste des stores arrive avec la 0.6.0.',
+    'comingSoon.subtitle.storeDetail':
+      'La vue détaillée du store (documents présents, état par store) arrive avec la 0.6.0.',
+    'comingSoon.subtitle.storeQuery': 'Le playground de requête RAG arrive avec la 0.6.0.',
+    'comingSoon.subtitle.runs': "L'historique des runs (audit / debug) arrive avec la 0.6.0.",
+    'comingSoon.subtitle.runDetail': "Le détail d'un run arrive avec la 0.6.0.",
+    'comingSoon.hint.docWorkspace': 'doc {id} · mode {mode}',
+    'comingSoon.hint.storeDetail': 'store {store}',
+    'comingSoon.hint.storeQuery': 'store {store}',
+    'comingSoon.hint.runDetail': 'run {id}',
+    'comingSoon.backHome': "Retour à l'accueil",
+
     // Home
     'home.title': 'Docling Studio',
     'home.subtitle':
@@ -286,6 +306,26 @@ const messages: Messages = {
     'nav.expand': 'Expand sidebar',
 
     'topbar.newAnalysis': 'New analysis',
+
+    // Coming-soon placeholders (0.6.0 doc-centric routes — #207)
+    'comingSoon.title': 'Coming soon',
+    'comingSoon.subtitle.docsLibrary':
+      'The document library lands with 0.6.0. It will show every document with its lifecycle state, the stores it lives in, and when it was last updated.',
+    'comingSoon.subtitle.docsNew':
+      'Multi-file import (drop a folder or pick multiple files) lands with 0.6.0.',
+    'comingSoon.subtitle.docWorkspace':
+      'The doc workspace (Inspect / Chunks / Ask) lands with 0.6.0.',
+    'comingSoon.subtitle.stores': 'The stores list lands with 0.6.0.',
+    'comingSoon.subtitle.storeDetail':
+      'The store detail view (docs present, per-store state) lands with 0.6.0.',
+    'comingSoon.subtitle.storeQuery': 'The RAG query playground lands with 0.6.0.',
+    'comingSoon.subtitle.runs': 'The runs history (audit / debug) lands with 0.6.0.',
+    'comingSoon.subtitle.runDetail': 'Run detail lands with 0.6.0.',
+    'comingSoon.hint.docWorkspace': 'doc {id} · mode {mode}',
+    'comingSoon.hint.storeDetail': 'store {store}',
+    'comingSoon.hint.storeQuery': 'store {store}',
+    'comingSoon.hint.runDetail': 'run {id}',
+    'comingSoon.backHome': 'Back to home',
 
     'home.title': 'Docling Studio',
     'home.subtitle':
