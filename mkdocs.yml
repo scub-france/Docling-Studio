@@ -76,6 +76,11 @@ validation:
     absolute_links: info
   links:
     absolute_links: info
+    # Audit reports (audit/reports/release-X.Y.Z/) reference repo source
+    # files (e.g. `[file.py:line](file.py:line)`) by design — they're read
+    # alongside the repo, not as standalone docs. Downgrade to info so
+    # strict-mode builds don't fail on these intentional cross-tree links.
+    unrecognized_links: info
 
 markdown_extensions:
   - admonition
