@@ -27,13 +27,23 @@ class Settings:
     embedding_url: str = ""  # empty = disabled (e.g. http://localhost:8001)
     neo4j_uri: str = ""  # empty = disabled (e.g. bolt://neo4j:7687)
     neo4j_user: str = "neo4j"
+    # DEV DEFAULT — the dev compose stack uses "changeme" so `docker compose
+    # up` works out of the box. The backend logs a loud warning at boot if
+    # Neo4j is wired (NEO4J_URI set) AND the password is still the default,
+    # so prod operators notice if they inherited it by accident. Real
+    # deployments must override NEO4J_PASSWORD.
     neo4j_password: str = "changeme"
     # Live reasoning via docling-agent — off by default (heavy deps, needs an
-    # Ollama host reachable from the backend). Toggle RAG_ENABLED=true + point
-    # OLLAMA_HOST at a running instance (default http://localhost:11434).
-    rag_enabled: bool = False
+    # Ollama host reachable from the backend). Toggle REASONING_ENABLED=true +
+    # point OLLAMA_HOST at a running instance (default http://localhost:11434).
+    reasoning_enabled: bool = False
+    # LLM backend the reasoning runner talks to. Today only "ollama" is
+    # realizable (docling-agent is hardwired to Ollama via mellea); kept as a
+    # config knob to make the LLMProvider abstraction visible and prepare the
+    # ground for additional backends.
+    llm_provider_type: str = "ollama"
     ollama_host: str = "http://localhost:11434"
-    rag_model_id: str = "gpt-oss:20b"  # matches docling-agent's example_05
+    reasoning_model_id: str = "gpt-oss:20b"  # matches docling-agent's example_05
     opensearch_default_limit: int = 1000  # max chunks returned by get_chunks
     embedding_dimension: int = 384  # Granite Embedding 30M / all-MiniLM-L6-v2
     upload_dir: str = "./uploads"
@@ -131,10 +141,11 @@ class Settings:
             neo4j_uri=os.environ.get("NEO4J_URI", ""),
             neo4j_user=os.environ.get("NEO4J_USER", "neo4j"),
             neo4j_password=os.environ.get("NEO4J_PASSWORD", "changeme"),
-            rag_enabled=os.environ.get("RAG_ENABLED", "false").lower()
+            reasoning_enabled=os.environ.get("REASONING_ENABLED", "false").lower()
             in ("1", "true", "yes", "on"),
+            llm_provider_type=os.environ.get("LLM_PROVIDER_TYPE", "ollama"),
             ollama_host=os.environ.get("OLLAMA_HOST", "http://localhost:11434"),
-            rag_model_id=os.environ.get("RAG_MODEL_ID", "gpt-oss:20b"),
+            reasoning_model_id=os.environ.get("REASONING_MODEL_ID", "gpt-oss:20b"),
             opensearch_default_limit=int(os.environ.get("OPENSEARCH_DEFAULT_LIMIT", "1000")),
             embedding_dimension=int(os.environ.get("EMBEDDING_DIMENSION", "384")),
             upload_dir=os.environ.get("UPLOAD_DIR", "./uploads"),

@@ -1,5 +1,32 @@
+# =============================================================================
+# Docling Studio — local development / quick-start compose.
+#
+# DEV DEFAULTS — NOT PRODUCTION-READY.
+# This file ships sensible defaults for `docker compose up` to "just work" on
+# a developer laptop. It is NOT a production deployment template:
+#   - Neo4j boots with `NEO4J_PASSWORD=changeme` if the env var is unset.
+#   - OpenSearch runs single-node with `DISABLE_SECURITY_PLUGIN=true`
+#     (no TLS, no auth). Fine for local indexing experiments, never for
+#     anything reachable from outside `localhost`.
+#   - No HTTPS termination, no reverse-proxy hardening, no rate limit on
+#     the embedding/OpenSearch services, ports bound to all interfaces.
+#
+# Operators running their own Docling Studio instance MUST:
+#   1. Override `NEO4J_PASSWORD` (and rotate it) — see `.env.example`.
+#   2. Re-enable the OpenSearch security plugin and configure TLS/users —
+#      see https://opensearch.org/docs/latest/security/.
+#   3. Bind sensitive services to internal networks only, terminate TLS at
+#      a reverse proxy, and align CORS_ORIGINS / RATE_LIMIT_RPM with the
+#      deployment surface.
+#
+# The audit pipeline expects this file to flag the dev defaults as such —
+# don't silently strengthen them here without also updating the dev DX.
+# =============================================================================
+
 services:
   # --- Neo4j (graph-native document structure) ---
+  # Dev-only auth: NEO4J_PASSWORD defaults to "changeme". Override in
+  # `.env` (or any orchestrator secret store) before exposing this stack.
   neo4j:
     profiles: ["ingestion"]
     image: neo4j:5.15-community
@@ -17,7 +44,12 @@ services:
       retries: 10
       start_period: 30s
 
-  # --- OpenSearch (single-node, security disabled) ---
+  # --- OpenSearch (single-node, security DISABLED — DEV ONLY) ---
+  # `DISABLE_SECURITY_PLUGIN: "true"` removes auth, TLS, and audit logging.
+  # This is fine for a local dev cluster bound to 127.0.0.1; it is NOT safe
+  # for anything reachable from another host. For production, drop this
+  # var, switch to a hardened image, and configure users + TLS:
+  # https://opensearch.org/docs/latest/security/configuration/
   opensearch:
     profiles: ["ingestion"]
     image: opensearchproject/opensearch:2

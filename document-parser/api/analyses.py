@@ -81,22 +81,22 @@ async def list_analyses(service: ServiceDep) -> list[AnalysisResponse]:
     return [_to_response(j) for j in jobs]
 
 
-@router.get("/{job_id}", response_model=AnalysisResponse)
-async def get_analysis(job_id: str, service: ServiceDep) -> AnalysisResponse:
+@router.get("/{analysis_id}", response_model=AnalysisResponse)
+async def get_analysis(analysis_id: str, service: ServiceDep) -> AnalysisResponse:
     """Get a single analysis job."""
-    job = await service.find_by_id(job_id)
+    job = await service.find_by_id(analysis_id)
     if not job:
         raise HTTPException(status_code=404, detail="Analysis not found")
     return _to_response(job)
 
 
-@router.post("/{job_id}/rechunk", response_model=list[ChunkResponse])
+@router.post("/{analysis_id}/rechunk", response_model=list[ChunkResponse])
 async def rechunk_analysis(
-    job_id: str, body: RechunkRequest, service: ServiceDep
+    analysis_id: str, body: RechunkRequest, service: ServiceDep
 ) -> list[ChunkResponse]:
     """Re-chunk a completed analysis with new chunking options."""
     try:
-        chunks = await service.rechunk(job_id, body.chunkingOptions.model_dump())
+        chunks = await service.rechunk(analysis_id, body.chunkingOptions.model_dump())
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     return [
@@ -111,13 +111,13 @@ async def rechunk_analysis(
     ]
 
 
-@router.patch("/{job_id}/chunks/{chunk_index}", response_model=list[ChunkResponse])
+@router.patch("/{analysis_id}/chunks/{chunk_index}", response_model=list[ChunkResponse])
 async def update_chunk_text(
-    job_id: str, chunk_index: int, body: UpdateChunkTextRequest, service: ServiceDep
+    analysis_id: str, chunk_index: int, body: UpdateChunkTextRequest, service: ServiceDep
 ) -> list[ChunkResponse]:
     """Update the text of a single chunk by index."""
     try:
-        chunks = await service.update_chunk_text(job_id, chunk_index, body.text)
+        chunks = await service.update_chunk_text(analysis_id, chunk_index, body.text)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     return [
@@ -134,11 +134,13 @@ async def update_chunk_text(
     ]
 
 
-@router.delete("/{job_id}/chunks/{chunk_index}", response_model=list[ChunkResponse])
-async def delete_chunk(job_id: str, chunk_index: int, service: ServiceDep) -> list[ChunkResponse]:
+@router.delete("/{analysis_id}/chunks/{chunk_index}", response_model=list[ChunkResponse])
+async def delete_chunk(
+    analysis_id: str, chunk_index: int, service: ServiceDep
+) -> list[ChunkResponse]:
     """Soft-delete a chunk by index (marks it as deleted)."""
     try:
-        chunks = await service.delete_chunk(job_id, chunk_index)
+        chunks = await service.delete_chunk(analysis_id, chunk_index)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     return [
@@ -155,9 +157,9 @@ async def delete_chunk(job_id: str, chunk_index: int, service: ServiceDep) -> li
     ]
 
 
-@router.delete("/{job_id}", status_code=204, response_model=None)
-async def delete_analysis(job_id: str, service: ServiceDep) -> None:
+@router.delete("/{analysis_id}", status_code=204, response_model=None)
+async def delete_analysis(analysis_id: str, service: ServiceDep) -> None:
     """Delete an analysis job."""
-    deleted = await service.delete(job_id)
+    deleted = await service.delete(analysis_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Analysis not found")

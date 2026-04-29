@@ -57,6 +57,11 @@ _LABEL_MAP = {
 class ServeConverter:
     """Adapter that delegates document conversion to a remote Docling Serve instance."""
 
+    # Docling Serve handles batching server-side; slicing into page batches
+    # client-side would just multiply HTTP roundtrips for no benefit, so
+    # the orchestrator passes the full document through in a single call.
+    supports_page_batching: bool = False
+
     def __init__(
         self,
         base_url: str,

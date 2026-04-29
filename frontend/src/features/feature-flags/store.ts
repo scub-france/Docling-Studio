@@ -14,6 +14,7 @@ interface HealthResponse {
   maxPageCount?: number
   maxFileSizeMb?: number
   ingestionAvailable?: boolean
+  reasoningAvailable?: boolean
 }
 
 export type FeatureFlag = 'chunking' | 'disclaimer' | 'ingestion' | 'reasoning'
@@ -27,6 +28,7 @@ interface FeatureFlagContext {
   engine: ConversionEngine | null
   deploymentMode: DeploymentMode | null
   ingestionAvailable: boolean
+  reasoningAvailable: boolean
 }
 
 const featureRegistry: Record<FeatureFlag, FeatureFlagDef> = {
@@ -43,11 +45,12 @@ const featureRegistry: Record<FeatureFlag, FeatureFlagDef> = {
     isEnabled: (ctx) => ctx.ingestionAvailable,
   },
   reasoning: {
-    // SQLite-backed (builds the graph from `document_json` on the fly), so no
-    // server-side gating needed. Kept as a flag so a future deployment can
-    // still kill-switch the UI if it wants to.
-    description: 'Reasoning trace tunnel (docling-agent RAGResult viewer)',
-    isEnabled: () => true,
+    // Backend-gated: `reasoningAvailable` is true on `/api/health` only when
+    // `REASONING_ENABLED=true` AND docling-agent + mellea are importable.
+    // Hides the sidebar entry when the runner isn't wired, instead of
+    // letting the user click through to a 503.
+    description: 'Reasoning trace tunnel (docling-agent ReasoningResult viewer)',
+    isEnabled: (ctx) => ctx.reasoningAvailable,
   },
 }
 
@@ -57,6 +60,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
   const maxPageCount = ref<number>(0)
   const maxFileSizeMb = ref<number>(0)
   const ingestionAvailable = ref(false)
+  const reasoningAvailable = ref(false)
   const appVersion = ref<string>(__APP_VERSION__)
   const loaded = ref(false)
   const error = ref<string | null>(null)
@@ -65,6 +69,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
     engine: engine.value,
     deploymentMode: deploymentMode.value,
     ingestionAvailable: ingestionAvailable.value,
+    reasoningAvailable: reasoningAvailable.value,
   }))
 
   function isEnabled(flag: FeatureFlag): boolean {
@@ -81,6 +86,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
       maxPageCount.value = data.maxPageCount ?? 0
       maxFileSizeMb.value = data.maxFileSizeMb ?? 0
       ingestionAvailable.value = data.ingestionAvailable ?? false
+      reasoningAvailable.value = data.reasoningAvailable ?? false
       appMaxFileSizeMb.value = maxFileSizeMb.value
       appMaxPageCount.value = maxPageCount.value
       if (data.version) appVersion.value = data.version
@@ -98,6 +104,7 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
     maxPageCount,
     maxFileSizeMb,
     ingestionAvailable,
+    reasoningAvailable,
     appVersion,
     loaded,
     error,

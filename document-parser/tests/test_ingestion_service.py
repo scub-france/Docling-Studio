@@ -164,16 +164,14 @@ class TestPing:
     async def test_ping_success(
         self, service: IngestionService, mock_vector_store: AsyncMock
     ) -> None:
-        mock_vector_store._client = AsyncMock()
-        mock_vector_store._client.info.return_value = {"cluster_name": "test"}
+        mock_vector_store.ping.return_value = True
         result = await service.ping()
         assert result is True
 
     async def test_ping_failure(
         self, service: IngestionService, mock_vector_store: AsyncMock
     ) -> None:
-        mock_vector_store._client = AsyncMock()
-        mock_vector_store._client.info.side_effect = ConnectionError("down")
+        mock_vector_store.ping.side_effect = ConnectionError("down")
         result = await service.ping()
         assert result is False
 

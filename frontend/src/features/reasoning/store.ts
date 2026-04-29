@@ -1,36 +1,36 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
-import type { OverlayResult, RAGResult, ResolvedIteration, SidecarEnvelope } from './types'
+import type { OverlayResult, ReasoningResult, ResolvedIteration, SidecarEnvelope } from './types'
 
 /**
  * Parse an arbitrary JSON payload as either:
- *   - a bare `RAGResult` (what `docling-agent` emits directly), or
+ *   - a bare `ReasoningResult` (what `docling-agent` emits directly), or
  *   - the sidecar envelope (`{ job_id, filename, query, model, result }`)
  *
  * Returns `null` if the shape doesn't match either.
  */
 export function parseImportedTrace(
   raw: unknown,
-): { result: RAGResult; envelope: SidecarEnvelope | null } | null {
+): { result: ReasoningResult; envelope: SidecarEnvelope | null } | null {
   if (!raw || typeof raw !== 'object') return null
   const obj = raw as Record<string, unknown>
 
   // Envelope shape
   if (obj.result && typeof obj.result === 'object') {
-    const result = obj.result as RAGResult
-    if (isRAGResult(result)) {
+    const result = obj.result as ReasoningResult
+    if (isReasoningResult(result)) {
       return { result, envelope: obj as unknown as SidecarEnvelope }
     }
   }
-  // Bare RAGResult
-  if (isRAGResult(obj as unknown as RAGResult)) {
-    return { result: obj as unknown as RAGResult, envelope: null }
+  // Bare ReasoningResult
+  if (isReasoningResult(obj as unknown as ReasoningResult)) {
+    return { result: obj as unknown as ReasoningResult, envelope: null }
   }
   return null
 }
 
-function isRAGResult(x: RAGResult | undefined): boolean {
+function isReasoningResult(x: ReasoningResult | undefined): boolean {
   if (!x || typeof x !== 'object') return false
   return (
     typeof x.answer === 'string' && typeof x.converged === 'boolean' && Array.isArray(x.iterations)
@@ -39,12 +39,12 @@ function isRAGResult(x: RAGResult | undefined): boolean {
 
 export const useReasoningStore = defineStore('reasoning', () => {
   const importDialogOpen = ref(false)
-  // Separate modal for the live runner (POST /api/documents/:id/rag), so it
-  // can coexist with the import dialog conceptually even if only one is ever
-  // open at a time.
+  // Separate modal for the live runner (POST /api/documents/:id/reasoning),
+  // so it can coexist with the import dialog conceptually even if only one
+  // is ever open at a time.
   const runDialogOpen = ref(false)
   const running = ref(false)
-  const rawResult = ref<RAGResult | null>(null)
+  const rawResult = ref<ReasoningResult | null>(null)
   const envelope = ref<SidecarEnvelope | null>(null)
   const overlay = ref<OverlayResult | null>(null)
   const activeIteration = ref<number | null>(null)
@@ -84,7 +84,7 @@ export const useReasoningStore = defineStore('reasoning', () => {
    * Does NOT touch Cytoscape — the `ReasoningPanel` watches `rawResult` and
    * reapplies the overlay via `graphReasoningOverlay.applyReasoningOverlay`.
    */
-  function setResult(result: RAGResult, env: SidecarEnvelope | null): void {
+  function setResult(result: ReasoningResult, env: SidecarEnvelope | null): void {
     rawResult.value = result
     envelope.value = env
     error.value = null

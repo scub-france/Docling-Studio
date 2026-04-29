@@ -1,6 +1,6 @@
 import { apiFetch } from '../../shared/api/http'
 import type { GraphPayload } from '../analysis/graphApi'
-import type { RAGResult } from './types'
+import type { ReasoningResult } from './types'
 
 /**
  * Fetch the reasoning-trace graph for a document — built on the backend from
@@ -16,20 +16,24 @@ export function fetchReasoningGraph(docId: string): Promise<GraphPayload> {
 }
 
 /**
- * Kick off a `docling-agent` RAG run against a document and wait for the
- * `RAGResult` (no streaming yet — the backend blocks on `_rag_loop` and
- * returns once the loop converges or hits `max_iterations`).
+ * Kick off a `docling-agent` reasoning run against a document and wait for
+ * the `ReasoningResult` (no streaming yet — the backend blocks on `_rag_loop`
+ * and returns once the loop converges or hits `max_iterations`).
  *
  * Runs typically take 20–40s depending on the model + Ollama latency. The
  * caller should show a loading state.
  *
  * Errors:
- *  - 503 if `RAG_ENABLED=false` server-side or docling-agent isn't installed
+ *  - 503 if `REASONING_ENABLED=false` server-side or docling-agent isn't installed
  *  - 404 if no completed analysis exists for the doc
  *  - 500 if the loop itself raises (Ollama unreachable, model missing, …)
  */
-export function runReasoning(docId: string, query: string, modelId?: string): Promise<RAGResult> {
-  return apiFetch<RAGResult>(`/api/documents/${encodeURIComponent(docId)}/rag`, {
+export function runReasoning(
+  docId: string,
+  query: string,
+  modelId?: string,
+): Promise<ReasoningResult> {
+  return apiFetch<ReasoningResult>(`/api/documents/${encodeURIComponent(docId)}/reasoning`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

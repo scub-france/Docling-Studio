@@ -7,6 +7,7 @@ They have ZERO external dependencies (no docling, no HTTP, no DB).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import StrEnum
 
 # US Letter page dimensions (points) — fallback when page size is unknown
 DEFAULT_PAGE_WIDTH: float = 612.0
@@ -96,3 +97,43 @@ class ChunkResult:
     token_count: int = 0
     bboxes: list[ChunkBbox] = field(default_factory=list)
     doc_items: list[ChunkDocItem] = field(default_factory=list)
+
+
+# --- Reasoning (live docling-agent runner) -----------------------------------
+
+
+class LLMProviderType(StrEnum):
+    """LLM backends the reasoning runner can talk to.
+
+    Today only OLLAMA is realizable: docling-agent v0.1.0 is hardwired to
+    Ollama via mellea's `setup_local_session`. Other variants are kept here
+    to make the abstraction visible and prepare future backends — adding one
+    requires either docling-agent upstream support (see
+    https://github.com/docling-project/docling-agent/issues/26) or a fork.
+    """
+
+    OLLAMA = "ollama"
+
+
+@dataclass(frozen=True)
+class ReasoningIteration:
+    """One step of the reasoning loop — section the agent visited and what
+    it concluded. Mirrors the upstream docling-agent `RAGIteration` shape so
+    serialization stays 1:1 with externally-produced traces."""
+
+    iteration: int
+    section_ref: str
+    reason: str
+    section_text_length: int
+    can_answer: bool
+    response: str
+
+
+@dataclass(frozen=True)
+class ReasoningResult:
+    """Full output of a reasoning run: final answer, the path the agent
+    walked through the document, and whether the loop converged."""
+
+    answer: str
+    iterations: list[ReasoningIteration]
+    converged: bool

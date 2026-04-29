@@ -10,7 +10,7 @@ import {
   focusIteration,
   nodeIdForSectionRef,
 } from './graphReasoningOverlay'
-import type { RAGResult } from './types'
+import type { ReasoningResult } from './types'
 
 function seed(): Core {
   // Headless mode — no DOM container needed.
@@ -25,7 +25,9 @@ function seed(): Core {
   })
 }
 
-function result(iterations: Array<Partial<RAGResult['iterations'][number]>>): RAGResult {
+function result(
+  iterations: Array<Partial<ReasoningResult['iterations'][number]>>,
+): ReasoningResult {
   return {
     answer: 'x',
     converged: true,

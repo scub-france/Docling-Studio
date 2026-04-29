@@ -101,6 +101,15 @@ async def _init_neo4j():
         logger.info("Neo4j disabled (NEO4J_URI not set)")
         return None
 
+    if settings.neo4j_password == "changeme":
+        # The dev compose stack ships with "changeme" so `docker compose up`
+        # works immediately. Anyone running the backend against a non-dev
+        # Neo4j with this password almost certainly forgot to override it.
+        logger.warning(
+            "Neo4j is configured with the dev default password 'changeme'. "
+            "Override NEO4J_PASSWORD before deploying outside localhost."
+        )
+
     from infra.neo4j import bootstrap_schema, get_driver
 
     try:
@@ -223,10 +232,46 @@ app.include_router(graph_router)
 
 # Live reasoning (docling-agent runner). Router is mounted unconditionally so
 # the route is introspectable in OpenAPI; the handler itself 503s when
-# `RAG_ENABLED` is off or the deps aren't installed.
+# `REASONING_ENABLED` is off or the deps aren't installed.
 from api.reasoning import router as reasoning_router  # noqa: E402
+from infra.docling_agent_reasoning import DoclingAgentReasoningRunner  # noqa: E402
+from infra.docling_agent_reasoning import deps_present as _reasoning_deps_present  # noqa: E402
+from infra.llm.ollama_provider import OllamaProvider  # noqa: E402
 
 app.include_router(reasoning_router)
+
+
+def _build_reasoning_runner() -> DoclingAgentReasoningRunner | None:
+    """Wire the reasoning runner if `REASONING_ENABLED=true` and deps are
+    importable. Today only `LLM_PROVIDER_TYPE=ollama` is supported (cf.
+    `LLMProvider` docstring); other values fall through to a logged warning
+    + None so the rest of the app boots cleanly.
+    """
+    if not settings.reasoning_enabled:
+        return None
+    if not _reasoning_deps_present():
+        logger.warning(
+            "REASONING_ENABLED=true but docling-agent / mellea not importable — "
+            "reasoning runner disabled"
+        )
+        return None
+    if settings.llm_provider_type != "ollama":
+        logger.warning(
+            "Unsupported LLM_PROVIDER_TYPE=%s — reasoning runner disabled (only "
+            "'ollama' is realizable today, see "
+            "https://github.com/docling-project/docling-agent/issues/26)",
+            settings.llm_provider_type,
+        )
+        return None
+
+    provider = OllamaProvider(
+        host=settings.ollama_host,
+        default_model_id=settings.reasoning_model_id,
+    )
+    return DoclingAgentReasoningRunner(provider=provider)
+
+
+app.state.reasoning_runner = _build_reasoning_runner()
 
 
 @app.get("/api/health", response_model=HealthResponse)
@@ -241,6 +286,7 @@ async def health() -> HealthResponse:
         logger.warning("Health check: database unreachable", exc_info=True)
 
     status = "ok" if db_status == "ok" else "degraded"
+    runner = getattr(app.state, "reasoning_runner", None)
     return HealthResponse(
         status=status,
         version=settings.app_version,
@@ -254,18 +300,8 @@ async def health() -> HealthResponse:
         ),
         paste_allowed_image_types=settings.paste_allowed_image_types,
         ingestion_available=getattr(app.state, "ingestion_service", None) is not None,
-        # True when the live-reasoning runner is wired (flag on + deps present).
-        # The actual Ollama reachability is checked lazily at call-time to avoid
+        # True when the runner is wired and reports itself available. The
+        # actual Ollama reachability is checked lazily at call-time to avoid
         # blocking health checks on the LLM host.
-        rag_available=settings.rag_enabled and _rag_deps_present(),
+        reasoning_available=runner is not None and runner.is_available,
     )
-
-
-def _rag_deps_present() -> bool:
-    """Import-check only — does not hit Ollama."""
-    try:
-        import docling_agent.agents  # noqa: F401
-        import mellea  # noqa: F401
-    except ImportError:
-        return False
-    return True

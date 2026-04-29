@@ -10,6 +10,11 @@ from datetime import datetime
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
+# Document lifecycle status — currently single-state (uploaded). Kept as a
+# constant so future statuses (e.g. "archived", "deleted") can extend the
+# vocabulary without hunting magic strings across the codebase.
+DOCUMENT_STATUS_UPLOADED = "uploaded"
+
 
 def _to_camel(name: str) -> str:
     parts = name.split("_")
@@ -38,15 +43,15 @@ class HealthResponse(_CamelModel):
     paste_allowed_image_types: list[str] = Field(default_factory=list)
     ingestion_available: bool = False
     # True when the live-reasoning runner (docling-agent + Ollama) is
-    # available: RAG_ENABLED=true AND deps importable. Doesn't imply Ollama
-    # itself is reachable — that's checked per-call.
-    rag_available: bool = False
+    # available: REASONING_ENABLED=true AND deps importable. Doesn't imply
+    # Ollama itself is reachable — that's checked per-call.
+    reasoning_available: bool = False
 
 
 class DocumentResponse(_CamelModel):
     id: str
     filename: str
-    status: str = "uploaded"  # Document status (always "uploaded" for now)
+    status: str = DOCUMENT_STATUS_UPLOADED
     content_type: str | None = None
     file_size: int | None = None
     page_count: int | None = None

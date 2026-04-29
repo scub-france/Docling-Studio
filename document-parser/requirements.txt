@@ -10,6 +10,8 @@ pypdfium2>=4.0.0,<5.0.0
 opensearch-py[async]>=2.6.0,<3.0.0
 neo4j>=5.15.0,<6.0.0
 # R&D reasoning-trace live runner — calls docling-agent's `_rag_loop` over
-# an Ollama backend. Gated server-side by `RAG_ENABLED`; pulls ~60MB of deps.
+# an Ollama backend. Gated server-side by `REASONING_ENABLED`; pulls ~60MB
+# of deps. See https://github.com/docling-project/docling-agent/issues/26 for
+# the public-API replacement of `_rag_loop`.
 docling-agent==0.1.0
 mellea==0.4.2

@@ -98,7 +98,7 @@ def iter_provs(item: dict[str, Any]) -> list[dict[str, Any]]:
             t_ = float(bbox.get("t", 0.0) or 0.0)
             r_ = float(bbox.get("r", 0.0) or 0.0)
             b_ = float(bbox.get("b", 0.0) or 0.0)
-        elif isinstance(bbox, (list, tuple)) and len(bbox) >= 4:
+        elif isinstance(bbox, list | tuple) and len(bbox) >= 4:
             l_, t_, r_, b_ = (float(x) for x in bbox[:4])
         coord_origin = (bbox.get("coord_origin") if isinstance(bbox, dict) else None) or "TOPLEFT"
         charspan = p.get("charspan") or []

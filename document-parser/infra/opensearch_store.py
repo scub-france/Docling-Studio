@@ -84,6 +84,14 @@ class OpenSearchStore:
         """Close the underlying HTTP connection pool."""
         await self._client.close()
 
+    async def ping(self) -> bool:
+        """Reachability probe — calls OpenSearch `/` (cluster info) once."""
+        try:
+            info = await self._client.info()
+            return bool(info)
+        except Exception:
+            return False
+
     # -- VectorStore protocol methods ------------------------------------------
 
     async def ensure_index(self, index_name: str, mapping: dict) -> None:

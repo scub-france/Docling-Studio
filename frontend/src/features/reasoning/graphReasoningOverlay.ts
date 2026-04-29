@@ -12,7 +12,7 @@
  */
 import type { Core } from 'cytoscape'
 
-import type { OverlayResult, RAGResult, ResolvedIteration } from './types'
+import type { OverlayResult, ReasoningResult, ResolvedIteration } from './types'
 
 export const REASONING_EDGE_TYPE = 'REASONING_NEXT'
 const VISITED_CLASS = 'visited'
@@ -43,7 +43,7 @@ export interface OverlayOptions {
 }
 
 /**
- * Apply the overlay for a freshly imported `RAGResult`.
+ * Apply the overlay for a freshly imported `ReasoningResult`.
  *
  * Idempotent: any previous overlay is cleared first. Returns a summary that
  * the caller (store / panel) uses to drive the UI (list of iterations,
@@ -51,7 +51,7 @@ export interface OverlayOptions {
  */
 export function applyReasoningOverlay(
   cy: Core,
-  result: RAGResult,
+  result: ReasoningResult,
   options: OverlayOptions = {},
 ): OverlayResult {
   const focusMode = options.focusMode ?? true
@@ -128,7 +128,7 @@ export function applyReasoningOverlay(
  * is marked `present: false`; the panel can still render the iteration cards
  * so the user sees the reasoning — they just don't get highlights on the graph.
  */
-export function buildDegradedOverlay(result: RAGResult): OverlayResult {
+export function buildDegradedOverlay(result: ReasoningResult): OverlayResult {
   const resolved: ResolvedIteration[] = result.iterations.map((it) => ({
     iteration: it.iteration,
     sectionRef: it.section_ref,
