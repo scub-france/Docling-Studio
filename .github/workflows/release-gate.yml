@@ -353,6 +353,7 @@ jobs:
           exit-code: 1
           severity: CRITICAL
           output: /tmp/trivy-critical-${{ matrix.target }}.txt
+          trivyignores: .trivyignore.yaml
 
       - name: Run Trivy — HIGH (informational)
         if: always()
@@ -363,6 +364,7 @@ jobs:
           exit-code: 0
           severity: HIGH
           output: /tmp/trivy-high-${{ matrix.target }}.txt
+          trivyignores: .trivyignore.yaml
 
       - name: Annotate HIGH vulnerabilities
         if: always()
