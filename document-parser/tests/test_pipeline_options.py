@@ -53,7 +53,8 @@ class TestBuildConverter:
         assert opts.generate_page_images is False
         assert opts.generate_picture_images is False
         assert opts.images_scale == 1.0
-        assert opts.document_timeout is not None
+        # default document timeout is 120s (cf. infra/settings.py)
+        assert opts.document_timeout == 120.0
 
     def test_ocr_disabled(self):
         conv = build_converter(ConversionOptions(do_ocr=False))

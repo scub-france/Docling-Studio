@@ -10,7 +10,7 @@ describe('parseImportedTrace', () => {
     iterations: [],
   }
 
-  it('accepts a bare RAGResult', () => {
+  it('accepts a bare ReasoningResult', () => {
     const parsed = parseImportedTrace(bare)
     expect(parsed?.result.answer).toBe('ok')
     expect(parsed?.envelope).toBeNull()
@@ -26,7 +26,7 @@ describe('parseImportedTrace', () => {
     expect(parsed?.envelope?.job_id).toBe('abc')
   })
 
-  it('rejects shapes that are neither envelope nor bare RAGResult', () => {
+  it('rejects shapes that are neither envelope nor bare ReasoningResult', () => {
     expect(parseImportedTrace(null)).toBeNull()
     expect(parseImportedTrace('string')).toBeNull()
     expect(parseImportedTrace({ foo: 'bar' })).toBeNull()

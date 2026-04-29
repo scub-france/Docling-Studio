@@ -337,9 +337,7 @@ class AnalysisService:
         """
         total_pages = _count_pdf_pages(file_path)
         batch_size = self._config.batch_page_size
-        is_remote = self._is_remote_converter()
-
-        if batch_size > 0 and total_pages > batch_size and not is_remote:
+        if batch_size > 0 and total_pages > batch_size and self._converter.supports_page_batching:
             return await self._run_batched_conversion(
                 job_id, file_path, options, total_pages, batch_size
             )
@@ -347,15 +345,6 @@ class AnalysisService:
             self._converter.convert(file_path, options),
             timeout=self._conversion_timeout,
         )
-
-    def _is_remote_converter(self) -> bool:
-        """Check if the converter is a remote (Serve) adapter."""
-        try:
-            from infra.serve_converter import ServeConverter
-
-            return isinstance(self._converter, ServeConverter)
-        except ImportError:
-            return False
 
     async def _finalize_analysis(
         self,

@@ -308,6 +308,43 @@ RETURN d.title, t.caption, t.cells_json
 
 The in-app **Graph** tab (under *Results*) renders the per-document graph with [Cytoscape.js](https://js.cytoscape.org/) (see [ADR-001](docs/architecture/adrs/ADR-001-graph-visualization-library.md) for the library choice). Documents with more than **200 pages** return `HTTP 413` from `GET /api/documents/{id}/graph`; pagination ships in v0.6.
 
+## Live Reasoning (opt-in, R&D)
+
+Docling Studio can run [docling-agent](https://github.com/docling-project/docling-agent)'s Chunkless RAG loop against an analyzed document and return a full **reasoning trace** — the path the agent walked through the document outline, with the section reference / rationale / answer for each iteration. The trace is overlaid on the document graph so you can *see* how the agent navigated the structure.
+
+Disabled by default — pulls heavy deps (`docling-agent`, `mellea`, ~60 MB) and needs a reachable Ollama instance with the target model already pulled.
+
+### Enable
+
+```bash
+export REASONING_ENABLED=true
+export OLLAMA_HOST=http://localhost:11434      # default
+export REASONING_MODEL_ID=gpt-oss:20b           # any model already pulled in Ollama
+# Optional, future-proof — only "ollama" is realizable today (see Architecture below):
+export LLM_PROVIDER_TYPE=ollama
+```
+
+Then `pip install docling-agent mellea` (or use the `local` Docker image which bundles them) and restart the backend. The frontend reads `reasoningAvailable` from `/api/health` and hides the **Reasoning** sidebar entry when the runner isn't wired — so users never click through to a 503.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REASONING_ENABLED` | `false` | Master switch — `true` to enable the live runner |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama daemon URL |
+| `REASONING_MODEL_ID` | `gpt-oss:20b` | Default model id (per-call override allowed via the API) |
+| `LLM_PROVIDER_TYPE` | `ollama` | LLM backend selector — only `ollama` is supported today |
+
+### Architecture
+
+The reasoning subsystem is wired through a `ReasoningRunner` port (`document-parser/domain/ports.py`) and an `LLMProvider` abstraction:
+
+- `domain/ports.py` defines `ReasoningRunner`, `LLMProvider`, `ReasoningParseError` (no third-party imports)
+- `domain/value_objects.py` defines `LLMProviderType`, `ReasoningResult`, `ReasoningIteration`
+- `infra/llm/ollama_provider.py` implements `LLMProvider` for Ollama
+- `infra/docling_agent_reasoning.py` implements `ReasoningRunner` using docling-agent + mellea — all upstream coupling is here, including the `_rag_loop` workaround tracked at [docling-agent#26](https://github.com/docling-project/docling-agent/issues/26)
+- `api/reasoning.py` consumes `app.state.reasoning_runner` — zero coupling to docling-agent
+
+This makes alternate LLM backends a question of adding new `LLMProvider` adapters once docling-agent (or a replacement) supports them upstream.
+
 ## CI / Release
 
 GitHub Actions pipelines (see [`.github/workflows/`](.github/workflows/)):

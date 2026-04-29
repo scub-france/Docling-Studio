@@ -15,8 +15,25 @@ if TYPE_CHECKING:
         ChunkResult,
         ConversionOptions,
         ConversionResult,
+        LLMProviderType,
+        ReasoningResult,
     )
     from domain.vector_schema import IndexedChunk, SearchResult
+
+
+class ReasoningParseError(Exception):
+    """Raised by a `ReasoningRunner` when the upstream LLM couldn't produce a
+    parseable answer after retries — e.g. docling-agent's known IndexError on
+    `find_json_dicts(...)[0]` when the model fails rejection-sampling.
+
+    Carries the model identifier so the API layer can surface it to the user
+    without leaking adapter internals.
+    """
+
+    def __init__(self, model_id: str, reason: str = "no parseable answer") -> None:
+        super().__init__(f"{model_id}: {reason}")
+        self.model_id = model_id
+        self.reason = reason
 
 
 class DocumentConverter(Protocol):
@@ -33,6 +50,15 @@ class DocumentConverter(Protocol):
         *,
         page_range: tuple[int, int] | None = None,
     ) -> ConversionResult: ...
+
+    @property
+    def supports_page_batching(self) -> bool:
+        """True if the orchestrator may slice a long document into page
+        batches (calling `convert` with a `page_range`) and merge the
+        results. Local in-process converters set this to True; remote
+        converters that handle batching themselves return False so the
+        orchestrator passes the full document through in one call."""
+        ...
 
 
 class DocumentChunker(Protocol):
@@ -141,4 +167,74 @@ class VectorStore(Protocol):
 
     async def delete_document(self, index_name: str, doc_id: str) -> int:
         """Delete all chunks for a document from the index. Returns count deleted."""
+        ...
+
+    async def ping(self) -> bool:
+        """Cheap reachability probe — True if the backing store responds.
+        Used by health checks; should not throw."""
+        ...
+
+
+@runtime_checkable
+class LLMProvider(Protocol):
+    """Connection-level abstraction over an LLM backend.
+
+    A provider carries the host/base-URL, the default model identifier, and a
+    type tag that adapters can dispatch on. The reasoning runner consumes a
+    provider — it doesn't construct one — so the runner stays decoupled from
+    Ollama-vs-OpenAI-vs-WatsonX wiring.
+
+    Today only `OllamaProvider` (in `infra/llm/`) is implemented because
+    docling-agent v0.1.0 is hardwired to Ollama via mellea's
+    `setup_local_session`. Adding a non-Ollama provider requires either
+    docling-agent upstream support or a fork (track
+    https://github.com/docling-project/docling-agent/issues/26 + provider
+    abstraction work upstream).
+    """
+
+    @property
+    def type(self) -> LLMProviderType: ...
+
+    @property
+    def host(self) -> str: ...
+
+    @property
+    def default_model_id(self) -> str: ...
+
+    def health_check(self) -> bool:
+        """Lightweight reachability probe. Returns True if the provider looks
+        usable. Implementations should be cheap (no model load, no inference).
+        """
+        ...
+
+
+@runtime_checkable
+class ReasoningRunner(Protocol):
+    """Port for live reasoning over a previously-converted document.
+
+    Takes the serialized DoclingDocument JSON + a user query + optional
+    per-call model override, returns a `ReasoningResult` (answer + iteration
+    trace + convergence flag).
+
+    Adapters MUST translate upstream parsing failures into
+    `ReasoningParseError`. Other exceptions propagate as-is — the API layer
+    maps them to 5xx.
+    """
+
+    @property
+    def is_available(self) -> bool:
+        """True if the runner can serve requests (deps importable + provider
+        wired). Used by the API layer to short-circuit with a 503 instead of
+        attempting a doomed call."""
+        ...
+
+    async def run(
+        self,
+        *,
+        document_json: str,
+        query: str,
+        model_id: str | None = None,
+    ) -> ReasoningResult:
+        """Execute the reasoning loop. `model_id` overrides the provider's
+        default for this call only."""
         ...

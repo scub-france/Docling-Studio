@@ -1,5 +1,6 @@
 /**
- * Types mirroring the `docling-agent` RAG output.
+ * Types mirroring the `docling-agent` reasoning-trace output (upstream type
+ * name: `RAGResult`).
  *
  * The JSON imported by the user is produced either by:
  *   - the R&D sidecar (`experiments/reasoning-trace/inspect_doc.py`), or
@@ -14,7 +15,7 @@
  * Source of truth: docling-project/docling-agent @ docling_agent/agent/rag_models.py
  */
 
-export interface RAGIteration {
+export interface ReasoningIteration {
   iteration: number
   section_ref: string
   reason: string
@@ -23,15 +24,15 @@ export interface RAGIteration {
   response: string
 }
 
-export interface RAGResult {
+export interface ReasoningResult {
   answer: string
-  iterations: RAGIteration[]
+  iterations: ReasoningIteration[]
   converged: boolean
 }
 
 /**
  * Envelope written by the R&D sidecar. The viewer also accepts a bare
- * `RAGResult` (see `parseImportedTrace` in the store).
+ * `ReasoningResult` (see `parseImportedTrace` in the store).
  */
 export interface SidecarEnvelope {
   job_id?: string
@@ -39,7 +40,7 @@ export interface SidecarEnvelope {
   query?: string
   model?: { ollama_name?: string | null; hf_model_name?: string | null }
   max_iterations?: number
-  result: RAGResult
+  result: ReasoningResult
 }
 
 /**

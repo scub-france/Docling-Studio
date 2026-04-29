@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile
@@ -112,9 +114,12 @@ async def preview(
         )
 
     try:
-        with open(doc.storage_path, "rb") as f:
-            file_content = f.read()
-        png_bytes = DocumentService.generate_preview(file_content, page=page, dpi=dpi)
+        # File read + PDF rasterisation are both blocking; offload to a
+        # worker thread so the event loop stays free for other requests.
+        file_content = await asyncio.to_thread(Path(doc.storage_path).read_bytes)
+        png_bytes = await asyncio.to_thread(
+            DocumentService.generate_preview, file_content, page=page, dpi=dpi
+        )
         return Response(content=png_bytes, media_type="image/png")
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e

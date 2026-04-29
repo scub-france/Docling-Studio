@@ -123,21 +123,21 @@ const messages: Messages = {
     'studio.prepare': 'Préparer',
     'studio.ingest': 'Ingérer',
     'studio.maintain': 'Maintenir',
-    // Reasoning trace (R&D v1 — overlays a docling-agent RAGResult on the graph)
+    // Reasoning trace (R&D v1 — overlays a docling-agent ReasoningResult on the graph)
     'reasoning.importBtn': 'Importer une trace de raisonnement',
     'reasoning.importTitle': 'Importer une trace de raisonnement',
     'reasoning.importHint':
-      'Dépose un JSON RAGResult produit par docling-agent (ou par le script R&D experiments/reasoning-trace).',
+      'Dépose un JSON de trace de raisonnement produit par docling-agent (ou par le script R&D experiments/reasoning-trace).',
     'reasoning.drop': 'Glisse un fichier .json ici',
     'reasoning.dropSub': 'ou clique pour le choisir',
     'reasoning.parsing': 'Analyse du fichier...',
     'reasoning.pasteToggle': 'Coller le JSON à la place',
-    'reasoning.pastePlaceholder': "Colle ici le contenu JSON d'un RAGResult...",
+    'reasoning.pastePlaceholder': "Colle ici le contenu JSON d'une trace de raisonnement...",
     'reasoning.pasteSubmit': 'Charger',
     'reasoning.close': 'Fermer',
     'reasoning.errJson': 'JSON invalide : {msg}',
     'reasoning.errShape':
-      "Le fichier n'a pas la forme d'un RAGResult (answer, converged, iterations).",
+      "Le fichier n'a pas la forme d'une trace de raisonnement (answer, converged, iterations).",
     'reasoning.panelTitle': 'Trace de raisonnement',
     'reasoning.focus': 'Focus',
     'reasoning.focusHint':
@@ -166,7 +166,7 @@ const messages: Messages = {
     // Reasoning page (standalone tunnel)
     'reasoning.pageTitle': 'Reasoning Trace',
     'reasoning.pageSubtitle':
-      'Importe un PDF, puis dépose une trace RAGResult produite par docling-agent pour visualiser le chemin de raisonnement sur le graphe du document.',
+      'Importe un PDF, puis dépose une trace de raisonnement produite par docling-agent pour visualiser le chemin de raisonnement sur le graphe du document.',
     'reasoning.dropPdf': 'Dépose un PDF',
     'reasoning.dropPdfHint': 'ou clique pour en choisir un',
     'reasoning.uploading': 'Import du document...',
@@ -191,7 +191,7 @@ const messages: Messages = {
     'reasoning.runModelLabel': 'Modèle (optionnel)',
     'reasoning.runModelPlaceholder': 'gpt-oss:20b',
     'reasoning.runModelSub':
-      'Nom du modèle Ollama. Laisser vide pour utiliser le défaut serveur (RAG_MODEL_ID).',
+      'Nom du modèle Ollama. Laisser vide pour utiliser le défaut serveur (REASONING_MODEL_ID).',
     'reasoning.runSubmit': 'Lancer',
     'reasoning.running': 'docling-agent tourne... (20-40s)',
     'reasoning.runErrUnknown': 'Erreur inconnue lors de l\u2019appel à docling-agent.',
@@ -263,7 +263,6 @@ const messages: Messages = {
 
     // Settings
     'settings.title': 'Paramètres',
-    'settings.apiUrl': 'API URL',
     'settings.version': 'Version',
     'settings.theme': 'Thème',
     'settings.themeDark': 'Sombre',
@@ -384,20 +383,21 @@ const messages: Messages = {
     'studio.prepare': 'Prepare',
     'studio.ingest': 'Ingest',
     'studio.maintain': 'Maintain',
-    // Reasoning trace (R&D v1 — overlays a docling-agent RAGResult on the graph)
+    // Reasoning trace (R&D v1 — overlays a docling-agent ReasoningResult on the graph)
     'reasoning.importBtn': 'Import reasoning trace',
     'reasoning.importTitle': 'Import reasoning trace',
     'reasoning.importHint':
-      'Drop a RAGResult JSON produced by docling-agent (or by the experiments/reasoning-trace R&D script).',
+      'Drop a reasoning-trace JSON produced by docling-agent (or by the experiments/reasoning-trace R&D script).',
     'reasoning.drop': 'Drop a .json file here',
     'reasoning.dropSub': 'or click to pick one',
     'reasoning.parsing': 'Parsing file...',
     'reasoning.pasteToggle': 'Paste JSON instead',
-    'reasoning.pastePlaceholder': 'Paste a RAGResult JSON payload here...',
+    'reasoning.pastePlaceholder': 'Paste a reasoning-trace JSON payload here...',
     'reasoning.pasteSubmit': 'Load',
     'reasoning.close': 'Close',
     'reasoning.errJson': 'Invalid JSON: {msg}',
-    'reasoning.errShape': "File doesn't look like a RAGResult (answer, converged, iterations).",
+    'reasoning.errShape':
+      "File doesn't look like a reasoning trace (answer, converged, iterations).",
     'reasoning.panelTitle': 'Reasoning trace',
     'reasoning.focus': 'Focus',
     'reasoning.focusHint': 'Dim non-visited elements to make the reasoning path stand out.',
@@ -425,7 +425,7 @@ const messages: Messages = {
     // Reasoning page (standalone tunnel)
     'reasoning.pageTitle': 'Reasoning Trace',
     'reasoning.pageSubtitle':
-      "Drop a PDF, then import a RAGResult trace from docling-agent to visualize the reasoning path on the document's graph.",
+      "Drop a PDF, then import a reasoning trace from docling-agent to visualize the reasoning path on the document's graph.",
     'reasoning.dropPdf': 'Drop a PDF',
     'reasoning.dropPdfHint': 'or click to pick one',
     'reasoning.uploading': 'Uploading document...',
@@ -450,7 +450,7 @@ const messages: Messages = {
     'reasoning.runModelLabel': 'Model (optional)',
     'reasoning.runModelPlaceholder': 'gpt-oss:20b',
     'reasoning.runModelSub':
-      'Ollama model name. Leave empty to use the server default (RAG_MODEL_ID).',
+      'Ollama model name. Leave empty to use the server default (REASONING_MODEL_ID).',
     'reasoning.runSubmit': 'Run',
     'reasoning.running': 'docling-agent is thinking… (20–40s)',
     'reasoning.runErrUnknown': 'Unknown error while calling docling-agent.',
@@ -518,7 +518,6 @@ const messages: Messages = {
     'pagination.perPage': '/ page',
 
     'settings.title': 'Settings',
-    'settings.apiUrl': 'API URL',
     'settings.version': 'Version',
     'settings.theme': 'Theme',
     'settings.themeDark': 'Dark',

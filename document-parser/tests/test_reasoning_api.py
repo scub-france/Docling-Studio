@@ -1,35 +1,25 @@
-"""Tests for `api.reasoning` — the live `docling-agent` RAG runner endpoint.
+"""Tests for `api.reasoning` — the HTTP layer over a `ReasoningRunner` port.
 
-docling-agent + mellea are NOT installed in the CI test env (heavy deps).
-The endpoint does a lazy import inside the handler; we stub the modules via
-`sys.modules` injection so the tests cover the real code path without
-bringing in Ollama, mellea, or LLM clients.
+The API layer is decoupled from docling-agent / mellea / docling-core. Tests
+inject a fake `ReasoningRunner` on `app.state.reasoning_runner` and assert on
+HTTP status / payload + on what the runner was called with.
+
+Adapter behaviour (the actual docling-agent integration) is tested separately
+in `tests/test_docling_agent_reasoning.py`.
 """
 
 from __future__ import annotations
 
-import sys
-import types
-from dataclasses import replace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from api import reasoning as reasoning_module
 from api.reasoning import router
 from domain.models import AnalysisJob
-
-
-def _patched_settings(monkeypatch, **overrides):
-    """Replace `api.reasoning.settings` with a frozen dataclass copy carrying
-    the given overrides. `Settings` is frozen, so attribute-level monkeypatch
-    doesn't work — we swap the whole instance on the module.
-    """
-    new_settings = replace(reasoning_module.settings, **overrides)
-    monkeypatch.setattr(reasoning_module, "settings", new_settings)
-    return new_settings
+from domain.ports import ReasoningParseError
+from domain.value_objects import ReasoningIteration, ReasoningResult
 
 
 def _job_with_doc_json() -> AnalysisJob:
@@ -40,12 +30,64 @@ def _job_with_doc_json() -> AnalysisJob:
         markdown="# Hello",
         html="<h1>Hello</h1>",
         pages_json="[]",
-        # Minimal placeholder — the test stubs `DoclingDocument.model_validate_json`
-        # so the content doesn't need to be a real DoclingDocument.
         document_json='{"stub": true}',
         chunks_json="[]",
     )
     return job
+
+
+def _sample_result() -> ReasoningResult:
+    return ReasoningResult(
+        answer="stub answer",
+        converged=True,
+        iterations=[
+            ReasoningIteration(
+                iteration=1,
+                section_ref="#/texts/0",
+                reason="looks relevant",
+                section_text_length=42,
+                can_answer=True,
+                response="stub answer",
+            )
+        ],
+    )
+
+
+class _FakeRunner:
+    """In-memory ReasoningRunner. Records the last call so tests can assert
+    on the args without touching docling-agent."""
+
+    def __init__(
+        self,
+        *,
+        result: ReasoningResult | None = None,
+        is_available: bool = True,
+        raises: Exception | None = None,
+    ) -> None:
+        self._result = result or _sample_result()
+        self._is_available = is_available
+        self._raises = raises
+        self.last_call: dict | None = None
+
+    @property
+    def is_available(self) -> bool:
+        return self._is_available
+
+    async def run(
+        self,
+        *,
+        document_json: str,
+        query: str,
+        model_id: str | None = None,
+    ) -> ReasoningResult:
+        self.last_call = {
+            "document_json": document_json,
+            "query": query,
+            "model_id": model_id,
+        }
+        if self._raises is not None:
+            raise self._raises
+        return self._result
 
 
 @pytest.fixture
@@ -55,109 +97,47 @@ def mock_analysis_repo() -> AsyncMock:
     return repo
 
 
-@pytest.fixture
-def stub_docling_agent(monkeypatch):
-    """Inject fake `docling_agent.agents` + `docling_core.types.doc.document`
-    modules so the endpoint's lazy imports resolve to our stubs.
-
-    Returns the `DoclingRAGAgent` stub class so tests can assert on its calls
-    / configure its `_rag_loop` return value.
-    """
-    fake_result = MagicMock()
-    fake_result.answer = "stub answer"
-    fake_result.converged = True
-    fake_result.iterations = [
-        MagicMock(
-            model_dump=lambda: {
-                "iteration": 1,
-                "section_ref": "#/texts/0",
-                "reason": "looks relevant",
-                "section_text_length": 42,
-                "can_answer": True,
-                "response": "stub answer",
-            }
-        )
-    ]
-
-    agent_instance = MagicMock()
-    agent_instance._rag_loop.return_value = fake_result
-    agent_class = MagicMock(return_value=agent_instance)
-
-    fake_agents_mod = types.ModuleType("docling_agent.agents")
-    fake_agents_mod.DoclingRAGAgent = agent_class
-    fake_root_mod = types.ModuleType("docling_agent")
-    fake_root_mod.agents = fake_agents_mod
-
-    fake_doc_class = MagicMock()
-    fake_doc_class.model_validate_json = MagicMock(return_value="fake-doc-instance")
-    fake_doc_mod = types.ModuleType("docling_core.types.doc.document")
-    fake_doc_mod.DoclingDocument = fake_doc_class
-
-    # Stub `mellea.backends.model_ids.ModelIdentifier` — the endpoint wraps
-    # the string model_id in this dataclass before handing to DoclingRAGAgent.
-    # Identity-like: stores the kwargs so tests can assert on `ollama_name`.
-    def fake_model_identifier(**kwargs):
-        m = MagicMock()
-        m.ollama_name = kwargs.get("ollama_name")
-        m.openai_name = kwargs.get("openai_name")
-        return m
-
-    fake_model_ids_mod = types.ModuleType("mellea.backends.model_ids")
-    fake_model_ids_mod.ModelIdentifier = fake_model_identifier
-    fake_backends_mod = types.ModuleType("mellea.backends")
-    fake_backends_mod.model_ids = fake_model_ids_mod
-    fake_mellea_mod = types.ModuleType("mellea")
-    fake_mellea_mod.backends = fake_backends_mod
-
-    monkeypatch.setitem(sys.modules, "docling_agent", fake_root_mod)
-    monkeypatch.setitem(sys.modules, "docling_agent.agents", fake_agents_mod)
-    monkeypatch.setitem(sys.modules, "docling_core.types.doc.document", fake_doc_mod)
-    monkeypatch.setitem(sys.modules, "mellea", fake_mellea_mod)
-    monkeypatch.setitem(sys.modules, "mellea.backends", fake_backends_mod)
-    monkeypatch.setitem(sys.modules, "mellea.backends.model_ids", fake_model_ids_mod)
-
-    return agent_class, agent_instance, fake_result
-
-
-@pytest.fixture
-def client(mock_analysis_repo: AsyncMock) -> TestClient:
+def _make_client(*, runner: _FakeRunner | None, repo: AsyncMock) -> TestClient:
     app = FastAPI()
     app.include_router(router)
-    app.state.analysis_repo = mock_analysis_repo
+    app.state.analysis_repo = repo
+    app.state.reasoning_runner = runner
     return TestClient(app)
 
 
-class TestRagDisabled:
-    def test_503_when_flag_off(self, client: TestClient, monkeypatch) -> None:
-        _patched_settings(monkeypatch, rag_enabled=False)
-        resp = client.post("/api/documents/doc-1/rag", json={"query": "Q"})
+class TestReasoningDisabled:
+    def test_503_when_runner_not_wired(self, mock_analysis_repo: AsyncMock) -> None:
+        client = _make_client(runner=None, repo=mock_analysis_repo)
+        resp = client.post("/api/documents/doc-1/reasoning", json={"query": "Q"})
         assert resp.status_code == 503
-        assert "RAG_ENABLED" in resp.json()["detail"]
+        assert "REASONING_ENABLED" in resp.json()["detail"]
+
+    def test_503_when_runner_unavailable(self, mock_analysis_repo: AsyncMock) -> None:
+        runner = _FakeRunner(is_available=False)
+        client = _make_client(runner=runner, repo=mock_analysis_repo)
+        resp = client.post("/api/documents/doc-1/reasoning", json={"query": "Q"})
+        assert resp.status_code == 503
 
 
-class TestRagValidation:
-    def test_400_when_query_empty(self, client: TestClient, monkeypatch) -> None:
-        _patched_settings(monkeypatch, rag_enabled=True)
-        resp = client.post("/api/documents/doc-1/rag", json={"query": "   "})
+class TestReasoningValidation:
+    def test_400_when_query_empty(self, mock_analysis_repo: AsyncMock) -> None:
+        client = _make_client(runner=_FakeRunner(), repo=mock_analysis_repo)
+        resp = client.post("/api/documents/doc-1/reasoning", json={"query": "   "})
         assert resp.status_code == 400
 
-    def test_404_when_no_completed_analysis(
-        self, client: TestClient, mock_analysis_repo: AsyncMock, monkeypatch
-    ) -> None:
-        _patched_settings(monkeypatch, rag_enabled=True)
+    def test_404_when_no_completed_analysis(self, mock_analysis_repo: AsyncMock) -> None:
         mock_analysis_repo.find_latest_completed_by_document.return_value = None
-        resp = client.post("/api/documents/doc-1/rag", json={"query": "Q"})
+        client = _make_client(runner=_FakeRunner(), repo=mock_analysis_repo)
+        resp = client.post("/api/documents/doc-1/reasoning", json={"query": "Q"})
         assert resp.status_code == 404
 
 
-class TestRagSuccess:
-    def test_returns_rag_result_shape(
-        self, client: TestClient, stub_docling_agent, monkeypatch
-    ) -> None:
-        _patched_settings(monkeypatch, rag_enabled=True)
-        _agent_class, _agent_instance, _fake_result = stub_docling_agent
+class TestReasoningSuccess:
+    def test_returns_reasoning_result_shape(self, mock_analysis_repo: AsyncMock) -> None:
+        runner = _FakeRunner()
+        client = _make_client(runner=runner, repo=mock_analysis_repo)
 
-        resp = client.post("/api/documents/doc-1/rag", json={"query": "What is this?"})
+        resp = client.post("/api/documents/doc-1/reasoning", json={"query": "What is this?"})
         assert resp.status_code == 200
         data = resp.json()
         assert data["answer"] == "stub answer"
@@ -167,95 +147,102 @@ class TestRagSuccess:
         assert it["iteration"] == 1
         assert it["section_ref"] == "#/texts/0"
         assert it["can_answer"] is True
+        assert it["section_text_length"] == 42
 
-    def test_calls_rag_loop_with_query_and_doc(
-        self, client: TestClient, stub_docling_agent, monkeypatch
+    def test_passes_query_and_doc_json_to_runner(self, mock_analysis_repo: AsyncMock) -> None:
+        runner = _FakeRunner()
+        client = _make_client(runner=runner, repo=mock_analysis_repo)
+
+        client.post("/api/documents/doc-1/reasoning", json={"query": "Hello?"})
+
+        assert runner.last_call is not None
+        assert runner.last_call["query"] == "Hello?"
+        assert runner.last_call["document_json"] == '{"stub": true}'
+
+    def test_no_model_override_passes_none(self, mock_analysis_repo: AsyncMock) -> None:
+        runner = _FakeRunner()
+        client = _make_client(runner=runner, repo=mock_analysis_repo)
+
+        client.post("/api/documents/doc-1/reasoning", json={"query": "Q"})
+
+        assert runner.last_call is not None
+        assert runner.last_call["model_id"] is None
+
+    def test_per_request_model_id_override_wins(self, mock_analysis_repo: AsyncMock) -> None:
+        runner = _FakeRunner()
+        client = _make_client(runner=runner, repo=mock_analysis_repo)
+
+        client.post(
+            "/api/documents/doc-1/reasoning",
+            json={"query": "Q", "model_id": "override:13b"},
+        )
+
+        assert runner.last_call is not None
+        assert runner.last_call["model_id"] == "override:13b"
+
+    def test_iterations_with_multiple_steps_serialize_correctly(
+        self, mock_analysis_repo: AsyncMock
     ) -> None:
-        _patched_settings(monkeypatch, rag_enabled=True)
-        _agent_class, agent_instance, _ = stub_docling_agent
+        """R6 — trace serializable on >=2 iterations, all fields preserved."""
+        result = ReasoningResult(
+            answer="final",
+            converged=False,
+            iterations=[
+                ReasoningIteration(
+                    iteration=1,
+                    section_ref="#/texts/0",
+                    reason="r1",
+                    section_text_length=10,
+                    can_answer=False,
+                    response="not yet",
+                ),
+                ReasoningIteration(
+                    iteration=2,
+                    section_ref="#/texts/5",
+                    reason="r2",
+                    section_text_length=20,
+                    can_answer=True,
+                    response="final",
+                ),
+            ],
+        )
+        runner = _FakeRunner(result=result)
+        client = _make_client(runner=runner, repo=mock_analysis_repo)
 
-        client.post("/api/documents/doc-1/rag", json={"query": "Hello?"})
-
-        agent_instance._rag_loop.assert_called_once()
-        kwargs = agent_instance._rag_loop.call_args.kwargs
-        assert kwargs["query"] == "Hello?"
-        # The stub returns the string "fake-doc-instance" from model_validate_json
-        # and we pass it straight through to `doc=`.
-        assert kwargs["doc"] == "fake-doc-instance"
-
-    def test_uses_default_model_id_when_not_overridden(
-        self, client: TestClient, stub_docling_agent, monkeypatch
-    ) -> None:
-        _patched_settings(monkeypatch, rag_enabled=True, rag_model_id="custom-model:7b")
-        agent_class, _, _ = stub_docling_agent
-
-        client.post("/api/documents/doc-1/rag", json={"query": "Q"})
-
-        agent_class.assert_called_once()
-        # model_id is wrapped in a ModelIdentifier(ollama_name=...) dataclass
-        # before reaching the agent — the stub exposes the field for assertion.
-        passed = agent_class.call_args.kwargs["model_id"]
-        assert passed.ollama_name == "custom-model:7b"
-
-    def test_per_request_model_id_override_wins(
-        self, client: TestClient, stub_docling_agent, monkeypatch
-    ) -> None:
-        _patched_settings(monkeypatch, rag_enabled=True, rag_model_id="default:7b")
-        agent_class, _, _ = stub_docling_agent
-
-        client.post("/api/documents/doc-1/rag", json={"query": "Q", "model_id": "override:13b"})
-
-        passed = agent_class.call_args.kwargs["model_id"]
-        assert passed.ollama_name == "override:13b"
-
-    def test_sets_ollama_host_env_from_settings(
-        self, client: TestClient, stub_docling_agent, monkeypatch
-    ) -> None:
-        import os
-
-        _patched_settings(monkeypatch, rag_enabled=True, ollama_host="http://ollama:11434")
-
-        client.post("/api/documents/doc-1/rag", json={"query": "Q"})
-        assert os.environ["OLLAMA_HOST"] == "http://ollama:11434"
+        resp = client.post("/api/documents/doc-1/reasoning", json={"query": "Q"})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["converged"] is False
+        assert [it["iteration"] for it in data["iterations"]] == [1, 2]
+        assert [it["section_ref"] for it in data["iterations"]] == [
+            "#/texts/0",
+            "#/texts/5",
+        ]
+        assert data["iterations"][0]["can_answer"] is False
+        assert data["iterations"][1]["can_answer"] is True
 
 
-class TestRagDepsMissing:
-    def test_503_when_docling_agent_not_installed(self, client: TestClient, monkeypatch) -> None:
-        _patched_settings(monkeypatch, rag_enabled=True)
-        # Simulate the import failing: remove any stub and ensure the name
-        # resolves to a module that raises on attribute access.
-        monkeypatch.setitem(sys.modules, "docling_agent.agents", None)
+class TestReasoningUpstreamFailure:
+    def test_502_when_runner_raises_parse_error(self, mock_analysis_repo: AsyncMock) -> None:
+        """The model couldn't produce a parseable JSON answer after retries."""
+        runner = _FakeRunner(
+            raises=ReasoningParseError(model_id="granite4:micro-h", reason="no parseable answer")
+        )
+        client = _make_client(runner=runner, repo=mock_analysis_repo)
 
-        resp = client.post("/api/documents/doc-1/rag", json={"query": "Q"})
-        assert resp.status_code == 503
-        assert "docling-agent" in resp.json()["detail"]
-
-
-class TestRagUpstreamFailure:
-    def test_502_when_docling_agent_raises_indexerror(
-        self, client: TestClient, stub_docling_agent, monkeypatch
-    ) -> None:
-        """Known docling-agent bug: `find_json_dicts(answer.value)[0]` raises
-        `IndexError` when the model fails to produce parseable JSON after
-        retries. Our endpoint must surface a 502 with a human-readable
-        message, not a 500 stack trace."""
-        _patched_settings(monkeypatch, rag_enabled=True, rag_model_id="granite4:micro-h")
-        _agent_class, agent_instance, _ = stub_docling_agent
-        agent_instance._rag_loop.side_effect = IndexError("list index out of range")
-
-        resp = client.post("/api/documents/doc-1/rag", json={"query": "Quelle tarification ?"})
+        resp = client.post(
+            "/api/documents/doc-1/reasoning",
+            json={"query": "Quelle tarification ?"},
+        )
         assert resp.status_code == 502
         detail = resp.json()["detail"]
         assert "granite4:micro-h" in detail
         assert "parseable" in detail or "rephrase" in detail
 
-    def test_500_for_other_unexpected_errors(
-        self, client: TestClient, stub_docling_agent, monkeypatch
-    ) -> None:
-        _patched_settings(monkeypatch, rag_enabled=True)
-        _agent_class, agent_instance, _ = stub_docling_agent
-        agent_instance._rag_loop.side_effect = RuntimeError("Ollama unreachable")
+    def test_500_for_other_unexpected_errors(self, mock_analysis_repo: AsyncMock) -> None:
+        runner = _FakeRunner(raises=RuntimeError("Ollama unreachable"))
+        client = _make_client(runner=runner, repo=mock_analysis_repo)
 
-        resp = client.post("/api/documents/doc-1/rag", json={"query": "Q"})
+        resp = client.post("/api/documents/doc-1/reasoning", json={"query": "Q"})
         assert resp.status_code == 500
         assert "Ollama unreachable" in resp.json()["detail"]

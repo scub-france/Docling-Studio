@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, watch, watchEffect } from 'vue'
 import type { Locale, Theme } from '../../shared/types'
 import { appLocale } from '../../shared/appConfig'
+import { STORAGE_KEYS } from '../../shared/storage/keys'
 
 function safeGetItem(key: string): string | null {
   try {
@@ -20,15 +21,14 @@ function safeSetItem(key: string, value: string): void {
 }
 
 export const useSettingsStore = defineStore('settings', () => {
-  const apiUrl = ref('http://localhost:8000')
-  const theme = ref<Theme>((safeGetItem('docling-theme') as Theme) || 'dark')
-  const locale = ref<Locale>((safeGetItem('docling-locale') as Locale) || 'fr')
+  const theme = ref<Theme>((safeGetItem(STORAGE_KEYS.theme) as Theme) || 'dark')
+  const locale = ref<Locale>((safeGetItem(STORAGE_KEYS.locale) as Locale) || 'fr')
 
-  watch(theme, (v) => safeSetItem('docling-theme', v))
+  watch(theme, (v) => safeSetItem(STORAGE_KEYS.theme, v))
   watch(
     locale,
     (v) => {
-      safeSetItem('docling-locale', v)
+      safeSetItem(STORAGE_KEYS.locale, v)
       appLocale.value = v
     },
     { immediate: true },
@@ -45,5 +45,5 @@ export const useSettingsStore = defineStore('settings', () => {
     locale.value = l
   }
 
-  return { apiUrl, theme, locale, setTheme, setLocale }
+  return { theme, locale, setTheme, setLocale }
 })

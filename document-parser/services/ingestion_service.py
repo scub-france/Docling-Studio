@@ -192,10 +192,9 @@ class IngestionService:
         )
 
     async def ping(self) -> bool:
-        """Check if the OpenSearch cluster is reachable."""
+        """Check if the underlying vector store is reachable."""
         try:
-            info = await self._vector_store._client.info()
-            return bool(info)
+            return await self._vector_store.ping()
         except Exception:
-            logger.debug("OpenSearch ping failed", exc_info=True)
+            logger.debug("Vector store ping failed", exc_info=True)
             return False

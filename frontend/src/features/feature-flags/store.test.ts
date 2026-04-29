@@ -114,6 +114,38 @@ describe('useFeatureFlagStore', () => {
     expect(store.isEnabled('ingestion')).toBe(false)
   })
 
+  it('enables reasoning when reasoningAvailable is true', async () => {
+    mockApiFetch.mockResolvedValue({
+      status: 'ok',
+      engine: 'local',
+      reasoningAvailable: true,
+    })
+    const store = useFeatureFlagStore()
+    await store.load()
+    expect(store.reasoningAvailable).toBe(true)
+    expect(store.isEnabled('reasoning')).toBe(true)
+  })
+
+  it('disables reasoning when reasoningAvailable is false', async () => {
+    mockApiFetch.mockResolvedValue({
+      status: 'ok',
+      engine: 'local',
+      reasoningAvailable: false,
+    })
+    const store = useFeatureFlagStore()
+    await store.load()
+    expect(store.reasoningAvailable).toBe(false)
+    expect(store.isEnabled('reasoning')).toBe(false)
+  })
+
+  it('defaults reasoningAvailable to false when missing', async () => {
+    mockApiFetch.mockResolvedValue({ status: 'ok', engine: 'local' })
+    const store = useFeatureFlagStore()
+    await store.load()
+    expect(store.reasoningAvailable).toBe(false)
+    expect(store.isEnabled('reasoning')).toBe(false)
+  })
+
   it('handles health endpoint failure gracefully', async () => {
     mockApiFetch.mockRejectedValue(new Error('Network error'))
     const store = useFeatureFlagStore()

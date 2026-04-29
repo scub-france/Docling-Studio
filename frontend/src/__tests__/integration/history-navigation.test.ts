@@ -1,3 +1,8 @@
+// Integration test — exercises the cross-feature wiring between history,
+// analysis and document stores when restoring a History → Studio navigation.
+// Lives under `src/__tests__/integration/` because importing real stores from
+// three sibling features would be a feature-isolation violation in any
+// single-feature test file. HTTP boundaries are still mocked.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
@@ -7,28 +12,28 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
 
-vi.mock('../analysis/api', () => ({
+vi.mock('../../features/analysis/api', () => ({
   fetchAnalyses: vi.fn(),
   fetchAnalysis: vi.fn(),
   createAnalysis: vi.fn(),
   deleteAnalysis: vi.fn(),
 }))
 
-vi.mock('./api', () => ({
+vi.mock('../../features/history/api', () => ({
   fetchHistory: vi.fn(),
   deleteHistoryEntry: vi.fn(),
 }))
 
-vi.mock('../document/api', () => ({
+vi.mock('../../features/document/api', () => ({
   fetchDocuments: vi.fn(),
   uploadDocument: vi.fn(),
   deleteDocument: vi.fn(),
   getPreviewUrl: vi.fn(),
 }))
 
-import { useHistoryStore } from './store'
-import { useAnalysisStore } from '../analysis/store'
-import { useDocumentStore } from '../document/store'
+import { useHistoryStore } from '../../features/history/store'
+import { useAnalysisStore } from '../../features/analysis/store'
+import { useDocumentStore } from '../../features/document/store'
 
 describe('History → Studio navigation', () => {
   beforeEach(() => {
@@ -38,7 +43,7 @@ describe('History → Studio navigation', () => {
 
   describe('History store provides data for navigation', () => {
     it('analyses contain documentId for document selection', async () => {
-      const { fetchHistory } = await import('./api')
+      const { fetchHistory } = await import('../../features/history/api')
       fetchHistory.mockResolvedValue([
         { id: 'a1', documentId: 'd1', documentFilename: 'test.pdf', status: 'COMPLETED' },
         { id: 'a2', documentId: 'd2', documentFilename: 'other.pdf', status: 'FAILED' },
@@ -54,7 +59,7 @@ describe('History → Studio navigation', () => {
 
   describe('Analysis store select() restores analysis state', () => {
     it('select() sets currentAnalysis from fetched data', async () => {
-      const { fetchAnalysis } = await import('../analysis/api')
+      const { fetchAnalysis } = await import('../../features/analysis/api')
       const analysis = {
         id: 'a1',
         documentId: 'd1',
@@ -72,7 +77,7 @@ describe('History → Studio navigation', () => {
     })
 
     it('select() allows document store to select the associated document', async () => {
-      const { fetchAnalysis } = await import('../analysis/api')
+      const { fetchAnalysis } = await import('../../features/analysis/api')
       fetchAnalysis.mockResolvedValue({
         id: 'a1',
         documentId: 'd1',
@@ -131,7 +136,7 @@ describe('History → Studio navigation', () => {
 
   describe('Full restore flow (store-level integration)', () => {
     it('restores completed analysis: selects analysis + document + verify mode', async () => {
-      const { fetchAnalysis } = await import('../analysis/api')
+      const { fetchAnalysis } = await import('../../features/analysis/api')
       fetchAnalysis.mockResolvedValue({
         id: 'a1',
         documentId: 'd1',
@@ -158,7 +163,7 @@ describe('History → Studio navigation', () => {
     })
 
     it('restores failed analysis: selects analysis + document, stays in configure mode', async () => {
-      const { fetchAnalysis } = await import('../analysis/api')
+      const { fetchAnalysis } = await import('../../features/analysis/api')
       fetchAnalysis.mockResolvedValue({
         id: 'a2',
         documentId: 'd2',
@@ -181,7 +186,7 @@ describe('History → Studio navigation', () => {
     })
 
     it('handles missing analysis gracefully', async () => {
-      const { fetchAnalysis } = await import('../analysis/api')
+      const { fetchAnalysis } = await import('../../features/analysis/api')
       fetchAnalysis.mockRejectedValue(new Error('Not found'))
       vi.spyOn(console, 'error').mockImplementation(() => {})
 

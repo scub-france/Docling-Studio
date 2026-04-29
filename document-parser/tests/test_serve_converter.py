@@ -94,7 +94,10 @@ class TestParseResponse:
         assert result.content_html == "<h1>Hello</h1>"
         assert result.page_count == 1
         assert result.pages[0].width == 612.0
+        # document_json mirrors the json_content stub
         assert result.document_json is not None
+        assert '"texts"' in result.document_json
+        assert '"pages"' in result.document_json
 
     def test_response_with_elements(self):
         data = {

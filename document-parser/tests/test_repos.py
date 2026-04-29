@@ -1,5 +1,7 @@
 """Tests for persistence repositories using a temporary SQLite database."""
 
+from datetime import datetime
+
 import pytest
 
 from domain.models import AnalysisJob, AnalysisStatus, Document
@@ -121,7 +123,7 @@ class TestAnalysisRepo:
 
         found = await analysis_repo.find_by_id("job-1")
         assert found.status == AnalysisStatus.RUNNING
-        assert found.started_at is not None
+        assert isinstance(found.started_at, datetime)
 
     async def test_update_status_completed(self, document_repo, analysis_repo):
         await self._insert_doc(document_repo)
@@ -189,7 +191,7 @@ class TestAnalysisRepo:
         found = await analysis_repo.find_latest_completed_by_document("doc-1")
         assert found is not None
         assert found.id == "job-latest"
-        assert found.document_json is not None
+        assert found.document_json == '{"body":{"children":[]},"texts":[]}'
 
     async def test_find_latest_completed_by_document_none(self, document_repo, analysis_repo):
         await self._insert_doc(document_repo)
