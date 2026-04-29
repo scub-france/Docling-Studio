@@ -114,6 +114,12 @@ CREATE TABLE IF NOT EXISTS chunk_pushes (
     pushed_at     TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_chunk_pushes_doc_store ON chunk_pushes(document_id, store_id);
+
+-- 0.6.0 — migration progress (resumability for the 0.6.0 backfill, #206).
+CREATE TABLE IF NOT EXISTS migration_progress (
+    name         TEXT PRIMARY KEY,
+    completed_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 
