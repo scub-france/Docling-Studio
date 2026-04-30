@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Analysis, Page } from '../shared/types'
 import { fetchDocumentAnalyses } from '../features/analysis/api'
@@ -73,13 +73,18 @@ const visitedBySelfRef = computed<Map<string, number>>(() => new Map())
 async function loadAnalysis(): Promise<void> {
   loading.value = true
   error.value = null
+  analysis.value = null
+  focusedSelfRef.value = null
+  const requestedId = props.docId
   try {
-    const analyses = await fetchDocumentAnalyses(props.docId)
+    const analyses = await fetchDocumentAnalyses(requestedId)
+    if (requestedId !== props.docId) return
     analysis.value = analyses.find((a) => a.status === 'COMPLETED') ?? null
   } catch (e) {
+    if (requestedId !== props.docId) return
     error.value = (e as Error).message || 'Failed to load analysis'
   } finally {
-    loading.value = false
+    if (requestedId === props.docId) loading.value = false
   }
 }
 
@@ -91,7 +96,7 @@ function onSectionFocus(sectionRef: string): void {
   }
 }
 
-onMounted(loadAnalysis)
+watch(() => props.docId, loadAnalysis, { immediate: true })
 </script>
 
 <style scoped>
