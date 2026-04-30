@@ -1,3 +1,29 @@
+/**
+ * Canonical document lifecycle state — mirrors the backend enum
+ * `DocumentLifecycleState` (see `domain/value_objects.py`).
+ *
+ * - `Uploaded` raw file persisted, no parse yet
+ * - `Parsed`   conversion produced a document tree
+ * - `Chunked`  chunker produced a draft chunkset
+ * - `Ingested` chunkset has been embedded into at least one store
+ * - `Stale`    chunkset edited after a successful push (per-store concept)
+ * - `Failed`   a pipeline step failed; recoverable by retry
+ */
+export type DocumentLifecycleState =
+  | 'Uploaded'
+  | 'Parsed'
+  | 'Chunked'
+  | 'Ingested'
+  | 'Stale'
+  | 'Failed'
+
+/** Per-store ingestion state for a document (#224). */
+export interface DocStoreLink {
+  store: string
+  state: DocumentLifecycleState
+  pushedAt: string | null
+}
+
 export interface Document {
   id: string
   filename: string
@@ -5,6 +31,14 @@ export interface Document {
   fileSize: number | null
   pageCount: number | null
   createdAt: string
+  /** Canonical lifecycle state. Drives the status badge in `/docs`. */
+  lifecycleState: DocumentLifecycleState
+  /** ISO timestamp of the last lifecycle transition (UTC). */
+  lifecycleStateAt: string | null
+  /** Stores this document has been pushed to (added in E1 #203). */
+  stores?: string[]
+  /** Per-store state detail (#224). Present when backend returns storeLinks. */
+  storeLinks?: DocStoreLink[]
 }
 
 export interface PipelineOptions {
@@ -107,3 +141,41 @@ export interface Rect {
 
 export type Locale = 'fr' | 'en'
 export type Theme = 'dark' | 'light'
+
+// ---------------------------------------------------------------------------
+// E4/E5 — Doc workspace tree + chunks (#216–#222)
+// ---------------------------------------------------------------------------
+
+/** Node in the parsed document tree returned by GET /api/documents/:id/tree */
+export interface DocTreeNode {
+  ref: string
+  type: string
+  label: string
+  children: DocTreeNode[]
+}
+
+/** Doc-centric chunk (distinct from legacy analysis Chunk). */
+export interface DocChunk {
+  id: string
+  docId: string
+  text: string
+  title?: string
+  sourceNodeRef?: string
+  pageRange?: [number, number]
+  tokenCount?: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type ChunkDiffStatus = 'added' | 'modified' | 'removed' | 'unchanged'
+
+export interface ChunkDiff {
+  chunkId: string
+  status: ChunkDiffStatus
+  textDiff?: string
+}
+
+export interface PushSummary {
+  embeds: number
+  tokens: number
+}

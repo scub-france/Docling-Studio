@@ -46,6 +46,12 @@ class HealthResponse(_CamelModel):
     # available: REASONING_ENABLED=true AND deps importable. Doesn't imply
     # Ollama itself is reachable — that's checked per-call.
     reasoning_available: bool = False
+    # 0.6.0 — Doc workspace mode flags (#210). Default true so existing
+    # frontends without the new keys (legacy backend image rolling forward)
+    # see the same behaviour they had.
+    inspect_mode_enabled: bool = True
+    chunks_mode_enabled: bool = True
+    ask_mode_enabled: bool = True
 
 
 class DocumentResponse(_CamelModel):
@@ -56,6 +62,11 @@ class DocumentResponse(_CamelModel):
     file_size: int | None = None
     page_count: int | None = None
     created_at: str | datetime
+    # 0.6.0 — Document lifecycle state machine (#202). The lifecycle
+    # describes the document as a whole; `status` above is kept for
+    # backwards compat and currently still maps to `DOCUMENT_STATUS_UPLOADED`.
+    lifecycle_state: str = "Uploaded"
+    lifecycle_state_at: str | datetime | None = None
 
 
 class AnalysisResponse(_CamelModel):

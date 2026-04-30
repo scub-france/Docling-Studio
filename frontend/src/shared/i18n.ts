@@ -6,18 +6,109 @@ type Messages = Record<Locale, MessageMap>
 
 const messages: Messages = {
   fr: {
-    // Sidebar
+    // Sidebar — 0.6.0 doc-centric nav (#209)
     'nav.home': 'Accueil',
+    'nav.docs': 'Documents',
+    'nav.stores': 'Stores',
+    'nav.runs': 'Runs',
+    'nav.settings': 'Paramètres',
+    'nav.collapse': 'Réduire la barre latérale',
+    'nav.expand': 'Développer la barre latérale',
+    // Legacy nav labels — kept because the legacy pages (/studio, /documents,
+    // /history, /search, /reasoning) still render headings using them. They
+    // are no longer surfaced in the sidebar.
     'nav.studio': 'Studio',
     'nav.documents': 'Documents',
     'nav.history': 'Historique',
     'nav.reasoning': 'Raisonnement',
-    'nav.settings': 'Paramètres',
-    'nav.collapse': 'Réduire la barre latérale',
-    'nav.expand': 'Développer la barre latérale',
+    'nav.search': 'Recherche',
 
     // Top bar
     'topbar.newAnalysis': 'Nouvelle analyse',
+
+    // Breadcrumb (0.6.0 doc workspace — #208)
+    'breadcrumb.aria': "Fil d'Ariane",
+    'breadcrumb.studio': 'Studio',
+    'breadcrumb.mode.ask': 'Ask',
+    'breadcrumb.mode.inspect': 'Inspect',
+    'breadcrumb.mode.chunks': 'Chunks',
+
+    // Feature flags (0.6.0 — #210)
+    'flags.allModesDisabled':
+      "Aucun mode (Ask / Inspect / Chunks) n'est activé pour ce déploiement. Contactez votre administrateur.",
+
+    // Lifecycle status badges (#215)
+    'status.Uploaded': 'Uploadé',
+    'status.Parsed': 'Parsé',
+    'status.Chunked': 'Chunké',
+    'status.Ingested': 'Ingéré',
+    'status.Stale': 'Obsolète',
+    'status.Failed': 'Échoué',
+    'status.tooltip.Uploaded': 'Fichier reçu, en attente de parsing.',
+    'status.tooltip.Parsed': 'Document parsé avec succès.',
+    'status.tooltip.Chunked': 'Chunks générés, prêts à être ingérés dans un store.',
+    'status.tooltip.Ingested': 'Ingéré dans au moins un store.',
+    'status.tooltip.Stale': 'Chunks modifiés depuis la dernière ingestion — ré-ingestion requise.',
+    'status.tooltip.Failed': 'Une étape du pipeline a échoué. Réessayez.',
+
+    // Document library (#211, #212, #213)
+    'docs.title': 'Documents',
+    'docs.import': 'Importer',
+    'docs.emptyTitle': 'Aucun document',
+    'docs.emptySubtitle': 'Importez votre premier document pour commencer.',
+    'docs.emptyAction': 'Importer un document',
+    'docs.emptyFiltered': 'Aucun document ne correspond aux filtres.',
+    'docs.colName': 'Nom',
+    'docs.colStatus': 'État',
+    'docs.colStores': 'Stores',
+    'docs.colUpdated': 'Mis à jour',
+    'docs.filterSearch': 'Rechercher…',
+    'docs.filterClear': 'Effacer les filtres',
+    'docs.selected': '{n} sélectionné(s)',
+    'docs.bulkRechunk': 'Re-chunker',
+    'docs.bulkPush': 'Ingérer dans un store…',
+    'docs.bulkDelete': 'Supprimer',
+    'docs.bulkCancel': 'Annuler la sélection',
+    'docs.deleteConfirm': 'Supprimer {n} document(s) ? Cette action est irréversible.',
+    'docs.pushTitle': 'Ingérer dans un store',
+    'docs.pushLabel': 'Store cible',
+    'docs.pushPlaceholder': 'Nom du store…',
+    'docs.pushSubmit': 'Ingérer',
+    'docs.pushCancel': 'Annuler',
+    'docs.jobDispatched': 'Job lancé ({jobId})',
+
+    // Doc import (#214)
+    'docsNew.title': 'Importer des documents',
+    'docsNew.drop': 'Déposez des PDFs ici ou cliquez pour choisir',
+    'docsNew.dropHint': 'Plusieurs fichiers acceptés · PDF uniquement',
+    'docsNew.queued': 'En attente',
+    'docsNew.uploading': 'Import…',
+    'docsNew.done': 'Importé',
+    'docsNew.failed': 'Échec',
+    'docsNew.viewDoc': 'Voir le document',
+    'docsNew.backToLibrary': 'Retour à la bibliothèque',
+    'docsNew.viewLibrary': 'Voir la bibliothèque',
+    'docsNew.allDone': 'Tous les fichiers ont été importés.',
+
+    // Coming-soon placeholders (0.6.0 doc-centric routes — #207)
+    'comingSoon.title': 'Bientôt disponible',
+    'comingSoon.subtitle.docsLibrary':
+      "La bibliothèque de documents arrive avec la 0.6.0. Vous y verrez l'état du cycle de vie de chaque document, ses stores et ses dernières mises à jour.",
+    'comingSoon.subtitle.docsNew':
+      "L'import multi-fichiers (drop d'un dossier ou sélection multiple) arrive avec la 0.6.0.",
+    'comingSoon.subtitle.docWorkspace':
+      "L'espace de travail document (Inspect / Chunks / Ask) arrive avec la 0.6.0.",
+    'comingSoon.subtitle.stores': 'La liste des stores arrive avec la 0.6.0.',
+    'comingSoon.subtitle.storeDetail':
+      'La vue détaillée du store (documents présents, état par store) arrive avec la 0.6.0.',
+    'comingSoon.subtitle.storeQuery': 'Le playground de requête RAG arrive avec la 0.6.0.',
+    'comingSoon.subtitle.runs': "L'historique des runs (audit / debug) arrive avec la 0.6.0.",
+    'comingSoon.subtitle.runDetail': "Le détail d'un run arrive avec la 0.6.0.",
+    'comingSoon.hint.docWorkspace': 'doc {id} · mode {mode}',
+    'comingSoon.hint.storeDetail': 'store {store}',
+    'comingSoon.hint.storeQuery': 'store {store}',
+    'comingSoon.hint.runDetail': 'run {id}',
+    'comingSoon.backHome': "Retour à l'accueil",
 
     // Home
     'home.title': 'Docling Studio',
@@ -224,35 +315,34 @@ const messages: Messages = {
     'chunking.batchNotice':
       'Le chunking n\u2019est pas disponible pour cette analyse. Les documents volumineux trait\u00e9s par batch ne g\u00e9n\u00e8rent pas la structure interne n\u00e9cessaire au d\u00e9coupage. Coming soon !',
 
-    // Search
-    'nav.search': 'Recherche',
-    'search.hint': 'Saisissez un terme pour rechercher dans les chunks indexés.',
+    // Search (legacy nav label moved to the top with the other legacy keys)
+    'search.hint': 'Saisissez un terme pour rechercher dans les chunks ingérés.',
 
     // Ingestion / My Documents
     'ingestion.ingest': 'Ingérer',
     'ingestion.document': 'Document',
     'ingestion.chunkCount': 'Chunks prêts',
-    'ingestion.successMessage': 'Indexation terminée avec succès !',
+    'ingestion.successMessage': 'Ingestion terminée avec succès !',
     'ingestion.ingesting': 'Ingestion...',
-    'ingestion.reindex': 'Ré-indexer',
-    'ingestion.indexed': 'Indexé',
-    'ingestion.notIndexed': 'Non indexé',
-    'ingestion.chunksIndexed': '{n} chunks indexés',
+    'ingestion.reindex': 'Ré-ingérer',
+    'ingestion.indexed': 'Ingéré',
+    'ingestion.notIndexed': 'Non ingéré',
+    'ingestion.chunksIndexed': '{n} chunks ingérés',
     'ingestion.openInStudio': 'Ouvrir dans le Studio',
-    'ingestion.deleteIndex': "Supprimer de l'index",
+    'ingestion.deleteIndex': 'Retirer du store',
     'ingestion.deleteConfirm':
       'Retirer ce document de l\u2019index ? Les chunks seront supprimés mais le document source restera.',
     'ingestion.unavailable': 'Ingestion non disponible',
     'ingestion.filterAll': 'Tous',
-    'ingestion.filterIndexed': 'Indexés',
-    'ingestion.filterNotIndexed': 'Non indexés',
+    'ingestion.filterIndexed': 'Ingérés',
+    'ingestion.filterNotIndexed': 'Non ingérés',
     'ingestion.sortName': 'Nom',
     'ingestion.sortDate': 'Date',
     'ingestion.search': 'Rechercher...',
     'ingestion.searchChunks': 'Rechercher dans les chunks…',
     'ingestion.noResults': 'Aucun résultat pour « {q} ».',
     'ingestion.stepEmbedding': 'Embedding…',
-    'ingestion.stepIndexing': 'Indexation…',
+    'ingestion.stepIndexing': 'Ingestion…',
     'ingestion.stepDone': 'Terminé',
     'ingestion.opensearchConnected': 'OpenSearch connecté',
     'ingestion.opensearchDisconnected': 'OpenSearch déconnecté',
@@ -271,21 +361,228 @@ const messages: Messages = {
     'settings.about': '\u00C0 propos',
     'settings.designArticle': 'Comment Docling Studio a \u00e9t\u00e9 con\u00e7u',
 
+    // Inspect tab (#240, #241)
+    'inspect.tabMarkdown': 'Markdown',
+    'inspect.tabElements': '\u00c9l\u00e9ments',
+    'inspect.tabImages': 'Images',
+    'inspect.noAnalysis': 'Aucune analyse disponible',
+    'inspect.noAnalysisSub': 'Analysez ce document dans le Studio pour voir sa structure.',
+    'inspect.goToStudio': 'Aller dans le Studio',
+    'inspect.retry': 'R\u00e9essayer',
+    'inspect.noElements':
+      'Aucun \u00e9l\u00e9ment \u2014 lancez une analyse pour g\u00e9n\u00e9rer la structure.',
+
+    // Ask tab (#242)
+    'ask.questionLabel': 'Question',
+    'ask.questionPlaceholder': 'Ex\u00a0: Quelles sont les obligations du fournisseur\u00a0?',
+    'ask.modelConfig': 'Mod\u00e8le (optionnel)',
+    'ask.modelPlaceholder': 'gpt-oss:20b',
+    'ask.modelHint': 'Mod\u00e8le Ollama. Laisser vide pour le d\u00e9faut serveur.',
+    'ask.run': 'Lancer',
+    'ask.running': 'Reasoning en cours\u2026',
+    'ask.answerLabel': 'R\u00e9ponse',
+    'ask.noAnalysis': 'Aucune analyse disponible',
+    'ask.noAnalysisSub': 'Analysez ce document dans le Studio avant de poser une question.',
+
+    // Doc workspace (#216, #218)
+    'workspace.tabs.ask': 'Ask',
+    'workspace.tabs.inspect': 'Inspect',
+    'workspace.tabs.chunks': 'Chunks',
+    'workspace.backToLibrary': 'Retour \u00e0 la biblioth\u00e8que',
+    'workspace.modeDisabled': 'Mode d\u00e9sactiv\u00e9 pour ce d\u00e9ploiement',
+    'workspace.inspectComingSoon': 'Inspect \u2014 disponible en 0.7.0',
+    'workspace.inspectComingSoonHint': 'La vue arborescence + bbox arrive prochainement.',
+    'workspace.askComingSoon': 'Ask \u2014 disponible en 0.7.0',
+    'workspace.askComingSoonHint':
+      'Le raisonnement agentique sur le document arrive prochainement.',
+
+    // Doc tree rail (#217)
+    'tree.empty': "Aucun n\u0153ud dans l'arbre.",
+    'tree.expand': 'D\u00e9velopper',
+    'tree.collapse': 'R\u00e9duire',
+
+    // Chunks editor (#219, #220, #221, #222)
+    'chunks.count': '{n} chunk(s)',
+    'chunks.empty': "Aucun chunk \u2014 parsez le document d'abord.",
+    'chunks.saving': 'Sauvegarde\u2026',
+    'chunks.noTitle': '(sans titre)',
+    'chunks.editPlaceholder': 'Texte du chunk\u2026',
+    'chunks.mergePrev': 'Fusionner avec le pr\u00e9c\u00e9dent',
+    'chunks.mergeNext': 'Fusionner avec le suivant',
+    'chunks.split': 'Scinder au curseur',
+    'chunks.drop': 'Supprimer',
+    'chunks.add': 'Ajouter un chunk',
+    'chunks.retitle': 'Renommer',
+    'chunks.diffToggle': 'Afficher le diff',
+    'chunks.diffClose': 'Fermer le diff',
+    'chunks.diffRef': 'R\u00e9f\u00e9rence',
+    'chunks.diffAdded': 'ajout\u00e9(s)',
+    'chunks.diffModified': 'modifi\u00e9(s)',
+    'chunks.diffRemoved': 'supprim\u00e9(s)',
+    'chunks.pushTitle': 'Ing\u00e9rer dans un store',
+    'chunks.pushStore': 'Store cible',
+    'chunks.pushPlaceholder': 'Nom du store\u2026',
+    'chunks.pushSummary': '{embeds} chunks \u00b7 ~{tokens} tokens',
+    'chunks.pushConfirm': 'Ing\u00e9rer',
+    'chunks.pushCancel': 'Annuler',
+    'chunks.pushedJob': 'Job lanc\u00e9 : {jobId}',
+    // Stale stores strip (#224)
+    'chunks.stale.pushedAt': 'ing\u00e9r\u00e9 le {date}',
+    'chunks.stale.reingest': 'R\u00e9-ing\u00e9rer',
+    'chunks.stale.reingestAll': 'R\u00e9-ing\u00e9rer tous les obsol\u00e8tes',
+    'chunks.stale.jobDispatched': 'Job lanc\u00e9 : {jobId}',
+
+    'chunks.selected': '{n} s\u00e9lectionn\u00e9(s)',
+    'chunks.bulkDrop': 'Supprimer la s\u00e9lection',
+    'chunks.bulkMerge': 'Fusionner la s\u00e9lection',
+    'chunks.bulkCancel': 'Annuler',
+
+    // Stores list (#243)
+    'stores.title': 'Stores',
+    'stores.empty': 'Aucun store configur\u00e9.',
+    'stores.colName': 'Nom',
+    'stores.colType': 'Type',
+    'stores.colStatus': 'Statut',
+    'stores.colDocs': 'Documents',
+    'stores.colChunks': 'Chunks',
+    'stores.connected': 'Connect\u00e9',
+    'stores.disconnected': 'D\u00e9connect\u00e9',
+    'stores.error': 'Erreur',
+
+    // Store detail (#244)
+    'storeDetail.back': 'Stores',
+    'storeDetail.query': 'Requ\u00eater',
+    'storeDetail.empty': 'Aucun document dans ce store.',
+    'storeDetail.colDoc': 'Document',
+    'storeDetail.colState': '\u00c9tat',
+    'storeDetail.colChunks': 'Chunks',
+    'storeDetail.colIngested': 'Ing\u00e9r\u00e9 le',
+    'storeDetail.remove': 'Retirer',
+    'storeDetail.removeConfirm': 'Retirer \u00ab\u00a0{doc}\u00a0\u00bb du store\u00a0?',
+    'storeDetail.selected': '{n} s\u00e9lectionn\u00e9(s)',
+    'storeDetail.bulkRemove': 'Retirer du store',
+    'storeDetail.bulkCancel': 'Annuler',
+    'storeDetail.bulkConfirm': 'Retirer {n} document(s) du store\u00a0?',
+
+    // Store query (#245)
+    'storeQuery.back': 'D\u00e9tail du store',
+    'storeQuery.queryLabel': 'Question',
+    'storeQuery.queryPlaceholder': 'Votre question\u2026',
+    'storeQuery.topKLabel': 'R\u00e9sultats (top-k)',
+    'storeQuery.run': 'Rechercher',
+    'storeQuery.running': 'Recherche\u2026',
+    'storeQuery.empty': 'Aucun r\u00e9sultat.',
+    'storeQuery.colScore': 'Score',
+    'storeQuery.colDoc': 'Document',
+    'storeQuery.colText': 'Extrait',
+    'storeQuery.colPage': 'Pages',
+    'storeQuery.viewDoc': 'Voir',
+
     // Disclaimer
     'disclaimer.banner':
       'Instance de d\u00e9monstration \u2014 les documents upload\u00e9s sont partag\u00e9s et temporaires (max {n} Mo). Ne pas envoyer de fichiers confidentiels.',
   },
   en: {
+    // Sidebar — 0.6.0 doc-centric nav (#209)
     'nav.home': 'Home',
+    'nav.docs': 'Docs',
+    'nav.stores': 'Stores',
+    'nav.runs': 'Runs',
+    'nav.settings': 'Settings',
+    'nav.collapse': 'Collapse sidebar',
+    'nav.expand': 'Expand sidebar',
+    // Legacy nav labels — kept because legacy pages still use them.
     'nav.studio': 'Studio',
     'nav.documents': 'Documents',
     'nav.history': 'History',
     'nav.reasoning': 'Reasoning',
-    'nav.settings': 'Settings',
-    'nav.collapse': 'Collapse sidebar',
-    'nav.expand': 'Expand sidebar',
+    'nav.search': 'Search',
 
     'topbar.newAnalysis': 'New analysis',
+
+    // Breadcrumb (0.6.0 doc workspace — #208)
+    'breadcrumb.aria': 'Breadcrumb',
+    'breadcrumb.studio': 'Studio',
+    'breadcrumb.mode.ask': 'Ask',
+    'breadcrumb.mode.inspect': 'Inspect',
+    'breadcrumb.mode.chunks': 'Chunks',
+
+    // Feature flags (0.6.0 — #210)
+    'flags.allModesDisabled':
+      'No doc workspace mode (Ask / Inspect / Chunks) is enabled for this deployment. Contact your administrator.',
+
+    // Lifecycle status badges (#215)
+    'status.Uploaded': 'Uploaded',
+    'status.Parsed': 'Parsed',
+    'status.Chunked': 'Chunked',
+    'status.Ingested': 'Ingested',
+    'status.Stale': 'Stale',
+    'status.Failed': 'Failed',
+    'status.tooltip.Uploaded': 'File received, awaiting parsing.',
+    'status.tooltip.Parsed': 'Document parsed successfully.',
+    'status.tooltip.Chunked': 'Chunks generated, ready to ingest into a store.',
+    'status.tooltip.Ingested': 'Ingested into at least one store.',
+    'status.tooltip.Stale': 'Chunks modified since last ingestion — re-ingestion required.',
+    'status.tooltip.Failed': 'A pipeline step failed. Retry to recover.',
+
+    // Document library (#211, #212, #213)
+    'docs.title': 'Documents',
+    'docs.import': 'Import',
+    'docs.emptyTitle': 'No documents yet',
+    'docs.emptySubtitle': 'Import your first document to get started.',
+    'docs.emptyAction': 'Import a document',
+    'docs.emptyFiltered': 'No documents match the current filters.',
+    'docs.colName': 'Name',
+    'docs.colStatus': 'Status',
+    'docs.colStores': 'Stores',
+    'docs.colUpdated': 'Updated',
+    'docs.filterSearch': 'Search…',
+    'docs.filterClear': 'Clear filters',
+    'docs.selected': '{n} selected',
+    'docs.bulkRechunk': 'Re-chunk',
+    'docs.bulkPush': 'Ingest into store…',
+    'docs.bulkDelete': 'Delete',
+    'docs.bulkCancel': 'Cancel selection',
+    'docs.deleteConfirm': 'Delete {n} document(s)? This action cannot be undone.',
+    'docs.pushTitle': 'Ingest into store',
+    'docs.pushLabel': 'Target store',
+    'docs.pushPlaceholder': 'Store name…',
+    'docs.pushSubmit': 'Ingest',
+    'docs.pushCancel': 'Cancel',
+    'docs.jobDispatched': 'Job dispatched ({jobId})',
+
+    // Doc import (#214)
+    'docsNew.title': 'Import documents',
+    'docsNew.drop': 'Drop PDFs here or click to choose',
+    'docsNew.dropHint': 'Multiple files accepted · PDF only',
+    'docsNew.queued': 'Queued',
+    'docsNew.uploading': 'Uploading…',
+    'docsNew.done': 'Imported',
+    'docsNew.failed': 'Failed',
+    'docsNew.viewDoc': 'View document',
+    'docsNew.backToLibrary': 'Back to library',
+    'docsNew.viewLibrary': 'View library',
+    'docsNew.allDone': 'All files have been imported.',
+
+    // Coming-soon placeholders (0.6.0 doc-centric routes — #207)
+    'comingSoon.title': 'Coming soon',
+    'comingSoon.subtitle.docsLibrary':
+      'The document library lands with 0.6.0. It will show every document with its lifecycle state, the stores it lives in, and when it was last updated.',
+    'comingSoon.subtitle.docsNew':
+      'Multi-file import (drop a folder or pick multiple files) lands with 0.6.0.',
+    'comingSoon.subtitle.docWorkspace':
+      'The doc workspace (Inspect / Chunks / Ask) lands with 0.6.0.',
+    'comingSoon.subtitle.stores': 'The stores list lands with 0.6.0.',
+    'comingSoon.subtitle.storeDetail':
+      'The store detail view (docs present, per-store state) lands with 0.6.0.',
+    'comingSoon.subtitle.storeQuery': 'The RAG query playground lands with 0.6.0.',
+    'comingSoon.subtitle.runs': 'The runs history (audit / debug) lands with 0.6.0.',
+    'comingSoon.subtitle.runDetail': 'Run detail lands with 0.6.0.',
+    'comingSoon.hint.docWorkspace': 'doc {id} · mode {mode}',
+    'comingSoon.hint.storeDetail': 'store {store}',
+    'comingSoon.hint.storeQuery': 'store {store}',
+    'comingSoon.hint.runDetail': 'run {id}',
+    'comingSoon.backHome': 'Back to home',
 
     'home.title': 'Docling Studio',
     'home.subtitle':
@@ -483,33 +780,32 @@ const messages: Messages = {
     'chunking.batchNotice':
       'Chunking is not available for this analysis. Large documents processed in batch mode do not generate the internal structure required for chunking. Coming soon!',
 
-    'nav.search': 'Search',
-    'search.hint': 'Enter a term to search through indexed chunks.',
+    'search.hint': 'Enter a term to search through ingested chunks.',
 
     'ingestion.ingest': 'Ingest',
     'ingestion.document': 'Document',
     'ingestion.chunkCount': 'Chunks ready',
-    'ingestion.successMessage': 'Indexing completed successfully!',
+    'ingestion.successMessage': 'Ingestion completed successfully!',
     'ingestion.ingesting': 'Ingesting...',
-    'ingestion.reindex': 'Re-index',
-    'ingestion.indexed': 'Indexed',
-    'ingestion.notIndexed': 'Not indexed',
-    'ingestion.chunksIndexed': '{n} chunks indexed',
+    'ingestion.reindex': 'Re-ingest',
+    'ingestion.indexed': 'Ingested',
+    'ingestion.notIndexed': 'Not ingested',
+    'ingestion.chunksIndexed': '{n} chunks ingested',
     'ingestion.openInStudio': 'Open in Studio',
-    'ingestion.deleteIndex': 'Remove from index',
+    'ingestion.deleteIndex': 'Remove from store',
     'ingestion.deleteConfirm':
       'Remove this document from the index? Chunks will be deleted but the source document will remain.',
     'ingestion.unavailable': 'Ingestion unavailable',
     'ingestion.filterAll': 'All',
-    'ingestion.filterIndexed': 'Indexed',
-    'ingestion.filterNotIndexed': 'Not indexed',
+    'ingestion.filterIndexed': 'Ingested',
+    'ingestion.filterNotIndexed': 'Not ingested',
     'ingestion.sortName': 'Name',
     'ingestion.sortDate': 'Date',
     'ingestion.search': 'Search...',
     'ingestion.searchChunks': 'Search indexed chunks…',
     'ingestion.noResults': 'No results for "{q}".',
     'ingestion.stepEmbedding': 'Embedding…',
-    'ingestion.stepIndexing': 'Indexing…',
+    'ingestion.stepIndexing': 'Ingesting…',
     'ingestion.stepDone': 'Done',
     'ingestion.opensearchConnected': 'OpenSearch connected',
     'ingestion.opensearchDisconnected': 'OpenSearch unreachable',
@@ -525,6 +821,121 @@ const messages: Messages = {
     'settings.language': 'Language',
     'settings.about': 'About',
     'settings.designArticle': 'How Docling Studio was designed',
+
+    // Inspect tab (#240, #241)
+    'inspect.tabMarkdown': 'Markdown',
+    'inspect.tabElements': 'Elements',
+    'inspect.tabImages': 'Images',
+    'inspect.noAnalysis': 'No analysis available',
+    'inspect.noAnalysisSub': 'Analyze this document in Studio to see its structure.',
+    'inspect.goToStudio': 'Go to Studio',
+    'inspect.retry': 'Retry',
+    'inspect.noElements': 'No elements — run an analysis to generate structure.',
+
+    // Ask tab (#242)
+    'ask.questionLabel': 'Question',
+    'ask.questionPlaceholder': 'e.g. What are the supplier obligations?',
+    'ask.modelConfig': 'Model (optional)',
+    'ask.modelPlaceholder': 'gpt-oss:20b',
+    'ask.modelHint': 'Ollama model name. Leave empty to use the server default.',
+    'ask.run': 'Run',
+    'ask.running': 'Reasoning…',
+    'ask.answerLabel': 'Answer',
+    'ask.noAnalysis': 'No analysis available',
+    'ask.noAnalysisSub': 'Analyze this document in Studio before asking a question.',
+
+    // Doc workspace (#216, #218)
+    'workspace.tabs.ask': 'Ask',
+    'workspace.tabs.inspect': 'Inspect',
+    'workspace.tabs.chunks': 'Chunks',
+    'workspace.backToLibrary': 'Back to library',
+    'workspace.modeDisabled': 'Mode disabled for this deployment',
+    'workspace.inspectComingSoon': 'Inspect \u2014 coming in 0.7.0',
+    'workspace.inspectComingSoonHint': 'Tree + bbox view coming soon.',
+    'workspace.askComingSoon': 'Ask \u2014 coming in 0.7.0',
+    'workspace.askComingSoonHint': 'Agentic reasoning over the document coming soon.',
+
+    // Doc tree rail (#217)
+    'tree.empty': 'No nodes in tree.',
+    'tree.expand': 'Expand',
+    'tree.collapse': 'Collapse',
+
+    // Chunks editor (#219, #220, #221, #222)
+    'chunks.count': '{n} chunk(s)',
+    'chunks.empty': 'No chunks yet \u2014 parse the document first.',
+    'chunks.saving': 'Saving\u2026',
+    'chunks.noTitle': '(untitled)',
+    'chunks.editPlaceholder': 'Chunk text\u2026',
+    'chunks.mergePrev': 'Merge with previous',
+    'chunks.mergeNext': 'Merge with next',
+    'chunks.split': 'Split at cursor',
+    'chunks.drop': 'Drop',
+    'chunks.add': 'Add chunk',
+    'chunks.retitle': 'Rename',
+    'chunks.diffToggle': 'Show diff',
+    'chunks.diffClose': 'Close diff',
+    'chunks.diffRef': 'Reference',
+    'chunks.diffAdded': 'added',
+    'chunks.diffModified': 'modified',
+    'chunks.diffRemoved': 'removed',
+    'chunks.pushTitle': 'Ingest into store',
+    'chunks.pushStore': 'Target store',
+    'chunks.pushPlaceholder': 'Store name\u2026',
+    'chunks.pushSummary': '{embeds} chunks \u00b7 ~{tokens} tokens',
+    'chunks.pushConfirm': 'Ingest',
+    'chunks.pushCancel': 'Cancel',
+    'chunks.pushedJob': 'Job dispatched: {jobId}',
+    // Stale stores strip (#224)
+    'chunks.stale.pushedAt': 'ingested on {date}',
+    'chunks.stale.reingest': 'Re-ingest',
+    'chunks.stale.reingestAll': 'Re-ingest all stale',
+    'chunks.stale.jobDispatched': 'Job dispatched: {jobId}',
+
+    'chunks.selected': '{n} selected',
+    'chunks.bulkDrop': 'Drop selected',
+    'chunks.bulkMerge': 'Merge selected',
+    'chunks.bulkCancel': 'Cancel',
+
+    // Stores list (#243)
+    'stores.title': 'Stores',
+    'stores.empty': 'No stores configured.',
+    'stores.colName': 'Name',
+    'stores.colType': 'Type',
+    'stores.colStatus': 'Status',
+    'stores.colDocs': 'Documents',
+    'stores.colChunks': 'Chunks',
+    'stores.connected': 'Connected',
+    'stores.disconnected': 'Disconnected',
+    'stores.error': 'Error',
+
+    // Store detail (#244)
+    'storeDetail.back': 'Stores',
+    'storeDetail.query': 'Query',
+    'storeDetail.empty': 'No documents in this store.',
+    'storeDetail.colDoc': 'Document',
+    'storeDetail.colState': 'State',
+    'storeDetail.colChunks': 'Chunks',
+    'storeDetail.colIngested': 'Ingested',
+    'storeDetail.remove': 'Remove',
+    'storeDetail.removeConfirm': 'Remove \u00ab{doc}\u00bb from store?',
+    'storeDetail.selected': '{n} selected',
+    'storeDetail.bulkRemove': 'Remove from store',
+    'storeDetail.bulkCancel': 'Cancel',
+    'storeDetail.bulkConfirm': 'Remove {n} document(s) from store?',
+
+    // Store query (#245)
+    'storeQuery.back': 'Store detail',
+    'storeQuery.queryLabel': 'Question',
+    'storeQuery.queryPlaceholder': 'Your question\u2026',
+    'storeQuery.topKLabel': 'Results (top-k)',
+    'storeQuery.run': 'Search',
+    'storeQuery.running': 'Searching\u2026',
+    'storeQuery.empty': 'No results.',
+    'storeQuery.colScore': 'Score',
+    'storeQuery.colDoc': 'Document',
+    'storeQuery.colText': 'Excerpt',
+    'storeQuery.colPage': 'Pages',
+    'storeQuery.viewDoc': 'View',
 
     // Disclaimer
     'disclaimer.banner':

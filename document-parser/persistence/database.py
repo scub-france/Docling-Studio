@@ -42,25 +42,140 @@ CREATE TABLE IF NOT EXISTS analysis_jobs (
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_status ON analysis_jobs(status);
 CREATE INDEX IF NOT EXISTS idx_analysis_jobs_created_at ON analysis_jobs(created_at);
 CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at);
+
+-- 0.6.0 — Per (document, store) ingestion state (#203).
+CREATE TABLE IF NOT EXISTS stores (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL UNIQUE,
+    slug        TEXT NOT NULL UNIQUE,
+    kind        TEXT NOT NULL,
+    embedder    TEXT NOT NULL,
+    config      TEXT NOT NULL DEFAULT '{}',
+    is_default  INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS document_store_links (
+    id              TEXT PRIMARY KEY,
+    document_id     TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    store_id        TEXT NOT NULL REFERENCES stores(id)    ON DELETE CASCADE,
+    state           TEXT NOT NULL,
+    chunkset_hash   TEXT,
+    last_push_at    TEXT,
+    last_run_id     TEXT,
+    error_message   TEXT,
+    UNIQUE (document_id, store_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dsl_doc   ON document_store_links(document_id);
+CREATE INDEX IF NOT EXISTS idx_dsl_store ON document_store_links(store_id);
+CREATE INDEX IF NOT EXISTS idx_dsl_state ON document_store_links(state);
+
+-- 0.6.0 — Chunks promoted to first-class entities + audit trail (#205).
+CREATE TABLE IF NOT EXISTS chunks (
+    id            TEXT PRIMARY KEY,
+    document_id   TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    sequence      INTEGER NOT NULL,
+    text          TEXT NOT NULL,
+    headings      TEXT NOT NULL DEFAULT '[]',
+    source_page   INTEGER,
+    bboxes        TEXT NOT NULL DEFAULT '[]',
+    doc_items     TEXT NOT NULL DEFAULT '[]',
+    token_count   INTEGER,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL,
+    deleted_at    TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_chunks_doc     ON chunks(document_id);
+CREATE INDEX IF NOT EXISTS idx_chunks_doc_seq ON chunks(document_id, sequence);
+
+CREATE TABLE IF NOT EXISTS chunk_edits (
+    id            TEXT PRIMARY KEY,
+    document_id   TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    chunk_id      TEXT,
+    action        TEXT NOT NULL,
+    actor         TEXT NOT NULL DEFAULT 'system',
+    at            TEXT NOT NULL,
+    before_json   TEXT,
+    after_json    TEXT,
+    parents_json  TEXT NOT NULL DEFAULT '[]',
+    children_json TEXT NOT NULL DEFAULT '[]',
+    reason        TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_chunk_edits_doc_at ON chunk_edits(document_id, at);
+CREATE INDEX IF NOT EXISTS idx_chunk_edits_chunk  ON chunk_edits(chunk_id);
+
+CREATE TABLE IF NOT EXISTS chunk_pushes (
+    id            TEXT PRIMARY KEY,
+    document_id   TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    store_id      TEXT NOT NULL REFERENCES stores(id)    ON DELETE CASCADE,
+    chunkset_hash TEXT NOT NULL,
+    chunk_ids     TEXT NOT NULL,
+    pushed_at     TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_chunk_pushes_doc_store ON chunk_pushes(document_id, store_id);
+
+-- 0.6.0 — migration progress (resumability for the 0.6.0 backfill, #206).
+CREATE TABLE IF NOT EXISTS migration_progress (
+    name         TEXT PRIMARY KEY,
+    completed_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 
-_MIGRATIONS = [
-    ("document_json", "ALTER TABLE analysis_jobs ADD COLUMN document_json TEXT"),
-    ("chunks_json", "ALTER TABLE analysis_jobs ADD COLUMN chunks_json TEXT"),
-    ("progress_current", "ALTER TABLE analysis_jobs ADD COLUMN progress_current INTEGER"),
-    ("progress_total", "ALTER TABLE analysis_jobs ADD COLUMN progress_total INTEGER"),
+# Column migrations: (table, column_name, ddl). Idempotent — applied only
+# when the column is missing from the live schema. Order matters when a
+# later migration depends on an earlier one (none today).
+_COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
+    ("analysis_jobs", "document_json", "ALTER TABLE analysis_jobs ADD COLUMN document_json TEXT"),
+    ("analysis_jobs", "chunks_json", "ALTER TABLE analysis_jobs ADD COLUMN chunks_json TEXT"),
+    (
+        "analysis_jobs",
+        "progress_current",
+        "ALTER TABLE analysis_jobs ADD COLUMN progress_current INTEGER",
+    ),
+    (
+        "analysis_jobs",
+        "progress_total",
+        "ALTER TABLE analysis_jobs ADD COLUMN progress_total INTEGER",
+    ),
+    # 0.6.0 — Document lifecycle state machine (#202).
+    (
+        "documents",
+        "lifecycle_state",
+        "ALTER TABLE documents ADD COLUMN lifecycle_state TEXT NOT NULL DEFAULT 'Uploaded'",
+    ),
+    (
+        "documents",
+        "lifecycle_state_at",
+        "ALTER TABLE documents ADD COLUMN lifecycle_state_at TEXT",
+    ),
+]
+
+# DDL statements run after column migrations — typically CREATE INDEX
+# IF NOT EXISTS for indexes on freshly-added columns.
+_POST_MIGRATION_DDL: list[str] = [
+    "CREATE INDEX IF NOT EXISTS idx_documents_lifecycle_state ON documents(lifecycle_state)",
 ]
 
 
 async def _run_migrations(db: aiosqlite.Connection) -> None:
-    """Add columns that may be missing in older databases."""
-    cursor = await db.execute("PRAGMA table_info(analysis_jobs)")
-    existing = {row[1] for row in await cursor.fetchall()}
-    for col_name, ddl in _MIGRATIONS:
-        if col_name not in existing:
+    """Apply additive column migrations, then any post-migration DDL.
+
+    Existing columns are detected via PRAGMA `table_info`, so re-running
+    the migration on an already-up-to-date DB is a no-op.
+    """
+    columns_by_table: dict[str, set[str]] = {}
+    for table, col_name, ddl in _COLUMN_MIGRATIONS:
+        if table not in columns_by_table:
+            cursor = await db.execute(f"PRAGMA table_info({table})")
+            columns_by_table[table] = {row[1] for row in await cursor.fetchall()}
+        if col_name not in columns_by_table[table]:
             await db.execute(ddl)
-            logger.info("Migration: added column %s to analysis_jobs", col_name)
+            columns_by_table[table].add(col_name)
+            logger.info("Migration: added column %s to %s", col_name, table)
+    for ddl in _POST_MIGRATION_DDL:
+        await db.execute(ddl)
     await db.commit()
 
 
@@ -70,8 +185,25 @@ async def init_db() -> None:
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(_SCHEMA)
         await _run_migrations(db)
+        await _seed_default_store(db)
         await db.commit()
     logger.info("Database initialized at %s", DB_PATH)
+
+
+async def _seed_default_store(db: aiosqlite.Connection) -> None:
+    """Insert the canonical `default` store on first boot.
+
+    Idempotent — uses INSERT OR IGNORE keyed on the unique slug. The
+    embedder is read from the DEFAULT_EMBEDDER env var with a sensible
+    fallback so existing single-index deployments keep working.
+    """
+    embedder = os.environ.get("DEFAULT_EMBEDDER", "bge-m3")
+    await db.execute(
+        """INSERT OR IGNORE INTO stores
+           (id, name, slug, kind, embedder, config, is_default, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))""",
+        ("default", "default", "default", "opensearch", embedder, "{}", 1),
+    )
 
 
 async def get_db() -> aiosqlite.Connection:

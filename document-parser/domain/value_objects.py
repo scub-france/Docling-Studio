@@ -14,6 +14,67 @@ DEFAULT_PAGE_WIDTH: float = 612.0
 DEFAULT_PAGE_HEIGHT: float = 792.0
 
 
+class DocumentLifecycleState(StrEnum):
+    """Canonical lifecycle of a Document in Docling Studio.
+
+    Distinct from `AnalysisStatus` (which describes a single conversion
+    attempt). The lifecycle describes the document as a whole:
+
+      Uploaded   raw file persisted, no parse yet
+      Parsed     conversion produced a document tree
+      Chunked    chunker produced a draft chunkset (pre-store)
+      Ingested   chunkset has been embedded into at least one store
+      Stale      a chunkset was edited after a successful push and the
+                 corresponding store no longer matches (#204)
+      Failed     a pipeline step failed; recoverable by retry
+
+    Allowed transitions live in `domain.lifecycle._TRANSITIONS`.
+    """
+
+    UPLOADED = "Uploaded"
+    PARSED = "Parsed"
+    CHUNKED = "Chunked"
+    INGESTED = "Ingested"
+    STALE = "Stale"
+    FAILED = "Failed"
+
+
+class StoreKind(StrEnum):
+    """Backing technology of a Store. Today only OpenSearch is implemented;
+    the enum is here so future backends (Pinecone, Qdrant, pgvector) can be
+    added without touching the persistence schema."""
+
+    OPENSEARCH = "opensearch"
+
+
+class DocumentStoreLinkState(StrEnum):
+    """State of a (document, store) ingestion link.
+
+    Distinct from `DocumentLifecycleState` — the document lifecycle is the
+    aggregate over all per-store links. A link is `Ingested` when its
+    chunkset hash matches the source; `Stale` when the source has drifted
+    after the last push; `Failed` when the last push attempt errored.
+    """
+
+    INGESTED = "Ingested"
+    STALE = "Stale"
+    FAILED = "Failed"
+
+
+class ChunkEditAction(StrEnum):
+    """The five mutating operations the chunks editor supports.
+
+    Recorded on every `ChunkEdit` row so the audit trail can answer "who
+    did what, when, and why" without resorting to JSON-path matching.
+    """
+
+    INSERT = "insert"
+    UPDATE = "update"
+    DELETE = "delete"
+    MERGE = "merge"
+    SPLIT = "split"
+
+
 @dataclass(frozen=True)
 class PageElement:
     type: str

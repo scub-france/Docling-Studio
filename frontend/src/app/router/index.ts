@@ -1,61 +1,48 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import type { RouteRecordRaw } from 'vue-router'
 
-const routes: RouteRecordRaw[] = [
-  {
-    path: '/',
-    name: 'home',
-    component: () => import('../../pages/HomePage.vue'),
-  },
-  {
-    path: '/studio',
-    name: 'studio',
-    component: () => import('../../pages/StudioPage.vue'),
-  },
-  {
-    path: '/history',
-    name: 'history',
-    component: () => import('../../pages/HistoryPage.vue'),
-  },
-  {
-    path: '/documents',
-    name: 'documents',
-    component: () => import('../../pages/DocumentsPage.vue'),
-  },
-  {
-    path: '/search',
-    name: 'search',
-    component: () => import('../../pages/SearchPage.vue'),
-  },
-  {
-    // Reasoning-trace tunnel. Route is always registered; the page shows
-    // an empty state when the `reasoning` feature flag is off (same pattern
-    // as /search does for ingestion).
-    path: '/reasoning',
-    name: 'reasoning',
-    component: () => import('../../pages/ReasoningPage.vue'),
-  },
-  {
-    // Deep-link into a specific document's reasoning workspace, e.g. shared
-    // by Peter to a teammate.
-    path: '/reasoning/:docId',
-    name: 'reasoning-doc',
-    component: () => import('../../pages/ReasoningPage.vue'),
-    props: true,
-  },
-  {
-    path: '/settings',
-    name: 'settings',
-    component: () => import('../../pages/SettingsPage.vue'),
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'not-found',
-    redirect: '/',
-  },
-]
+import { useFeatureFlagStore } from '../../features/feature-flags/store'
+import { isDocMode } from '../../shared/routing/modes'
+import { ROUTES } from '../../shared/routing/names'
+import { resolveMode } from '../../shared/routing/resolveMode'
+import { routes } from './routes'
+
+export { routes }
 
 export const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+/**
+ * Doc workspace mode guard (#210).
+ *
+ * - `/docs/:id?mode=<disabled>` → redirect with the same id but the
+ *   first enabled mode (ask > chunks > inspect priority).
+ * - All three modes off → redirect to `/docs?reason=no-mode-enabled`.
+ * - Any other route is left untouched.
+ *
+ * Pure resolution lives in `resolveMode`; the guard is just the
+ * router-level wiring.
+ */
+router.beforeEach((to) => {
+  if (to.name !== ROUTES.DOC_WORKSPACE) return true
+
+  const flags = useFeatureFlagStore().modeFlags()
+  const requestedRaw = Array.isArray(to.query.mode) ? to.query.mode[0] : to.query.mode
+  const requested = isDocMode(requestedRaw) ? requestedRaw : undefined
+  const resolved = resolveMode(requested, flags)
+
+  if (resolved === null) {
+    return {
+      name: ROUTES.DOCS_LIBRARY,
+      query: { reason: 'no-mode-enabled' },
+    }
+  }
+  if (resolved !== requested) {
+    return {
+      ...to,
+      query: { ...to.query, mode: resolved },
+    }
+  }
+  return true
 })
