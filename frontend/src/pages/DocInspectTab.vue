@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { Analysis } from '../shared/types'
 import { fetchDocumentAnalyses } from '../features/analysis/api'
@@ -45,17 +45,21 @@ const analysis = ref<Analysis | null>(null)
 async function load(): Promise<void> {
   loading.value = true
   error.value = null
+  analysis.value = null
+  const requestedId = props.docId
   try {
-    const analyses = await fetchDocumentAnalyses(props.docId)
+    const analyses = await fetchDocumentAnalyses(requestedId)
+    if (requestedId !== props.docId) return
     analysis.value = analyses.find((a) => a.status === 'COMPLETED') ?? null
   } catch (e) {
+    if (requestedId !== props.docId) return
     error.value = (e as Error).message || 'Failed to load analysis'
   } finally {
-    loading.value = false
+    if (requestedId === props.docId) loading.value = false
   }
 }
 
-onMounted(load)
+watch(() => props.docId, load, { immediate: true })
 </script>
 
 <style scoped>
