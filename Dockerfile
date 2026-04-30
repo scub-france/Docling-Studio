@@ -42,8 +42,8 @@ COPY document-parser/ .
 # Frontend static files
 COPY --from=frontend-build /build/dist /usr/share/nginx/html
 
-# Nginx config (template — substituted at container start via envsubst)
-COPY nginx.conf.template /etc/nginx/sites-enabled/default.template
+# Nginx config (template stored outside sites-enabled to avoid nginx loading it raw)
+COPY nginx.conf.template /etc/nginx/default.template
 
 # Non-root user
 RUN useradd --create-home --shell /bin/bash appuser
@@ -57,7 +57,7 @@ ENV NGINX_MAX_BODY_SIZE=200M
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "envsubst '${NGINX_MAX_BODY_SIZE}' < /etc/nginx/sites-enabled/default.template > /etc/nginx/sites-enabled/default && nginx && exec su appuser -c 'uvicorn main:app --host 127.0.0.1 --port 8000'"]
+CMD ["sh", "-c", "envsubst '${NGINX_MAX_BODY_SIZE}' < /etc/nginx/default.template > /etc/nginx/sites-enabled/default && nginx && exec su appuser -c 'uvicorn main:app --host 127.0.0.1 --port 8000'"]
 
 # --- Remote: lightweight, delegates to Docling Serve ---
 FROM base AS remote
