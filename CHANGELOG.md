@@ -4,6 +4,12 @@ All notable changes to Docling Studio will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.1] - 2026-04-30
+
+### Fixed
+
+- Nginx upload body cap raised from 5 MB to 200 MB (`NGINX_MAX_BODY_SIZE`, default `200M`); uploads larger than 5 MB no longer returned 413 before reaching the backend.
+
 ## [0.5.0] - 2026-04-28
 
 ### Added
