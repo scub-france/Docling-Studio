@@ -1,5 +1,5 @@
 server {
-    listen 80;
+    listen 3000;
 
     root /usr/share/nginx/html;
     index index.html;
@@ -15,11 +15,11 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://document-parser:8000;
+        proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_read_timeout 900s;
         proxy_send_timeout 900s;
-        client_max_body_size 5M;
+        client_max_body_size ${NGINX_MAX_BODY_SIZE};
     }
 }

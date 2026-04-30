@@ -24,10 +24,11 @@ FROM python:3.12-slim AS base
 ARG APP_VERSION=dev
 ENV APP_VERSION=${APP_VERSION}
 
-# System deps: poppler (pdf2image), nginx
+# System deps: poppler (pdf2image), nginx, gettext-base (envsubst for nginx template)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     poppler-utils \
     nginx \
+    gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
 # Python deps (common)
@@ -41,8 +42,8 @@ COPY document-parser/ .
 # Frontend static files
 COPY --from=frontend-build /build/dist /usr/share/nginx/html
 
-# Nginx config
-COPY nginx.conf /etc/nginx/sites-enabled/default
+# Nginx config (template — substituted at container start via envsubst)
+COPY nginx.conf.template /etc/nginx/sites-enabled/default.template
 
 # Non-root user
 RUN useradd --create-home --shell /bin/bash appuser
@@ -52,10 +53,11 @@ RUN mkdir -p /app/uploads /app/data && chown -R appuser:appuser /app
 
 ENV UPLOAD_DIR=/app/uploads
 ENV DB_PATH=/app/data/docling_studio.db
+ENV NGINX_MAX_BODY_SIZE=200M
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "nginx && exec su appuser -c 'uvicorn main:app --host 127.0.0.1 --port 8000'"]
+CMD ["sh", "-c", "envsubst '${NGINX_MAX_BODY_SIZE}' < /etc/nginx/sites-enabled/default.template > /etc/nginx/sites-enabled/default && nginx && exec su appuser -c 'uvicorn main:app --host 127.0.0.1 --port 8000'"]
 
 # --- Remote: lightweight, delegates to Docling Serve ---
 FROM base AS remote
