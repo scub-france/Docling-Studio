@@ -35,16 +35,19 @@
       </div>
 
       <!-- Tab content — lazy loaded (#216) -->
+      <!-- :key on docId forces a clean remount when navigating to a different doc,
+           preventing stale state (bbox, selectedPage, etc.) from leaking. -->
       <div class="tab-content" role="tabpanel" data-e2e="tab-content">
         <Suspense>
           <DocChunksTab
             v-if="activeMode === 'chunks'"
+            :key="id"
             :doc-id="id"
             :available-stores="doc.stores ?? []"
             :store-links="doc.storeLinks"
           />
-          <DocInspectTab v-else-if="activeMode === 'inspect'" :doc-id="id" />
-          <DocAskTab v-else-if="activeMode === 'ask'" :doc-id="id" />
+          <DocInspectTab v-else-if="activeMode === 'inspect'" :key="id" :doc-id="id" />
+          <DocAskTab v-else-if="activeMode === 'ask'" :key="id" :doc-id="id" />
         </Suspense>
       </div>
     </template>
@@ -106,12 +109,17 @@ function switchMode(m: DocMode): void {
 async function loadDoc(): Promise<void> {
   loadingDoc.value = true
   docError.value = null
+  doc.value = null
+  const requestedId = props.id
   try {
-    doc.value = await fetchDocument(props.id)
+    const fetched = await fetchDocument(requestedId)
+    if (requestedId !== props.id) return
+    doc.value = fetched
   } catch (e) {
+    if (requestedId !== props.id) return
     docError.value = (e as Error).message || 'Failed to load document'
   } finally {
-    loadingDoc.value = false
+    if (requestedId === props.id) loadingDoc.value = false
   }
 }
 
@@ -138,6 +146,13 @@ watch(
     const flags = flagStore.modeFlags()
     const resolved = resolveMode(m, flags)
     if (resolved) activeMode.value = resolved
+  },
+)
+
+watch(
+  () => props.id,
+  (newId, oldId) => {
+    if (newId !== oldId) loadDoc()
   },
 )
 </script>
