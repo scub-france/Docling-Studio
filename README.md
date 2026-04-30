@@ -210,6 +210,7 @@ All configuration is done via environment variables. See [`.env.example`](.env.e
 | `BATCH_PAGE_SIZE` | `10` | Pages per batch (`0` = process all at once) |
 | `MAX_FILE_SIZE_MB` | `50` | Maximum upload file size in MB (`0` = unlimited) |
 | `MAX_PAGE_COUNT` | `0` | Maximum number of pages per document (`0` = unlimited) |
+| `NGINX_MAX_BODY_SIZE` | `200M` | Nginx request body limit — nginx format (`200M`, `0` = unlimited). Must be ≥ `MAX_FILE_SIZE_MB`. |
 | `RATE_LIMIT_RPM` | `100` | Max requests per minute per IP (`0` = disabled) |
 
 ## Upload Limits
@@ -218,8 +219,9 @@ Docling Studio enforces configurable limits on uploaded documents to protect the
 
 - **`MAX_FILE_SIZE_MB`** (default `50`) — rejects uploads exceeding this size. Validated at two levels: early `Content-Length` check and streaming byte count.
 - **`MAX_PAGE_COUNT`** (default `0` = unlimited) — rejects documents with more pages than allowed. Useful on shared instances or Hugging Face Spaces to cap processing time.
+- **`NGINX_MAX_BODY_SIZE`** (default `200M`) — nginx-level body cap, applied before the request reaches the backend. Defaults to `200M` so `MAX_FILE_SIZE_MB` is always the effective limit. Use nginx format (`50M`, `1G`, `0` for unlimited).
 
-Both limits are exposed in the `/api/health` endpoint so the frontend can display them to the user before upload. Set either to `0` to disable the corresponding check.
+Both application limits are exposed in the `/api/health` endpoint so the frontend can display them to the user before upload. Set either to `0` to disable the corresponding check.
 
 ## Ingestion Pipeline (opt-in)
 
