@@ -117,6 +117,8 @@ services:
       context: ./frontend
     ports:
       - "3000:80"
+    environment:
+      NGINX_MAX_BODY_SIZE: ${NGINX_MAX_BODY_SIZE:-200M}
     depends_on:
       - document-parser
 
