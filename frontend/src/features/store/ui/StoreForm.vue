@@ -117,7 +117,10 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const kindOptions = [{ value: 'opensearch', label: 'OpenSearch' }]
+const kindOptions = [
+  { value: 'opensearch', label: 'OpenSearch' },
+  { value: 'neo4j', label: 'Neo4j' },
+]
 
 const form = reactive<StoreCreatePayload>({
   name: props.initialValue?.name ?? '',

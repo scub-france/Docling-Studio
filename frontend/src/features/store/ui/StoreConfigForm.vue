@@ -10,6 +10,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import OpenSearchConfigForm from './OpenSearchConfigForm.vue'
+import Neo4jConfigForm from './Neo4jConfigForm.vue'
 
 const props = defineProps<{
   kind: string
@@ -37,6 +38,8 @@ const component = computed(() => {
   switch (props.kind) {
     case 'opensearch':
       return OpenSearchConfigForm
+    case 'neo4j':
+      return Neo4jConfigForm
     default:
       return OpenSearchConfigForm
   }

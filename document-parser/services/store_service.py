@@ -87,13 +87,17 @@ def _validate_slug(slug: str) -> None:
 
 
 def _validate_config_for_kind(kind: StoreKind, config: dict) -> None:
-    """Per-kind config schema. Today only OpenSearch is wired; new kinds plug
-    in here without touching the rest of the pipeline."""
+    """Per-kind config schema. New kinds plug in here without touching the
+    rest of the pipeline. Authentication for remote stores comes from the
+    deployment env (see `infra/settings.py`)."""
     if kind is StoreKind.OPENSEARCH:
         index_name = config.get("index_name") or config.get("indexName")
         if not isinstance(index_name, str) or not index_name.strip():
             raise StoreValidationError("OpenSearch config requires a non-empty 'index_name'")
-    # Future: add LlamaIndex / LangChain / pgvector branches here.
+    elif kind is StoreKind.NEO4J:
+        index_name = config.get("index_name") or config.get("indexName")
+        if not isinstance(index_name, str) or not index_name.strip():
+            raise StoreValidationError("Neo4j config requires a non-empty 'index_name'")
 
 
 class StoreService:
