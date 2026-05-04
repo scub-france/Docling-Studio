@@ -5,9 +5,22 @@
         ← {{ t('storeDetail.back') }}
       </RouterLink>
       <h1 class="detail-title">{{ store }}</h1>
-      <RouterLink :to="{ name: ROUTES.STORE_QUERY, params: { store } }" class="btn-primary">
-        {{ t('storeDetail.query') }}
-      </RouterLink>
+      <div class="header-actions">
+        <RouterLink :to="{ name: ROUTES.STORE_EDIT, params: { store } }" class="btn-secondary">
+          {{ t('stores.edit') }}
+        </RouterLink>
+        <button
+          class="btn-secondary btn-danger"
+          :disabled="store === 'default'"
+          :title="store === 'default' ? t('stores.deleteDefaultBlocked') : ''"
+          @click="onDeleteStore"
+        >
+          {{ t('stores.delete') }}
+        </button>
+        <RouterLink :to="{ name: ROUTES.STORE_QUERY, params: { store } }" class="btn-primary">
+          {{ t('storeDetail.query') }}
+        </RouterLink>
+      </div>
     </div>
 
     <div v-if="loading" class="loading-state">
@@ -96,6 +109,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
 import {
+  deleteStore,
   fetchStoreDocuments,
   removeDocumentFromStore,
   type StoreDocEntry,
@@ -146,6 +160,17 @@ async function removeDoc(doc: StoreDocEntry): Promise<void> {
   const next = new Set(selectedIds.value)
   next.delete(doc.docId)
   selectedIds.value = next
+}
+
+async function onDeleteStore(): Promise<void> {
+  const message = t('stores.deleteConfirm').replace('{name}', props.store)
+  if (!window.confirm(message)) return
+  try {
+    await deleteStore(props.store)
+    router.push({ name: ROUTES.STORES_LIST })
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e)
+  }
 }
 
 const allSelected = computed(
@@ -432,6 +457,25 @@ onMounted(load)
 .btn-secondary:hover {
   background: var(--bg-hover);
   color: var(--text);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-danger {
+  color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-sm {

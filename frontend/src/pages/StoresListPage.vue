@@ -2,6 +2,7 @@
   <div class="stores-page">
     <div class="stores-header">
       <h1 class="stores-title">{{ t('stores.title') }}</h1>
+      <button class="btn-primary" @click="goCreate">{{ t('stores.new') }}</button>
     </div>
 
     <div v-if="loading" class="loading-state">
@@ -20,16 +21,18 @@
             <th>{{ t('stores.colName') }}</th>
             <th>{{ t('stores.colType') }}</th>
             <th>{{ t('stores.colStatus') }}</th>
+            <th>{{ t('stores.colDefault') }}</th>
             <th class="col-num">{{ t('stores.colDocs') }}</th>
             <th class="col-num">{{ t('stores.colChunks') }}</th>
+            <th class="col-actions"></th>
           </tr>
         </thead>
         <tbody>
           <tr
             v-for="store in stores"
-            :key="store.name"
+            :key="store.slug"
             class="store-row"
-            @click="openStore(store.name)"
+            @click="openStore(store.slug)"
           >
             <td class="col-name">
               <svg class="store-icon" viewBox="0 0 20 20" fill="currentColor">
@@ -57,8 +60,24 @@
                 {{ store.errorMessage }}
               </span>
             </td>
+            <td>
+              {{ store.isDefault ? t('stores.default.yes') : t('stores.default.no') }}
+            </td>
             <td class="col-num">{{ store.documentCount }}</td>
             <td class="col-num">{{ store.chunkCount }}</td>
+            <td class="col-actions" @click.stop>
+              <button class="row-action" @click="goEdit(store.slug)">
+                {{ t('stores.edit') }}
+              </button>
+              <button
+                class="row-action row-action--danger"
+                :disabled="store.slug === 'default'"
+                :title="store.slug === 'default' ? t('stores.deleteDefaultBlocked') : ''"
+                @click="onDelete(store)"
+              >
+                {{ t('stores.delete') }}
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -77,6 +96,7 @@
         <path d="M3 5v14c0 1.657 4.03 3 9 3s9-1.343 9-3V5" />
       </svg>
       <p class="empty-title">{{ t('stores.empty') }}</p>
+      <button class="btn-primary" @click="goCreate">{{ t('stores.new') }}</button>
     </div>
   </div>
 </template>
@@ -85,7 +105,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { fetchStores, type StoreInfo } from '../features/store/api'
+import { deleteStore, fetchStores, type StoreInfo } from '../features/store/api'
 import { useI18n } from '../shared/i18n'
 import { ROUTES } from '../shared/routing/names'
 
@@ -108,8 +128,27 @@ async function load(): Promise<void> {
   }
 }
 
-function openStore(name: string): void {
-  router.push({ name: ROUTES.STORE_DETAIL, params: { store: name } })
+function openStore(slug: string): void {
+  router.push({ name: ROUTES.STORE_DETAIL, params: { store: slug } })
+}
+
+function goCreate(): void {
+  router.push({ name: ROUTES.STORE_CREATE })
+}
+
+function goEdit(slug: string): void {
+  router.push({ name: ROUTES.STORE_EDIT, params: { store: slug } })
+}
+
+async function onDelete(store: StoreInfo): Promise<void> {
+  const message = t('stores.deleteConfirm').replace('{name}', store.name)
+  if (!window.confirm(message)) return
+  try {
+    await deleteStore(store.slug)
+    await load()
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e)
+  }
 }
 
 onMounted(load)
@@ -126,6 +165,7 @@ onMounted(load)
 .stores-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 20px 24px 16px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
@@ -135,6 +175,22 @@ onMounted(load)
   font-size: 20px;
   font-weight: 600;
   color: var(--text);
+}
+
+.btn-primary {
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
 }
 
 .loading-state {
@@ -203,6 +259,11 @@ onMounted(load)
 
 .col-num {
   width: 100px;
+  text-align: right;
+}
+
+.col-actions {
+  width: 160px;
   text-align: right;
 }
 
@@ -322,5 +383,33 @@ onMounted(load)
 .btn-secondary:hover {
   background: var(--bg-hover);
   color: var(--text);
+}
+
+.row-action {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  margin-left: 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.row-action:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.row-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.row-action--danger {
+  color: #b91c1c;
+  border-color: rgba(220, 38, 38, 0.4);
+}
+.row-action--danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.08);
 }
 </style>
