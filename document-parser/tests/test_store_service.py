@@ -110,6 +110,27 @@ class TestCreate:
                 config={},
             )
 
+    async def test_create_neo4j_ok(self, service):
+        store = await service.create_store(
+            name="kg",
+            slug="kg",
+            kind=StoreKind.NEO4J,
+            embedder="bge-m3",
+            config={"index_name": "chunks-vec", "database": "neo4j"},
+        )
+        assert store.kind is StoreKind.NEO4J
+        assert store.config["index_name"] == "chunks-vec"
+
+    async def test_create_neo4j_rejects_missing_index_name(self, service):
+        with pytest.raises(StoreValidationError):
+            await service.create_store(
+                name="kg",
+                slug="kg",
+                kind=StoreKind.NEO4J,
+                embedder="bge-m3",
+                config={},
+            )
+
     async def test_create_default_clears_others(self, service):
         # The seeded 'default' store starts as is_default=True.
         new_default = await service.create_store(

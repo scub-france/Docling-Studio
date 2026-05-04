@@ -473,6 +473,12 @@ const messages: Messages = {
     'storeForm.opensearch.indexName': 'Nom de l\u2019index',
     'storeForm.opensearch.indexNameHelp':
       'Index OpenSearch cible (cr\u00e9\u00e9 \u00e0 la premi\u00e8re ingestion).',
+    'storeForm.neo4j.indexName': 'Nom de l\u2019index vectoriel',
+    'storeForm.neo4j.indexNameHelp':
+      'Index vector Neo4j (5.x+) cible. URI et auth viennent des variables d\u2019environnement.',
+    'storeForm.neo4j.database': 'Base',
+    'storeForm.neo4j.databaseHelp':
+      'Optionnel \u2014 par d\u00e9faut \u00ab\u00a0neo4j\u00a0\u00bb.',
     'storeForm.cancel': 'Annuler',
     'storeForm.save': 'Enregistrer',
     'storeForm.create': 'Cr\u00e9er',
@@ -962,6 +968,11 @@ const messages: Messages = {
     'storeForm.sectionConfig': 'Configuration',
     'storeForm.opensearch.indexName': 'Index name',
     'storeForm.opensearch.indexNameHelp': 'Target OpenSearch index (created on first ingestion).',
+    'storeForm.neo4j.indexName': 'Vector index name',
+    'storeForm.neo4j.indexNameHelp':
+      'Target Neo4j (5.x+) vector index. URI and auth come from environment variables.',
+    'storeForm.neo4j.database': 'Database',
+    'storeForm.neo4j.databaseHelp': 'Optional — defaults to "neo4j".',
     'storeForm.cancel': 'Cancel',
     'storeForm.save': 'Save',
     'storeForm.create': 'Create',

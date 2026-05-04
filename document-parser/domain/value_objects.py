@@ -40,11 +40,11 @@ class DocumentLifecycleState(StrEnum):
 
 
 class StoreKind(StrEnum):
-    """Backing technology of a Store. Today only OpenSearch is implemented;
-    the enum is here so future backends (Pinecone, Qdrant, pgvector) can be
-    added without touching the persistence schema."""
+    """Backing technology of a Store. New backends plug in here without
+    touching the persistence schema."""
 
     OPENSEARCH = "opensearch"
+    NEO4J = "neo4j"
 
 
 class DocumentStoreLinkState(StrEnum):
