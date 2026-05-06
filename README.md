@@ -117,8 +117,8 @@ Open [http://localhost:3000](http://localhost:3000), upload a PDF, and get resul
 
 | Variant | Image tag | Size | Description |
 |---------|-----------|------|-------------|
-| **local** | `latest-local` | ~1.9 GB | Full — runs Docling in-process, CPU-only |
-| **remote** | `latest-remote` | ~270 MB | Lightweight — delegates to an external [Docling Serve](https://github.com/DS4SD/docling-serve) instance |
+| **local** | `latest-local` | ~3.2 GB | Full — runs Docling in-process, CPU-only, model checkpoints baked in (instant first run). Pass `--build-arg BAKE_MODELS=false` to drop to ~1.9 GB and let Docling download models on first request. |
+| **remote** | `latest-remote` | ~585 MB | Lightweight — delegates to an external [Docling Serve](https://github.com/DS4SD/docling-serve) instance |
 
 For remote mode:
 
