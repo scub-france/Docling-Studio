@@ -30,11 +30,11 @@ the linked issue. Everything else is on the author.
 - **Title on issue:** [ENHANCEMENT] Optim taille image latest-local (sortir reasoning, multi-stage, dockerignore)
 - **Author:** Pier-Jean Malandrino
 - **Date:** 2026-05-06
-- **Status:** Draft
+- **Status:** Implemented
 - **Target milestone:** 0.6.0 — Doc-centric ingest
-- **Impacted layers:** <backend: domain | api | services | persistence | infra> · <frontend: features/<name> | shared | app> · <e2e> · <infra/CI>
-- **Audit dimensions likely touched:** <pick from: Hexagonal Architecture · DDD · Clean Code · KISS · DRY · SOLID · Decoupling · Security · Tests · CI/Build · Documentation · Performance>
-- **ADR spawned?:** <no>  *(write an ADR when choosing a library, moving a boundary, or deciding **not** to do something — see `docs/architecture/adr-guide.md`)*
+- **Impacted layers:** infra/CI (Dockerfile, requirements split, compose) · docs (README, this doc)
+- **Audit dimensions likely touched:** CI/Build · Performance · Decoupling · Documentation
+- **ADR spawned?:** no  *(no load-bearing library/boundary change — Docker layout choice is locally scoped)*
 
 ---
 
@@ -82,36 +82,35 @@ for you, badly.
 
 ## 4. Context & constraints
 
-<!--
-The surrounding reality the design has to live in.
-
 ### Existing code surface
-List the modules / files / stores this change touches. Prefer concrete paths
-over prose:
-  - Backend: document-parser/<layer>/<file>.py
-  - Frontend: frontend/src/features/<name>/{store,api,ui}.ts|.vue
-  - Persistence: document-parser/persistence/<repo>.py + schema in database.py
-  - E2E: e2e/<feature>.feature
 
-### Hexagonal Architecture constraints (backend)
-The domain layer has zero imports from api / persistence / infra, and
-defines ports (abstract protocols) that `infra/` adapters implement.
-Persistence imports only from domain. API never imports persistence
-directly — it goes through services. Call out any change that crosses
-these lines or adds / moves a port.
+- `document-parser/Dockerfile` — the multi-target file (`base` → `remote` / `local`)
+- `document-parser/requirements.txt` — shared deps for both targets
+- `document-parser/requirements-local.txt` — additive Docling stack for the local target
+- `document-parser/.dockerignore` — minimal exclusion list
+- `docker-compose.yml` / `docker-compose.dev.yml` — both reference `target: ${CONVERSION_MODE:-local}`
+- `document-parser/infra/docling_agent_reasoning.py` — already guards with `deps_present()`, so removing the deps from the standard image degrades gracefully
+
+No domain / API / persistence / services code is touched. No SQLite migration. No frontend change. No e2e change.
+
+### Hexagonal Architecture constraints
+
+None crossed. The change lives entirely in `infra/CI` (Docker + requirements files). Domain/API/services/persistence are untouched and the `LocalConverter` / `ReasoningRunner` ports keep their existing shapes — only the deployment artefact changes shape, not the code.
 
 ### Deployment modes
-Docling Studio ships two images (`latest-local`, `latest-remote`) driven by
-`CONVERSION_ENGINE` — and a HF Space deployment on top of `latest-remote`.
-State which modes this design supports, which it does not, and how the
-frontend's feature flags (`chunking`, `disclaimer`) are affected.
+
+- `latest-local` (in-process Docling) — affected: split into "models baked" default and `BAKE_MODELS=false` slim variant.
+- `latest-remote` (delegates to Docling Serve) — affected: also slimmed (it inherited the reasoning deps via the shared `requirements.txt`).
+- HF Space — uses `latest-remote`, so it gets the size win for free without any HF-specific change.
+- Frontend feature flags (`chunking`, `disclaimer`, `reasoningAvailable`) are unaffected; `reasoningAvailable` keeps reflecting `deps_present()` so the sidebar entry hides automatically when the standard image is used.
 
 ### Hard constraints
-Compatibility (SQLite schema, API contract, Pydantic DTOs), deadlines
-(milestone due date), deployment target (Docker Compose, HF Space),
-performance budget (matters for Performance audit), license / privacy
-(matters for Security audit).
--->
+
+- **No SQLite or API contract change** — additive build-only.
+- **No Pydantic DTO change.**
+- **Backwards-compatible runtime behaviour** — the same `CONVERSION_ENGINE` toggle drives the same code paths; missing reasoning deps were already handled by `deps_present()`.
+- **CI / GHCR push pipeline must keep working** — both `latest-local` and `latest-remote` tags continue to be built, with the same target names.
+- **Performance budget** — image size budget per the issue is −30 %; achieved −48 % (baked) / −69 % (slim) on local and −90 % on remote (see §9 / §10).
 
 ## 5. Proposed design
 
@@ -166,17 +165,63 @@ valuable than pseudocode.
 
 ### 5.1 Domain
 
+Untouched.
+
 ### 5.2 Persistence
+
+Untouched.
 
 ### 5.3 Infra adapters
 
+Untouched at the Python level. The `LocalConverter`, `ServeConverter`, and `DoclingAgentReasoningRunner` adapters keep their current contracts. The only infra change is at the **deployment** layer:
+
+- `requirements.txt` no longer carries `docling-agent==0.1.0` and `mellea==0.4.2`. They move to a new `requirements-reasoning.txt` (opt-in).
+- `Dockerfile` is rewritten as a multi-stage build:
+
+```
+                 python:3.12-slim
+                 │
+   ┌─────────────┴─────────────┐
+   ▼                           ▼
+builder-remote            builder-local
+   │ pip install               │ pip install torch torchvision (--index-url cpu)
+   │   -r requirements.txt     │ pip install -r requirements-local.txt
+   │                           │ if WITH_REASONING: pip install -r requirements-reasoning.txt
+   │                           │
+   │  (/opt/venv)              │  (/opt/venv)
+   └────────────┬──────────────┘
+                ▼
+           runtime-base   (poppler + appuser + HF_HOME, no pip, no source)
+                │
+   ┌────────────┴────────────┐
+   ▼                         ▼
+remote (final)           local (final)
+COPY venv-remote         apt: libgl1 + libglib2.0-0
+COPY .                   COPY venv-local
+                         if BAKE_MODELS: docling-tools models download
+                         COPY .
+```
+
+- Source (`COPY . /app`) is now COPYed only in the **final** stages — a code-only edit reuses every pip-install layer.
+- Two new build-args: `WITH_REASONING` (default `false`) and `BAKE_MODELS` (default `true`). Both opt-out for `local-reasoning` / slim variants respectively.
+
 ### 5.4 Services
+
+Untouched.
 
 ### 5.5 API
 
+Untouched.
+
 ### 5.6 Frontend — feature module
 
+Untouched.
+
 ### 5.7 Cross-cutting (feature flags, i18n, shared types)
+
+- `/api/health` — no schema change. `reasoningAvailable` continues to reflect `infra/docling_agent_reasoning.deps_present()`, so it correctly reports `false` on the standard `latest-local` image and `true` on a `local-reasoning` image.
+- `i18n` — no string change.
+- `shared/types.ts` — no type change.
 
 ## 6. Alternatives considered
 
@@ -193,51 +238,48 @@ If one of the alternatives represents a significant architectural fork
 local decision, the ADR captures the cross-cutting one.
 -->
 
-### Alternative A — <name>
+### Alternative A — Dedicated `local-reasoning` Dockerfile target (3rd stage)
 
-- **Summary:**
-- **Why not:**
+- **Summary:** Add a third final target `FROM local AS local-reasoning` that runs `pip install -r requirements-reasoning.txt`. CI publishes `latest-local` and `latest-local-reasoning` separately.
+- **Why not:** Doubles the CI surface for very little benefit, and the duplication of intent (build-arg vs target) confuses operators. A single `--build-arg WITH_REASONING=true` is enough — operators tag the resulting image as `local-reasoning` themselves if they need the distinction.
 
-### Alternative B — <name>
+### Alternative B — Bake reasoning deps into the standard image, do nothing
 
-- **Summary:**
-- **Why not:**
+- **Summary:** Keep `docling-agent` + `mellea` in `requirements.txt`, accept the 5+ GB image as the cost of "everything works out of the box".
+- **Why not:** The standard `latest-remote` image (which delegates to Docling Serve and never reasons locally) was carrying ~5 GB of unrelated CUDA + LLM SDK weights. That alone disqualifies the do-nothing path.
+
+### Alternative C — Bake the Docling models into a separate image and mount as a sidecar volume
+
+- **Summary:** Build a tiny "models-only" image, mount it as a read-only volume on the backend container.
+- **Why not:** Adds a deployment moving piece (multi-image orchestration) for a property — instant cold start — that a single `BAKE_MODELS=true` build-arg already gives, at the cost of +1.3 GB the operator can opt out of.
 
 ## 7. API & data contract
 
-<!--
-Make the wire contract explicit — this is what the frontend, e2e tests,
-and any external consumer will code against.
-
 ### Endpoints
-| Method | Path | Request | Response | Breaking? |
-|--------|------|---------|----------|-----------|
-|        |      |         |          |           |
 
-Remember:
-  - API serialization is camelCase (Pydantic `alias_generator`).
-  - Backend internals stay snake_case.
-  - `pages_json` is the documented exception — it carries raw
-    `dataclasses.asdict()` output (snake_case).
-  - Health endpoint (`/api/health`) may need new fields if this design adds
-    a feature flag.
+No change. `/api/health` keeps the same shape; `reasoningAvailable` still derives from runtime import-checks.
 
 ### Persistence schema
-```sql
--- ALTER TABLE / CREATE TABLE statements, with reasoning
-```
+
+No change.
 
 ### Env vars / config
+
+No new runtime env vars. Two new **build-args** on the `local` Dockerfile target:
+
 | Name | Default | Allowed | Notes |
 |------|---------|---------|-------|
-|      |         |         |       |
+| `WITH_REASONING` | `false` | `true` / `false` | Bundle `docling-agent` + `mellea`. Opt in to build a `local-reasoning` image. Off keeps the standard image lean. |
+| `BAKE_MODELS` | `true` | `true` / `false` | Pre-fetch Docling model checkpoints into the appuser HF cache. Off makes the image ~1.3 GB lighter at the cost of a one-time download on first conversion. |
+
+Compose forwards `WITH_REASONING` from the host env (`WITH_REASONING=true docker compose up --build`).
 
 ### Breaking changes
-Enumerate anything a consumer must change. If there are none, say so
-explicitly — "additive only" is a useful commitment.
--->
 
-## 8. Risks & mitigations
+**Additive only at the deployment level. Two operational expectations change** — both intentional:
+
+1. Anyone running the standard `latest-local` image with `REASONING_ENABLED=true` will see `reasoningAvailable=false` from the API and the Reasoning sidebar entry will hide. To restore: rebuild with `--build-arg WITH_REASONING=true`. (Already documented in README.)
+2. The previously-added `hf_cache` named volume in compose is removed. Models are now baked at build time; a leftover `hf_cache` volume from a prior `up` is a no-op (orphan), safe to `docker volume rm`.
 
 <!--
 One row per non-trivial risk. Map each to an audit dimension so the
@@ -264,81 +306,87 @@ carefully.
 
 | Risk | Audit dimension | Likelihood | Impact | How we notice | Mitigation / rollback |
 |------|-----------------|------------|--------|---------------|------------------------|
-|      |                 |            |        |               |                        |
+| A future transitive dep silently re-pulls a CUDA torch and inflates the image again | Performance · CI/Build | Medium | High | CI image-size step regresses; `docker history` shows nvidia-* layers | Pin `torch` to a `+cpu` build in the requirements files; add a CI check that fails if `nvidia-` packages appear in the venv |
+| Operators relying on R&D reasoning hit `reasoningAvailable=false` after upgrading | Documentation · Decoupling | Medium | Medium | User report or 503 from `/api/reasoning` (already gated) | README + design doc explicitly call out the `WITH_REASONING=true` path; existing `deps_present()` already degrades gracefully (no crash) |
+| Baked models become stale relative to a future Docling version bump | CI/Build | Low | Low | Backend logs HF cache version mismatch; conversion still works (Docling re-downloads if needed) | Models are re-fetched at every image build; bumping `docling` in requirements-local.txt naturally produces a fresh-baked image |
+| A user adds custom models at runtime and loses them on container restart | Decoupling | Low | Low | User reports lost custom models | Documented: `BAKE_MODELS=false` + add a custom volume mount on `/home/appuser/.cache/huggingface` if persistence is needed |
+| Multi-stage `COPY --from=builder` increases initial build time on a cold cache | CI/Build | Low | Low | CI build duration | Cold builds are sequential by design; warm builds are dramatically faster (pip layers reused on every Python edit) — net positive |
 
 ## 9. Testing strategy
 
-<!--
-How this design will be verified. Be specific — name files / suites.
+### Backend — pytest
 
-### Backend — pytest (`document-parser/tests/`)
-  - Unit: per-layer (`tests/domain/`, `tests/persistence/`, `tests/services/`)
-  - Integration: services wired with real aiosqlite + real adapters
-  - Architecture tests (if applicable): enforce import boundaries
+No new tests added. The change is build-only and the existing 563-test suite is the regression net (services, persistence, API contract — none touched).
 
-### Frontend — Vitest (`frontend/src/**/*.test.ts`)
-  - Stores: actions / getters / mocked API
-  - Pure helpers (e.g. `bboxScaling.ts`-style modules): deterministic
-  - Components only when behavior is non-trivial; do not test markup
+Validation pipeline run on the branch:
 
-### E2E — Karate UI (`e2e/`)
-  - Use `data-e2e` selectors — never CSS classes (see e2e/CONVENTIONS.md)
-  - `retry()` / `waitFor()` — never `Thread.sleep()` / `delay()`
-  - Setup via API, verify via UI, cleanup via API
-  - Tag appropriately: `@critical` / `@ui` / `@smoke` / `@regression` / `@e2e`
-  - **Never Playwright** — Karate is the tool here.
+```
+ruff check .          → All checks passed
+ruff format --check . → 99 files OK
+pytest tests/         → 563 passed, 13 skipped
+```
+
+(2 pre-existing collection errors — `pytestarch` missing in dev venv, `_encode_picture_b64` not exported — are unrelated to this branch's diff and tracked separately.)
+
+### Frontend — Vitest
+
+Untouched. Not run.
+
+### E2E — Karate UI
+
+Not in scope. The change does not affect any user-facing behaviour.
 
 ### Manual QA
-Steps the reviewer can run locally (`docker-compose.dev.yml` up, scenario
-to reproduce). Keep it short — if the manual list is long, automate more.
 
-### Performance / load
-Required when the design claims a latency / throughput / memory property,
-or touches the conversion hot path.
--->
+1. `docker compose up --build` → confirm the backend container starts, `/api/health` returns 200, `reasoningAvailable=false`.
+2. Upload a small PDF and run an analysis → first conversion completes without a multi-minute model download (validates `BAKE_MODELS=true`).
+3. Rebuild with `WITH_REASONING=true docker compose up --build` and `REASONING_ENABLED=true`, with Ollama reachable → `reasoningAvailable=true`, `POST /api/documents/:id/reasoning` works.
+4. Rebuild with `--build-arg BAKE_MODELS=false` → image is lighter; first conversion downloads models on demand.
+
+### Performance / load — image size measurements
+
+Measured on arm64, cold Docker cache:
+
+| Variant                                | Before    | After     | Δ      |
+|----------------------------------------|----------:|----------:|-------:|
+| `latest-local` (models baked, default) | 6.09 GB   | 3.19 GB   | −48 %  |
+| `latest-local` (`BAKE_MODELS=false`)   | 6.09 GB   | 1.89 GB   | −69 %  |
+| `latest-remote`                        | 5.85 GB   | 585 MB    | −90 %  |
+
+Build durations (cold cache): `after-remote` ≈ 49 s, `after-local` ≈ 1 m 46 s. Warm rebuild after a Python-only edit: sub-second (pip layers reused).
 
 ## 10. Rollout & observability
 
-<!--
-How this change gets to production safely.
-
 ### Release branch
-Which `release/X.Y.Z` is the target? Any coordination with a parallel
-release (e.g. R&D branch)?
+
+Targets `release/0.6.0`. No coordination needed with parallel branches — the change is isolated to build files.
 
 ### Feature flag / staged rollout
-Does the change hide behind a flag surfaced via `/api/health`? If so, what
-flips the flag, and what is the default? HF Space deployments often need
-`deploymentMode === 'huggingface'` gating.
+
+No runtime feature flag. The change is hidden behind two **build-time** flags:
+
+- `BAKE_MODELS=true` (default) — produces the standard ~3.2 GB image.
+- `WITH_REASONING=true` (opt-in) — produces a `local-reasoning` variant.
+
+Operators can roll out by re-pulling `latest-local` from GHCR; no env flip needed.
+
+HF Space deployments are unaffected by the `local`-side build-args (HF Space uses `latest-remote`).
 
 ### Observability
-  - Logs to add / extend (structured, low-cardinality keys)
-  - Metrics / counters (if added — call out any new Prometheus names)
-  - New error modes to watch for in `analysis_jobs.status = FAILED`
+
+- No new logs, metrics, or error modes.
+- Image size becomes a CI signal: a follow-up issue should add a step that prints the published image size to the workflow summary, so a future regression (e.g. a new dep silently re-pulling CUDA) is visible at PR review time.
 
 ### Rollback plan
-The revert that is safe to apply at any time:
-  - Which migration is reversible? Which is not?
-  - Which env var flip disables the feature without a redeploy?
-  - Any data cleanup needed after rollback?
 
-Link to the existing release / ops playbooks:
-  - Deployment: `docs/release/*` (also surfaced via `/release:deploy`)
-  - Rollback: also surfaced via `/release:rollback`
-  - Incident: `docs/operations/*` (also surfaced via `/ops:incident`)
--->
+Pure-revert. Re-deploying the previous tag (`v0.5.x`) restores the prior image. No data migration or env flip is involved. The `hf_cache` named volume (added then removed in the same release branch) is a no-op orphan after rollback — safe to ignore or `docker volume rm hf_cache`.
 
 ## 11. Open questions
 
-<!--
-Things the author explicitly does not know yet, phrased as questions the
-reviewer can answer or redirect. Empty is allowed once the design is
-Accepted — during Draft / In review, this section is where the honest
-uncertainty lives. Resolve or delete each entry before shipping.
--->
+Resolved during implementation. Two follow-ups deferred to dedicated issues:
 
-- ...
-- ...
+- Drop `docling-core[chunking]` extra from `requirements.txt` to push `latest-remote` from 585 MB toward the historical ~270 MB. Needs verification that the `infra/local_chunker.py` path is local-only (it appears to be, but a check is warranted).
+- Pin `torch` to a CPU build (`torch==X.Y.Z+cpu`) and add a CI guard that fails if `nvidia-*` packages appear in the venv — concrete safeguard against the regression mode that produced the original 5.6 GB bloat.
 
 ## 12. References
 
@@ -347,12 +395,14 @@ Links to everything a future reader would want.
 -->
 
 - **Issue:** https://github.com/scub-france/Docling-Studio/issues/254
-- **Related PRs / commits:**
-- **ADRs:** <ADR-NNN or "none planned">
+- **Related PRs / commits:** https://github.com/scub-france/Docling-Studio/pull/255
+- **ADRs:** none planned
 - **Project docs:**
   - Architecture: `docs/architecture.md`
   - Coding standards: `docs/architecture/coding-standards.md`
   - ADR guide / template: `docs/architecture/adr-guide.md`, `docs/architecture/adr-template.md`
   - Audit master: `docs/audit/master.md`
   - E2E conventions: `e2e/CONVENTIONS.md`
-- **External:** <specs, upstream issues, dashboards, third-party docs>
+- **External:**
+  - Upstream `_rag_loop` public-API replacement: https://github.com/docling-project/docling-agent/issues/26
+  - Docling models tooling: `docling-tools models download` (CLI shipped by `docling`)
