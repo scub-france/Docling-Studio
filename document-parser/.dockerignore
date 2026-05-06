@@ -10,3 +10,25 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+
+# Test + dev assets — never needed in the runtime image.
+tests/
+conftest.py
+pytest.ini
+requirements-test.txt
+
+# Local runtime data — must not leak into the image.
+data/
+uploads/
+
+# One-shot migration utility — runs out-of-band, not from the image.
+tools/migrate_06.py
+
+# IDE / editor metadata.
+*.iml
+.idea/
+.vscode/
+
+# Stray frontend artefacts that have no business inside document-parser/.
+package-lock.json
+node_modules/

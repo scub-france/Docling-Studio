@@ -1,0 +1,11 @@
+# R&D reasoning-trace live runner — calls docling-agent's `_rag_loop` over
+# an Ollama backend. Gated server-side by `REASONING_ENABLED`; pulls a
+# heavy transitive set (mellea + pydantic-ai + several LLM SDKs).
+#
+# Opt in at build time with `--build-arg WITH_REASONING=true` on the
+# `local` Dockerfile target. Default off keeps the standard image lean.
+#
+# See https://github.com/docling-project/docling-agent/issues/26 for the
+# public-API replacement of `_rag_loop`.
+docling-agent==0.1.0
+mellea==0.4.2
