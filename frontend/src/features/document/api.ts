@@ -1,4 +1,4 @@
-import type { Document, DocTreeNode } from '../../shared/types'
+import type { DocChunk, Document, DocTreeNode } from '../../shared/types'
 import { apiFetch } from '../../shared/api/http'
 
 export function fetchDocuments(): Promise<Document[]> {
@@ -27,14 +27,12 @@ export function getPreviewUrl(id: string, page = 1, dpi = 150): string {
   return `/api/documents/${id}/preview?page=${page}&dpi=${dpi}`
 }
 
-export function rechunkDocument(id: string): Promise<{ jobId: string }> {
-  return apiFetch<{ jobId: string }>(`/api/documents/${id}/rechunk`, { method: 'POST' })
-}
-
-export function pushDocumentToStore(id: string, store: string): Promise<{ jobId: string }> {
-  return apiFetch<{ jobId: string }>(`/api/documents/${id}/push`, {
+/** Rechunk the canonical chunkset. Backend runs synchronously and returns
+ * the new chunks — there is no async job to poll. */
+export function rechunkDocument(id: string): Promise<DocChunk[]> {
+  return apiFetch<DocChunk[]>(`/api/documents/${id}/rechunk`, {
     method: 'POST',
-    body: JSON.stringify({ store }),
+    body: JSON.stringify({}),
   })
 }
 

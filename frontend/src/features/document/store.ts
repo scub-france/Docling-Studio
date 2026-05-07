@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Document } from '../../shared/types'
 import { appMaxFileSizeMb } from '../../shared/appConfig'
+import { pushChunksToStore } from '../chunks/api'
 import * as api from './api'
 
 export const useDocumentStore = defineStore('document', () => {
@@ -65,10 +66,10 @@ export const useDocumentStore = defineStore('document', () => {
     selectedId.value = id
   }
 
-  async function rechunk(id: string): Promise<string | null> {
+  async function rechunk(id: string): Promise<number | null> {
     try {
-      const res = await api.rechunkDocument(id)
-      return res.jobId
+      const chunks = await api.rechunkDocument(id)
+      return chunks.length
     } catch (e) {
       error.value = (e as Error).message || 'Failed to rechunk'
       console.error('Rechunk failed', e)
@@ -78,7 +79,7 @@ export const useDocumentStore = defineStore('document', () => {
 
   async function pushToStore(id: string, store: string): Promise<string | null> {
     try {
-      const res = await api.pushDocumentToStore(id, store)
+      const res = await pushChunksToStore(id, store)
       return res.jobId
     } catch (e) {
       error.value = (e as Error).message || 'Failed to push to store'
