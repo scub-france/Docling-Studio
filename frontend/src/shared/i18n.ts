@@ -76,6 +76,7 @@ const messages: Messages = {
     'docs.pushSubmit': 'Ingérer',
     'docs.pushCancel': 'Annuler',
     'docs.jobDispatched': 'Job lancé ({jobId})',
+    'docs.rechunkDone': 'Re-chunkage terminé ({n} document(s))',
 
     // Doc import (#214)
     'docsNew.title': 'Importer des documents',
@@ -587,6 +588,7 @@ const messages: Messages = {
     'docs.pushSubmit': 'Ingest',
     'docs.pushCancel': 'Cancel',
     'docs.jobDispatched': 'Job dispatched ({jobId})',
+    'docs.rechunkDone': 'Rechunk done ({n} document(s))',
 
     // Doc import (#214)
     'docsNew.title': 'Import documents',

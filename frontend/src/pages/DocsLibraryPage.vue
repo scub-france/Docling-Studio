@@ -369,12 +369,10 @@ function clearSelection(): void {
 async function bulkRechunk(): Promise<void> {
   const ids = [...selectedIds.value]
   clearSelection()
-  const jobs = await Promise.all(ids.map((id) => docStore.rechunk(id)))
-  const dispatched = jobs.filter(Boolean)
-  if (dispatched.length) {
-    // Surface job ids as a brief toast via window.alert for now
-    // E9 (RunsPage) will provide proper job tracking
-    window.alert(t('docs.jobDispatched', { jobId: dispatched.join(', ') }))
+  const counts = await Promise.all(ids.map((id) => docStore.rechunk(id)))
+  const succeeded = counts.filter((n): n is number => n !== null).length
+  if (succeeded) {
+    window.alert(t('docs.rechunkDone', { n: succeeded }))
   }
 }
 

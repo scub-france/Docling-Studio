@@ -7,10 +7,14 @@ vi.mock('./api', () => ({
   uploadDocument: vi.fn(),
   deleteDocument: vi.fn(),
   rechunkDocument: vi.fn(),
-  pushDocumentToStore: vi.fn(),
+}))
+
+vi.mock('../chunks/api', () => ({
+  pushChunksToStore: vi.fn(),
 }))
 
 import * as api from './api'
+import * as chunksApi from '../chunks/api'
 
 describe('useDocumentStore', () => {
   beforeEach(() => {
@@ -138,12 +142,12 @@ describe('useDocumentStore', () => {
     expect(store.loading).toBe(false)
   })
 
-  it('rechunk() returns jobId on success', async () => {
-    api.rechunkDocument.mockResolvedValue({ jobId: 'j1' })
+  it('rechunk() returns chunk count on success', async () => {
+    api.rechunkDocument.mockResolvedValue([{ id: 'c1' }, { id: 'c2' }, { id: 'c3' }])
     const store = useDocumentStore()
     const result = await store.rechunk('42')
     expect(api.rechunkDocument).toHaveBeenCalledWith('42')
-    expect(result).toBe('j1')
+    expect(result).toBe(3)
   })
 
   it('rechunk() returns null on error', async () => {
@@ -154,16 +158,19 @@ describe('useDocumentStore', () => {
     expect(result).toBeNull()
   })
 
-  it('pushToStore() returns jobId on success', async () => {
-    api.pushDocumentToStore.mockResolvedValue({ jobId: 'j2' })
+  it('pushToStore() delegates to chunks/api.pushChunksToStore and returns jobId', async () => {
+    chunksApi.pushChunksToStore.mockResolvedValue({
+      jobId: 'j2',
+      summary: { embeds: 5, tokens: 50 },
+    })
     const store = useDocumentStore()
     const result = await store.pushToStore('42', 'my-store')
-    expect(api.pushDocumentToStore).toHaveBeenCalledWith('42', 'my-store')
+    expect(chunksApi.pushChunksToStore).toHaveBeenCalledWith('42', 'my-store')
     expect(result).toBe('j2')
   })
 
   it('pushToStore() returns null on error', async () => {
-    api.pushDocumentToStore.mockRejectedValue(new Error('fail'))
+    chunksApi.pushChunksToStore.mockRejectedValue(new Error('fail'))
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const store = useDocumentStore()
     const result = await store.pushToStore('42', 'my-store')

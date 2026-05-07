@@ -128,4 +128,50 @@ describe('chunks API', () => {
     })
     expect(result).toEqual(response)
   })
+
+  // ---- Error propagation: each call lets the apiFetch error bubble up so
+  // the store can map it to a user-visible message. The original 404 bug
+  // (#256) silently swallowed the error — these guard tests would have
+  // caught it.
+  describe('error propagation', () => {
+    it('fetchChunks rejects with apiFetch error (404)', async () => {
+      apiFetch.mockRejectedValue(new Error('404: Not Found'))
+      await expect(fetchChunks('d1')).rejects.toThrow('404')
+    })
+
+    it('updateChunk rejects with apiFetch error (404)', async () => {
+      apiFetch.mockRejectedValue(new Error('404: Not Found'))
+      await expect(updateChunk('d1', 'c1', { text: 'x' })).rejects.toThrow('404')
+    })
+
+    it('mergeChunks rejects with apiFetch error (409)', async () => {
+      apiFetch.mockRejectedValue(new Error('409: Conflict'))
+      await expect(mergeChunks('d1', ['a', 'b'])).rejects.toThrow('409')
+    })
+
+    it('splitChunk rejects with apiFetch error (400)', async () => {
+      apiFetch.mockRejectedValue(new Error('400: Bad Request'))
+      await expect(splitChunk('d1', 'c1', 0)).rejects.toThrow('400')
+    })
+
+    it('dropChunk rejects with apiFetch error (404)', async () => {
+      apiFetch.mockRejectedValue(new Error('404: Not Found'))
+      await expect(dropChunk('d1', 'c1')).rejects.toThrow('404')
+    })
+
+    it('addChunk rejects with apiFetch error (500)', async () => {
+      apiFetch.mockRejectedValue(new Error('500: Internal Server Error'))
+      await expect(addChunk('d1', 'x')).rejects.toThrow('500')
+    })
+
+    it('fetchChunkDiff rejects with apiFetch error (404)', async () => {
+      apiFetch.mockRejectedValue(new Error('404: Not Found'))
+      await expect(fetchChunkDiff('d1', 'store')).rejects.toThrow('404')
+    })
+
+    it('pushChunksToStore rejects with apiFetch error (503)', async () => {
+      apiFetch.mockRejectedValue(new Error('503: Service Unavailable'))
+      await expect(pushChunksToStore('d1', 'store')).rejects.toThrow('503')
+    })
+  })
 })
