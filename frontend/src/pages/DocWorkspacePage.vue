@@ -28,6 +28,7 @@
           :aria-selected="activeMode === m"
           :disabled="!modeEnabled(m)"
           :title="!modeEnabled(m) ? t('workspace.modeDisabled') : undefined"
+          :data-e2e="`tab-${m}`"
           @click="switchMode(m)"
         >
           {{ t(`workspace.tabs.${m}`) }}

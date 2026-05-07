@@ -6,7 +6,6 @@ import {
   deleteDocument,
   getPreviewUrl,
   rechunkDocument,
-  pushDocumentToStore,
   fetchDocumentTree,
 } from './api'
 
@@ -72,25 +71,17 @@ describe('document API', () => {
     expect(getPreviewUrl('abc', 3, 300)).toBe('/api/documents/abc/preview?page=3&dpi=300')
   })
 
-  it('rechunkDocument calls POST /api/documents/:id/rechunk', async () => {
-    apiFetch.mockResolvedValue({ jobId: 'job-1' })
+  it('rechunkDocument calls POST /api/documents/:id/rechunk and returns chunks', async () => {
+    const chunks = [{ id: 'c1' }, { id: 'c2' }]
+    apiFetch.mockResolvedValue(chunks)
 
     const result = await rechunkDocument('42')
 
-    expect(apiFetch).toHaveBeenCalledWith('/api/documents/42/rechunk', { method: 'POST' })
-    expect(result).toEqual({ jobId: 'job-1' })
-  })
-
-  it('pushDocumentToStore calls POST /api/documents/:id/push with store', async () => {
-    apiFetch.mockResolvedValue({ jobId: 'job-2' })
-
-    const result = await pushDocumentToStore('42', 'my-store')
-
-    expect(apiFetch).toHaveBeenCalledWith('/api/documents/42/push', {
+    expect(apiFetch).toHaveBeenCalledWith('/api/documents/42/rechunk', {
       method: 'POST',
-      body: JSON.stringify({ store: 'my-store' }),
+      body: JSON.stringify({}),
     })
-    expect(result).toEqual({ jobId: 'job-2' })
+    expect(result).toEqual(chunks)
   })
 
   it('fetchDocumentTree calls GET /api/documents/:id/tree', async () => {
