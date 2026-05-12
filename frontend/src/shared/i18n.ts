@@ -215,6 +215,8 @@ const messages: Messages = {
     'history.setCurrent': 'Sélectionner',
     'history.notCompleted': 'Disponible uniquement pour les analyses terminées.',
     'history.open': 'Ouvrir',
+    // + New analysis bridge to Studio (#266)
+    'newAnalysis.title': 'Nouvelle analyse',
 
     // Chunking
     'studio.prepare': 'Préparer',
@@ -777,6 +779,8 @@ const messages: Messages = {
     'history.setCurrent': 'Set as current',
     'history.notCompleted': 'Only available for completed analyses.',
     'history.open': 'Open',
+    // + New analysis bridge to Studio (#266)
+    'newAnalysis.title': 'New analysis',
 
     'studio.prepare': 'Prepare',
     'studio.ingest': 'Ingest',
