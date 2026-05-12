@@ -30,7 +30,7 @@ the linked issue. Everything else is on the author.
 - **Title on issue:** [FEAT] Linked view — preview + chunks panel + LAYERS filters
 - **Author:** Pier-Jean Malandrino
 - **Date:** 2026-05-12
-- **Status:** Accepted
+- **Status:** Accepted (amended after first build — mode rename + Parse view scope, see §13)
 - **Target milestone:** 0.6.1 — Stabilisation
 - **Impacted layers:** frontend (`features/document`, `features/chunks`, `pages/Doc*`, `shared/ui/PaginationBar`) · e2e
 - **Audit dimensions likely touched:** Decoupling · DRY · KISS · Tests · Performance
@@ -616,3 +616,55 @@ Links to everything a future reader would want.
   - Audit master: `docs/audit/master.md`
   - E2E conventions: `e2e/CONVENTIONS.md`
 - **External:** Mockup PDF `Docling Studio — Document Detail (Light).pdf` (page 1)
+
+## 13. Post-review amendment — mode rename + Parse view scope
+
+After the first build landed on the branch, the user surfaced a
+mismatch between the maquette terminology and the implementation:
+
+> "Sur Linked on est sensé voir l'OCR, sur Inspect les chunks. Tu vas
+> me renommer Linked en Parse et Inspect en Chunk."
+
+The mode names are reshuffled to make their content obvious:
+
+- **Parse** (formerly Linked) — Docling extraction graph for the
+  document: Structure tree on the left (existing `DocTreeRail`),
+  Preview with bbox overlay in the center, LAYERS bar on top. No
+  chunks panel.
+- **Chunk** (formerly Inspect) — chunk-centric: LAYERS + Preview +
+  page-scoped `ChunksPanel`. Exactly the layout the original §5
+  prescribed for "Linked".
+
+What changes vs. §5:
+
+- The new `pages/DocParseTab.vue` mounts the Structure tree (reusing
+  `DocTreeRail` + `DocTreeNode`) alongside `PagePreviewWithOverlay`
+  and `LayersBar`. Two-way linking: selecting a node in the tree
+  jumps to the node's page and highlights its bbox via the existing
+  `highlightedRefs` channel; clicking a bbox sets the selected node.
+  No Properties panel in this first cut — that piece lives in a
+  follow-up.
+- `pages/DocChunksTab.vue` (renamed to `DocLinkedTab.vue` mid-build)
+  is renamed once more to `pages/DocChunkTab.vue` and keeps the
+  exact body the original §5 described.
+- `pages/DocInspectTab.vue` (the legacy Markdown / Elements / Images
+  tabs) is **deleted** — the new Chunk view supersedes it. No more
+  legacy DocInspectTab on disk.
+- The `DocMode` union becomes `'parse' | 'chunk'`. The router's
+  `parseMode` aliases three legacy names for backwards compatibility:
+  `?mode=linked` → `chunk`, `?mode=chunks` → `chunk`, `?mode=inspect`
+  → `parse`.
+- The backend mode-gating flags keep their pre-rename names —
+  `inspect_mode_enabled` gates Parse and `linked_mode_enabled` gates
+  Chunk. Renaming the env vars is a separate follow-up to avoid
+  bundling an ops change in a frontend PR.
+- Preview CSS bug: the first cut placed `<img>` and `<canvas>` as
+  siblings inside a `display: flex` `.preview-stage`, which crushed
+  the aspect ratio. The image now lives in a `.preview-frame`
+  wrapper (`width: fit-content`) and the canvas overlays it with
+  `position: absolute; inset: 0`.
+
+i18n keys split accordingly: `linked.*` keys deleted, replaced by
+`parse.*` and `chunk.*` namespaces. `breadcrumb.mode.linked` →
+`breadcrumb.mode.parse`; `breadcrumb.mode.inspect` →
+`breadcrumb.mode.chunk`.

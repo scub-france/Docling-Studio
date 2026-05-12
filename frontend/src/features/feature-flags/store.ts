@@ -175,10 +175,19 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
    * workspace mode flags as a `Record<DocMode, boolean>` so the routing
    * guard does not need to know about the FeatureFlag union.
    */
-  function modeFlags(): { inspect: boolean; linked: boolean } {
+  /**
+   * Workspace mode-flag map consumed by `resolveMode` (#210 / #263 / #264).
+   *
+   * The keys match the current `DocMode` union (`parse`, `chunk`). The
+   * underlying backend flags keep their pre-rename names — `inspect_mode_enabled`
+   * gates the new Parse view (Docling extraction) and `linked_mode_enabled`
+   * gates the Chunk view (chunks-aligned preview). Renaming the backend
+   * env vars is a separate follow-up.
+   */
+  function modeFlags(): { parse: boolean; chunk: boolean } {
     return {
-      inspect: inspectModeEnabled.value,
-      linked: linkedModeEnabled.value,
+      parse: inspectModeEnabled.value,
+      chunk: linkedModeEnabled.value,
     }
   }
 
