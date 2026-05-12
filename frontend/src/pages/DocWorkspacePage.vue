@@ -46,14 +46,14 @@
            (bbox, selectedPage, etc.) from leaking. -->
       <div class="tab-content" role="tabpanel" data-e2e="tab-content">
         <Suspense>
-          <DocLinkedTab
-            v-if="activeMode === 'linked'"
+          <DocParseTab v-if="activeMode === 'parse'" :key="id" :doc-id="id" />
+          <DocChunkTab
+            v-else-if="activeMode === 'chunk'"
             :key="id"
             :doc-id="id"
             :available-stores="doc.stores ?? []"
             :store-links="doc.storeLinks"
           />
-          <DocInspectTab v-else-if="activeMode === 'inspect'" :key="id" :doc-id="id" />
         </Suspense>
       </div>
     </template>
@@ -74,8 +74,8 @@ import type { Crumb } from '../shared/breadcrumb/types'
 import { useI18n } from '../shared/i18n'
 import { ROUTES } from '../shared/routing/names'
 import DocWorkspaceHeader from '../features/document/ui/DocWorkspaceHeader.vue'
-import DocLinkedTab from './DocLinkedTab.vue'
-import DocInspectTab from './DocInspectTab.vue'
+import DocParseTab from './DocParseTab.vue'
+import DocChunkTab from './DocChunkTab.vue'
 
 const props = defineProps<{ id: string; mode: DocMode }>()
 
@@ -97,8 +97,8 @@ interface ViewEntry {
   disabled: boolean
 }
 const VIEWS: readonly ViewEntry[] = [
-  { key: 'linked', disabled: false },
-  { key: 'inspect', disabled: false },
+  { key: 'parse', disabled: false },
+  { key: 'chunk', disabled: false },
   { key: 'compare', disabled: true },
 ]
 

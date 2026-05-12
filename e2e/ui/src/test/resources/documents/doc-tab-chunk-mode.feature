@@ -1,13 +1,13 @@
 @ui @critical
-Feature: UI — Doc Linked view renders canonical chunks (#256, refreshed #263 / #264)
+Feature: UI — Doc Chunk view renders canonical chunks (#256, refreshed #263 / #264)
 
   # Regression coverage for the bug where opening the chunks tab on a
   # document returned 404 because /api/documents/{id}/chunks was not
   # implemented backend-side. After #263 the tab strip became a top-right
-  # switcher and the mode renamed chunks → linked; after #264 the page
-  # restructured into LayersBar + PagePreviewWithOverlay + ChunksPanel.
-  # The selectors were refreshed accordingly. Setup is API-driven so the
-  # test stays fast and deterministic.
+  # switcher; after #264 the page restructured into LayersBar +
+  # PagePreviewWithOverlay + ChunksPanel and the mode was renamed
+  # `linked` → `chunk` (Parse owns the extraction view, Chunk owns the
+  # chunk-aligned preview). Selectors and ?mode= values updated.
 
   Background:
     * url baseUrl
@@ -43,10 +43,10 @@ Feature: UI — Doc Linked view renders canonical chunks (#256, refreshed #263 /
     And assert karate.sizeOf(response) > 0
     And match each response contains { bboxes: '#array', docItems: '#array' }
 
-    # 3. Drive the UI: open the workspace, default mode is Linked.
-    * driver uiBaseUrl + '/docs/' + docId
+    # 3. Drive the UI: open the workspace on the Chunk view directly.
+    * driver uiBaseUrl + '/docs/' + docId + '?mode=chunk'
     * waitFor('[data-e2e=view-switcher]')
-    * waitFor('[data-e2e=linked-tab]')
+    * waitFor('[data-e2e=chunk-tab]')
 
     # 4. Verify the LAYERS bar + chunks panel rendered.
     * waitFor('[data-e2e=layers-bar]')

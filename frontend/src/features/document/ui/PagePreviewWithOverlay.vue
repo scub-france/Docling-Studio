@@ -15,27 +15,29 @@
         {{ t('linked.pageOf', { page: currentPage, total: totalPages }) }}
       </span>
     </div>
-    <div class="preview-stage" ref="stageRef">
-      <img
-        v-if="previewUrl"
-        ref="imageRef"
-        :src="previewUrl"
-        :alt="`Page ${currentPage}`"
-        class="preview-image"
-        @load="onImageLoad"
-      />
-      <BboxCanvas
-        v-if="imageEl && currentPageData"
-        :image-el="imageEl"
-        :page-width="currentPageData.width"
-        :page-height="currentPageData.height"
-        :elements="currentPageData.elements"
-        :hidden-types="hiddenTypes"
-        :highlighted-refs="highlightedRefs"
-        :show-labels="showLabels"
-        @hover-element="(el) => emit('hoverElement', el)"
-        @click-element="(el) => emit('clickElement', el)"
-      />
+    <div class="preview-stage">
+      <div class="preview-frame">
+        <img
+          v-if="previewUrl"
+          ref="imageRef"
+          :src="previewUrl"
+          :alt="`Page ${currentPage}`"
+          class="preview-image"
+          @load="onImageLoad"
+        />
+        <BboxCanvas
+          v-if="imageEl && currentPageData"
+          :image-el="imageEl"
+          :page-width="currentPageData.width"
+          :page-height="currentPageData.height"
+          :elements="currentPageData.elements"
+          :hidden-types="hiddenTypes"
+          :highlighted-refs="highlightedRefs"
+          :show-labels="showLabels"
+          @hover-element="(el) => emit('hoverElement', el)"
+          @click-element="(el) => emit('clickElement', el)"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -71,7 +73,6 @@ const emit = defineEmits<{
   clickElement: [el: PageElement]
 }>()
 
-const stageRef = ref<HTMLDivElement | null>(null)
 const imageRef = ref<HTMLImageElement | null>(null)
 const imageEl = ref<HTMLImageElement | null>(null)
 
@@ -148,19 +149,26 @@ function onPageChange(page: number): void {
 }
 
 .preview-stage {
-  position: relative;
   flex: 1;
-  overflow-y: auto;
+  overflow: auto;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  display: flex;
-  justify-content: center;
+  padding: 8px;
+  min-height: 0;
+}
+
+.preview-frame {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .preview-image {
-  width: 100%;
-  height: auto;
   display: block;
+  max-width: 100%;
+  height: auto;
 }
 </style>
