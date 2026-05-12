@@ -48,8 +48,16 @@
         <div v-else-if="documentStore.workspaceLoading" class="parse-state">
           <span class="spinner" />
         </div>
-        <div v-else class="parse-state">
-          {{ t('parse.noAnalysis') }}
+        <div v-else class="parse-state parse-state--empty">
+          <p>{{ t('parse.noAnalysis') }}</p>
+          <button
+            type="button"
+            class="parse-state-cta"
+            data-e2e="parse-empty-cta"
+            @click="onLaunchAnalysis"
+          >
+            + {{ t('newAnalysis.title') }}
+          </button>
         </div>
       </div>
       <ElementProperties
@@ -78,6 +86,7 @@
  *   - Clicking a bbox → select the matching node in the tree
  */
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import type { DocChunk, DocTreeNode, PageElement } from '../shared/types'
 import { useChunksStore } from '../features/chunks/store'
 import { fetchDocumentTree } from '../features/document/api'
@@ -88,12 +97,18 @@ import ElementProperties from '../features/document/ui/ElementProperties.vue'
 import LayersBar from '../features/document/ui/LayersBar.vue'
 import PagePreviewWithOverlay from '../features/document/ui/PagePreviewWithOverlay.vue'
 import { useI18n } from '../shared/i18n'
+import { ROUTES } from '../shared/routing/names'
 
 const props = defineProps<{ docId: string }>()
 
 const { t } = useI18n()
+const router = useRouter()
 const documentStore = useDocumentStore()
 const chunksStore = useChunksStore()
+
+function onLaunchAnalysis(): void {
+  router.push({ name: ROUTES.STUDIO, query: { docId: props.docId } })
+}
 
 const currentPage = ref(1)
 const hiddenTypes = ref<Set<string>>(new Set())
@@ -302,6 +317,26 @@ function findPageOfRef(
   justify-content: center;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.parse-state--empty {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.parse-state-cta {
+  padding: 6px 14px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: filter var(--transition);
+}
+
+.parse-state-cta:hover {
+  filter: brightness(1.1);
 }
 
 .spinner {

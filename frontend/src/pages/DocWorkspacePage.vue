@@ -48,6 +48,17 @@
           >
             ↻ {{ t('history.title') }}
           </button>
+          <!-- + New analysis (#266) — bridges to Studio with this doc
+               pre-selected. Interim until a dedicated launcher ships. -->
+          <button
+            type="button"
+            class="header-action-btn header-action-btn--primary"
+            :title="t('newAnalysis.title')"
+            data-e2e="new-analysis-btn"
+            @click="onNewAnalysis"
+          >
+            + {{ t('newAnalysis.title') }}
+          </button>
         </template>
       </DocWorkspaceHeader>
 
@@ -117,6 +128,17 @@ async function onSetCurrentAnalysis(analysisId: string): Promise<void> {
   // effect of the switch (e.g. a re-promotion) is reflected.
   await chunksStore.load(props.id)
   historyOpen.value = false
+}
+
+/**
+ * Bridge to Studio (#266). Until a dedicated "new analysis" screen
+ * lands, the doc workspace launches new parses through the existing
+ * Studio UI; the docId query param pre-selects the document so the
+ * user doesn't have to re-pick it. Studio strips the param from the
+ * URL on mount.
+ */
+function onNewAnalysis(): void {
+  router.push({ name: ROUTES.STUDIO, query: { docId: props.id } })
 }
 
 const doc = ref<Document | null>(null)
@@ -310,6 +332,18 @@ watch(
 
 .header-action-btn:hover {
   color: var(--accent);
+  border-color: var(--accent);
+}
+
+.header-action-btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.header-action-btn--primary:hover {
+  filter: brightness(1.1);
+  color: white;
   border-color: var(--accent);
 }
 
