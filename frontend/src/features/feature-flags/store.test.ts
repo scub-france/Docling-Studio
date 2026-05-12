@@ -220,7 +220,7 @@ describe('useFeatureFlagStore', () => {
     expect(store.isEnabled('askMode')).toBe(true)
   })
 
-  it('modeFlags() returns the two workspace flags in a Record<DocMode, boolean>', async () => {
+  it('modeFlags() maps backend flags to current DocMode keys (#264 rename)', async () => {
     mockApiFetch.mockResolvedValue({
       status: 'ok',
       engine: 'local',
@@ -229,6 +229,8 @@ describe('useFeatureFlagStore', () => {
     })
     const store = useFeatureFlagStore()
     await store.load()
-    expect(store.modeFlags()).toEqual({ inspect: true, linked: false })
+    // inspect_mode_enabled gates Parse, linked_mode_enabled gates Chunk —
+    // the backend flag names are kept until a separate env-var rename.
+    expect(store.modeFlags()).toEqual({ parse: true, chunk: false })
   })
 })

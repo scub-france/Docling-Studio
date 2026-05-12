@@ -29,8 +29,8 @@ const messages: Messages = {
     // Breadcrumb (0.6.0 doc workspace — #208)
     'breadcrumb.aria': "Fil d'Ariane",
     'breadcrumb.studio': 'Studio',
-    'breadcrumb.mode.linked': 'Linked',
-    'breadcrumb.mode.inspect': 'Inspect',
+    'breadcrumb.mode.parse': 'Parse',
+    'breadcrumb.mode.chunk': 'Chunk',
 
     // Feature flags (0.6.0 — #210)
     'flags.allModesDisabled':
@@ -384,24 +384,33 @@ const messages: Messages = {
     'ask.noAnalysis': 'Aucune analyse disponible',
     'ask.noAnalysisSub': 'Analysez ce document dans le Studio avant de poser une question.',
 
-    // Doc workspace (#216, #218 \u2014 switcher refactored in #263)
-    'workspace.tabs.linked': 'Linked',
-    'workspace.tabs.inspect': 'Inspect',
+    // Doc workspace (#216, #218 \u2014 switcher refactored in #263, modes renamed in #264)
+    'workspace.tabs.parse': 'Parse',
+    'workspace.tabs.chunk': 'Chunk',
     'workspace.tabs.compare': 'Compare',
     'workspace.backToLibrary': 'Retour \u00e0 la biblioth\u00e8que',
     'workspace.modeDisabled': 'Mode d\u00e9sactiv\u00e9 pour ce d\u00e9ploiement',
     'workspace.compareSoon': 'Compare \u2014 disponible en 0.9.0',
 
-    // Linked view (#264)
-    'linked.showLabels': 'Afficher les libell\u00e9s',
-    'linked.pageOf': 'Page {page} sur {total}',
-    'linked.strategy': 'Strat\u00e9gie',
-    'linked.strategySoon': 'Strat\u00e9gie \u2014 param\u00e8tres de rechunk \u00e0 venir',
-    'linked.chunks.title': 'Chunks',
-    'linked.chunks.count': '{n} sur {total} en page {page}',
-    'linked.chunks.emptyOnPage': 'Aucun chunk en page {page}.',
-    'linked.chunks.edited': 'modifi\u00e9',
-    'linked.noAnalysis': "Aucune analyse \u2014 lancez d'abord un parse.",
+    // Parse view (#264) \u2014 Docling extraction graph
+    'parse.layers': 'LAYERS',
+    'parse.showLabels': 'Afficher les libell\u00e9s',
+    'parse.pageOf': 'Page {page} sur {total}',
+    'parse.structureTitle': 'Structure',
+    'parse.structureNodes': '{n} n\u0153uds',
+    'parse.filterPlaceholder': 'Filtrer les \u00e9l\u00e9ments\u2026',
+    'parse.noAnalysis': "Aucune analyse \u2014 lancez d'abord un parse.",
+
+    // Chunk view (#264) \u2014 chunks aligned to the page preview
+    'chunk.showLabels': 'Afficher les libell\u00e9s',
+    'chunk.pageOf': 'Page {page} sur {total}',
+    'chunk.strategy': 'Strat\u00e9gie',
+    'chunk.strategySoon': 'Strat\u00e9gie \u2014 param\u00e8tres de rechunk \u00e0 venir',
+    'chunk.panel.title': 'Chunks',
+    'chunk.panel.count': '{n} sur {total} en page {page}',
+    'chunk.panel.emptyOnPage': 'Aucun chunk en page {page}.',
+    'chunk.panel.edited': 'modifi\u00e9',
+    'chunk.noAnalysis': "Aucune analyse \u2014 lancez d'abord un parse.",
 
     // Doc tree rail (#217)
     'tree.empty': "Aucun n\u0153ud dans l'arbre.",
@@ -547,8 +556,8 @@ const messages: Messages = {
     // Breadcrumb (0.6.0 doc workspace — #208)
     'breadcrumb.aria': 'Breadcrumb',
     'breadcrumb.studio': 'Studio',
-    'breadcrumb.mode.linked': 'Linked',
-    'breadcrumb.mode.inspect': 'Inspect',
+    'breadcrumb.mode.parse': 'Parse',
+    'breadcrumb.mode.chunk': 'Chunk',
 
     // Feature flags (0.6.0 — #210)
     'flags.allModesDisabled':
@@ -888,24 +897,33 @@ const messages: Messages = {
     'ask.noAnalysis': 'No analysis available',
     'ask.noAnalysisSub': 'Analyze this document in Studio before asking a question.',
 
-    // Doc workspace (#216, #218 — switcher refactored in #263)
-    'workspace.tabs.linked': 'Linked',
-    'workspace.tabs.inspect': 'Inspect',
+    // Doc workspace (#216, #218 — switcher refactored in #263, modes renamed in #264)
+    'workspace.tabs.parse': 'Parse',
+    'workspace.tabs.chunk': 'Chunk',
     'workspace.tabs.compare': 'Compare',
     'workspace.backToLibrary': 'Back to library',
     'workspace.modeDisabled': 'Mode disabled for this deployment',
     'workspace.compareSoon': 'Compare — coming in 0.9.0',
 
-    // Linked view (#264)
-    'linked.showLabels': 'Show labels',
-    'linked.pageOf': 'Page {page} of {total}',
-    'linked.strategy': 'Strategy',
-    'linked.strategySoon': 'Strategy — rechunk options coming soon',
-    'linked.chunks.title': 'Chunks',
-    'linked.chunks.count': '{n} of {total} on page {page}',
-    'linked.chunks.emptyOnPage': 'No chunks on page {page}.',
-    'linked.chunks.edited': 'edited',
-    'linked.noAnalysis': 'No analysis yet — run a parse first.',
+    // Parse view (#264) — Docling extraction graph
+    'parse.layers': 'LAYERS',
+    'parse.showLabels': 'Show labels',
+    'parse.pageOf': 'Page {page} of {total}',
+    'parse.structureTitle': 'Structure',
+    'parse.structureNodes': '{n} nodes',
+    'parse.filterPlaceholder': 'Filter elements…',
+    'parse.noAnalysis': 'No analysis yet — run a parse first.',
+
+    // Chunk view (#264) — chunks aligned to the page preview
+    'chunk.showLabels': 'Show labels',
+    'chunk.pageOf': 'Page {page} of {total}',
+    'chunk.strategy': 'Strategy',
+    'chunk.strategySoon': 'Strategy — rechunk options coming soon',
+    'chunk.panel.title': 'Chunks',
+    'chunk.panel.count': '{n} of {total} on page {page}',
+    'chunk.panel.emptyOnPage': 'No chunks on page {page}.',
+    'chunk.panel.edited': 'edited',
+    'chunk.noAnalysis': 'No analysis yet — run a parse first.',
 
     // Doc tree rail (#217)
     'tree.empty': 'No nodes in tree.',

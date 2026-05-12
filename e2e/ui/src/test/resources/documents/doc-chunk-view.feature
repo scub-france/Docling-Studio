@@ -1,5 +1,5 @@
 @ui @regression
-Feature: UI — Linked view interactions (#264)
+Feature: UI — Chunk view interactions (#264)
 
   # Covers the bbox-canvas + LAYERS chips wiring introduced by T3:
   # toggling a chip flips its aria-pressed state, and the chunks panel
@@ -27,8 +27,8 @@ Feature: UI — Linked view interactions (#264)
     Then status 200
     And match response.status == 'COMPLETED'
 
-    * driver uiBaseUrl + '/docs/' + docId
-    * waitFor('[data-e2e=linked-tab]')
+    * driver uiBaseUrl + '/docs/' + docId + '?mode=chunk'
+    * waitFor('[data-e2e=chunk-tab]')
     * waitFor('[data-e2e=layers-bar]')
 
     # Chip starts enabled (aria-pressed=true). Click it → pressed=false.

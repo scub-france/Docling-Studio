@@ -1,5 +1,5 @@
 <template>
-  <div class="linked-tab" data-e2e="linked-tab">
+  <div class="chunk-tab" data-e2e="chunk-tab">
     <LayersBar
       :elements="currentPageElements"
       :hidden-types="hiddenTypes"
@@ -7,8 +7,8 @@
       @update:hidden-types="(next) => (hiddenTypes = next)"
       @update:show-labels="(next) => (showLabels = next)"
     />
-    <div class="linked-body">
-      <div class="linked-stage">
+    <div class="chunk-body">
+      <div class="chunk-stage">
         <PagePreviewWithOverlay
           v-if="documentStore.workspacePages.length"
           :document-id="docId"
@@ -21,14 +21,14 @@
           @hover-element="onHoverElement"
           @click-element="onClickElement"
         />
-        <div v-else-if="documentStore.workspaceLoading" class="linked-state">
+        <div v-else-if="documentStore.workspaceLoading" class="chunk-state">
           <span class="spinner" />
         </div>
-        <div v-else class="linked-state">
-          {{ t('linked.noAnalysis') }}
+        <div v-else class="chunk-state">
+          {{ t('chunk.noAnalysis') }}
         </div>
       </div>
-      <aside class="linked-aside">
+      <aside class="chunk-aside">
         <StaleStoresStrip v-if="storeLinks?.length" :doc-id="docId" :store-links="storeLinks" />
         <ChunksPanel
           :doc-id="docId"
@@ -45,7 +45,9 @@
 
 <script setup lang="ts">
 /**
- * Linked view (#264). Composes:
+ * Chunk view (#264, renamed from Linked).
+ *
+ * Composes:
  *   - LAYERS bar (chip filters + Show labels)
  *   - Page preview with bbox overlay + paginator
  *   - StaleStoresStrip (#224)
@@ -129,21 +131,21 @@ watch(
 </script>
 
 <style scoped>
-.linked-tab {
+.chunk-tab {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
 }
 
-.linked-body {
+.chunk-body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 400px;
   flex: 1;
   min-height: 0;
 }
 
-.linked-stage {
+.chunk-stage {
   display: flex;
   flex-direction: column;
   padding: 12px 16px;
@@ -151,7 +153,7 @@ watch(
   min-height: 0;
 }
 
-.linked-state {
+.chunk-state {
   flex: 1;
   display: flex;
   align-items: center;
@@ -160,7 +162,7 @@ watch(
   font-size: 13px;
 }
 
-.linked-aside {
+.chunk-aside {
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--border);
