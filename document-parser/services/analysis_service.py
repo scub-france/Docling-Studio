@@ -446,6 +446,26 @@ class AnalysisService:
             document_json=result.document_json,
             chunks_json=chunks_json,
         )
+
+        # Record a frozen (analysis, chunks_snapshot) pair in the
+        # workspace History timeline (#267). Done BEFORE the status flip
+        # to COMPLETED so the frontend polling never observes a
+        # completed analysis without its version row in the DB.
+        # Snapshots the LIVE chunks at this moment so user edits since
+        # the previous version are preserved alongside the new analysis
+        # pointer.
+        if self._version_recorder is not None:
+            try:
+                await self._version_recorder.record_on_analysis(job.document_id, job_id)
+            except Exception:
+                # Versioning is a best-effort side hook — never fail the
+                # analysis itself if the snapshot write hits a snag.
+                logger.exception(
+                    "Version snapshot failed for doc %s after analysis %s",
+                    job.document_id,
+                    job_id,
+                )
+
         await self._analysis_repo.update_status(job)
 
         if result.page_count:
@@ -459,22 +479,6 @@ class AnalysisService:
         # popover, #268). The promoter hook stays wired in main.py so
         # legacy callers / tests can still trigger it directly, but it is
         # no longer invoked as part of the analysis flow.
-
-        # Record a frozen (analysis, chunks_snapshot) pair in the
-        # workspace History timeline (#267). Snapshots the LIVE chunks
-        # at this moment so user edits since the previous version are
-        # preserved alongside the new analysis pointer.
-        if self._version_recorder is not None:
-            try:
-                await self._version_recorder.record_on_analysis(job.document_id, job_id)
-            except Exception:
-                # Versioning is a best-effort side hook — never fail the
-                # analysis itself if the snapshot write hits a snag.
-                logger.exception(
-                    "Version snapshot failed for doc %s after analysis %s",
-                    job.document_id,
-                    job_id,
-                )
 
         # Drive the document lifecycle (#202): chunks present → Chunked,
         # otherwise → Parsed.
