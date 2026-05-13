@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from domain.models import AnalysisJob, AnalysisStatus, Chunk, Document
-from domain.value_objects import ChunkDocItem, ChunkEditAction, ChunkResult
+from domain.models import AnalysisJob, AnalysisStatus, Chunk, Document, Store
+from domain.value_objects import ChunkDocItem, ChunkEditAction, ChunkResult, StoreKind
 from persistence.analysis_repo import SqliteAnalysisRepository
 from persistence.chunk_edit_repo import (
     SqliteChunkEditRepository,
@@ -18,6 +18,7 @@ from persistence.chunk_edit_repo import (
 from persistence.chunk_repo import SqliteChunkRepository
 from persistence.database import init_db
 from persistence.document_repo import SqliteDocumentRepository
+from persistence.store_repo import SqliteStoreRepository
 from services.chunk_service import (
     ChunkConflictError,
     ChunkNotFoundError,
@@ -26,6 +27,7 @@ from services.chunk_service import (
     ChunkValidationError,
     DocumentNotFoundError,
 )
+from services.ingestion_service import IngestionResult
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -383,6 +385,122 @@ class TestDiff:
 # ---------------------------------------------------------------------------
 # get_tree
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# push_to_store (slug → id resolution, 503/404/409 surfaces)
+# ---------------------------------------------------------------------------
+
+
+class TestPushToStore:
+    """Covers the #225 fix: the API sends a store **slug**, but
+    `chunk_pushes.store_id` is a FK to `stores.id`. The service must
+    resolve the slug before inserting the audit row — otherwise the
+    insert 500s with an opaque `IntegrityError: FOREIGN KEY constraint
+    failed`.
+
+    Also covers the #199-related 503 surface (no IngestionService
+    wired) and the 409 surface (no chunks to push).
+    """
+
+    @pytest.fixture
+    async def store_repo(self):
+        repo = SqliteStoreRepository()
+        store = Store(
+            id="store-uuid-1",
+            name="RH Corpus",
+            slug="rh-corpus-v3",
+            kind=StoreKind.OPENSEARCH,
+            embedder="bge-m3",
+        )
+        await repo.insert(store)
+        return repo
+
+    @pytest.fixture
+    def mock_ingestion(self):
+        ing = AsyncMock()
+        ing.ingest.return_value = IngestionResult(
+            doc_id="doc-1", chunks_indexed=2, embedding_dimension=3
+        )
+        return ing
+
+    @pytest.fixture
+    def service_with_store(self, repos, store_repo, mock_ingestion):
+        return ChunkService(
+            chunk_repo=repos["chunks"],
+            chunk_edit_repo=repos["edits"],
+            chunk_push_repo=repos["pushes"],
+            document_repo=repos["documents"],
+            analysis_repo=repos["analyses"],
+            chunker=None,
+            ingestion_service=mock_ingestion,
+            store_repo=store_repo,
+        )
+
+    async def test_resolves_slug_to_store_id_before_recording_push(
+        self, service_with_store, repos, doc, mock_ingestion
+    ):
+        await service_with_store.add_chunk(doc.id, text="hello")
+        result = await service_with_store.push_to_store(doc.id, "rh-corpus-v3")
+        assert result["summary"]["embeds"] == 2
+        # The audit row must carry the resolved UUID, not the slug —
+        # otherwise the FK insert into `chunk_pushes` fails with a
+        # generic IntegrityError 500.
+        latest = await repos["pushes"].find_latest(doc.id, "store-uuid-1")
+        assert latest is not None
+        assert latest.store_id == "store-uuid-1"
+        # And NOT keyed by slug.
+        by_slug = await repos["pushes"].find_latest(doc.id, "rh-corpus-v3")
+        assert by_slug is None
+        mock_ingestion.ingest.assert_awaited_once()
+
+    async def test_also_accepts_an_explicit_store_id(self, service_with_store, repos, doc):
+        """Backwards compat: older callers pass the id directly. The
+        service must accept that too (try slug first, fall back to id).
+        """
+        await service_with_store.add_chunk(doc.id, text="hello")
+        await service_with_store.push_to_store(doc.id, "store-uuid-1")
+        latest = await repos["pushes"].find_latest(doc.id, "store-uuid-1")
+        assert latest is not None
+        assert latest.store_id == "store-uuid-1"
+
+    async def test_unknown_store_raises_404(self, service_with_store, doc):
+        await service_with_store.add_chunk(doc.id, text="hello")
+        with pytest.raises(ChunkServiceError) as excinfo:
+            await service_with_store.push_to_store(doc.id, "nope-not-a-store")
+        assert excinfo.value.http_status == 404
+        assert "nope-not-a-store" in str(excinfo.value)
+
+    async def test_no_ingestion_service_raises_503(self, repos, store_repo, doc):
+        # Service constructed without an IngestionService (#199 — backend
+        # has neither OpenSearch nor Neo4j configured) must surface a
+        # 503, not a generic 500.
+        service = ChunkService(
+            chunk_repo=repos["chunks"],
+            chunk_edit_repo=repos["edits"],
+            chunk_push_repo=repos["pushes"],
+            document_repo=repos["documents"],
+            analysis_repo=repos["analyses"],
+            chunker=None,
+            ingestion_service=None,
+            store_repo=store_repo,
+        )
+        with pytest.raises(ChunkServiceError) as excinfo:
+            await service.push_to_store(doc.id, "rh-corpus-v3")
+        assert excinfo.value.http_status == 503
+        # The error message must be actionable — it's what the user
+        # sees in the toast when push fails.
+        assert "EMBEDDING_URL" in str(excinfo.value)
+        assert "NEO4J_URI" in str(excinfo.value)
+
+    async def test_empty_canonical_raises_409(self, service_with_store, doc):
+        with pytest.raises(ChunkServiceError) as excinfo:
+            await service_with_store.push_to_store(doc.id, "rh-corpus-v3")
+        assert excinfo.value.http_status == 409
+
+    async def test_unknown_document_raises_404_before_store_resolution(self, service_with_store):
+        with pytest.raises(DocumentNotFoundError):
+            await service_with_store.push_to_store("ghost-doc", "rh-corpus-v3")
 
 
 class TestGetTree:

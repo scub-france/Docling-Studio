@@ -184,3 +184,84 @@ class TestEnsureIndex:
         mock_vector_store.ensure_index.assert_awaited_once()
         call_args = mock_vector_store.ensure_index.call_args
         assert call_args[0][0] == "test-idx"
+
+
+# ---------------------------------------------------------------------------
+# Neo4j-only mode (#199)
+#
+# When no OpenSearch is configured (vector_store=None), the service
+# must still accept ingest/search/delete calls — the user is on a
+# Neo4j-only stack and the empty results / no-op behaviour is the
+# contract. The previous code raised AttributeError on a None
+# `vector_store.<method>` call. These tests pin the contract so it
+# can't regress.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def neo4j_only_service(mock_embedding: AsyncMock) -> IngestionService:
+    """Service with `vector_store=None` — mimics a backend started
+    with `EMBEDDING_URL` + `NEO4J_URI` but no `OPENSEARCH_URL`.
+    """
+    return IngestionService(
+        embedding_service=mock_embedding,
+        vector_store=None,
+        config=IngestionConfig(index_name="test-idx", embedding_dimension=3),
+    )
+
+
+class TestNeo4jOnlyMode:
+    async def test_ensure_index_is_noop_without_vector_store(
+        self, neo4j_only_service: IngestionService
+    ) -> None:
+        # Must not raise. There's no vector index to ensure.
+        await neo4j_only_service.ensure_index()
+
+    async def test_ingest_skips_opensearch_and_reports_processed_count(
+        self, neo4j_only_service: IngestionService, mock_embedding: AsyncMock
+    ) -> None:
+        result = await neo4j_only_service.ingest("doc-1", "test.pdf", _make_chunks_json(3))
+        # Embedding still runs (text-search semantics must stay
+        # consistent across stores) — only the OpenSearch indexing
+        # step is skipped.
+        mock_embedding.embed.assert_awaited_once()
+        # `chunks_indexed` carries the processed count in Neo4j-only
+        # mode (no real OpenSearch indexing happened). This is the
+        # contract — renaming to `chunks_processed` is a separate
+        # follow-up since it would break the API.
+        assert result.chunks_indexed == 3
+        assert result.embedding_dimension == 3
+
+    async def test_ingest_empty_chunks_short_circuits(
+        self, neo4j_only_service: IngestionService, mock_embedding: AsyncMock
+    ) -> None:
+        result = await neo4j_only_service.ingest("doc-1", "test.pdf", json.dumps([]))
+        assert result.chunks_indexed == 0
+        mock_embedding.embed.assert_not_awaited()
+
+    async def test_delete_document_returns_zero(self, neo4j_only_service: IngestionService) -> None:
+        # Nothing to delete in a vector store that isn't there — but
+        # the call must not raise; otherwise the API endpoint 500s.
+        assert await neo4j_only_service.delete_document("doc-1") == 0
+
+    async def test_search_returns_empty_list(
+        self, neo4j_only_service: IngestionService, mock_embedding: AsyncMock
+    ) -> None:
+        results = await neo4j_only_service.search("hello")
+        assert results == []
+        # The embedding is also skipped — there's no point computing
+        # a vector for a search that has nowhere to look.
+        mock_embedding.embed.assert_not_awaited()
+
+    async def test_search_fulltext_returns_empty_list(
+        self, neo4j_only_service: IngestionService
+    ) -> None:
+        results = await neo4j_only_service.search_fulltext("hello")
+        assert results == []
+
+    async def test_ping_returns_true(self, neo4j_only_service: IngestionService) -> None:
+        # The service is reachable even without a vector store — the
+        # Neo4j-only ingest path is still operational. Reporting
+        # `False` here would make `/api/health.ingestion_available`
+        # misleading.
+        assert await neo4j_only_service.ping() is True
