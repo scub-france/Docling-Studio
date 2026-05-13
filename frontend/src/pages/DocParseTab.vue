@@ -215,6 +215,21 @@ watch(
   },
 )
 
+// Refetch the tree when the active analysis changes (#266). Triggered
+// after an in-place analysis completes — the workspace watcher updates
+// `workspaceCurrentAnalysisId`, and the tree is built server-side from
+// the active analysis's `document_json`, so it has to be reloaded. Also
+// fires when the user pins a different analysis from the History drawer.
+watch(
+  () => documentStore.workspaceCurrentAnalysisId,
+  (newId, oldId) => {
+    if (newId && newId !== oldId) {
+      selectedNodeRef.value = null
+      loadTree()
+    }
+  },
+)
+
 // --- pure helpers ----------------------------------------------------------
 
 function countNodes(nodes: readonly DocTreeNode[]): number {
