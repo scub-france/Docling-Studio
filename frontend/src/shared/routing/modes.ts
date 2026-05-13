@@ -7,37 +7,38 @@
  *
  * #210 layers feature-flag-aware redirection on top: if the requested
  * mode is disabled for the current tenant, the router replaces it with
- * the first enabled mode (priority `parse` > `chunk`).
+ * the first enabled mode (priority `parse` > `chunk` > `ingest`).
  *
  * Naming history:
- *   - #263 renamed the legacy `chunks` mode to `linked` and dropped
- *     `ask` from the workspace.
- *   - #264 reshuffled the two views: `parse` shows the Docling
- *     extraction graph (Structure tree + bboxes), `chunk` shows the
- *     chunk-centric editor. The Compare view (#270) is rendered as a
- *     disabled button in the switcher — no mode value, no route segment.
+ *   - #263 renamed `chunks` to `linked` and dropped `ask`.
+ *   - #264 reshuffled views: `parse` shows the Docling extraction graph,
+ *     `chunk` the chunk-centric editor.
+ *   - #225 drops `compare` (was a placeholder, never shipped) and adds
+ *     `ingest` (per-store push state + push-to-store actions).
  *
- * Backward compatibility: `?mode=chunks`, `?mode=linked`, and
- * `?mode=inspect` are accepted and silently mapped to their current
- * equivalents so existing bookmarks keep working.
+ * Backward compatibility: `?mode=chunks`, `?mode=linked`,
+ * `?mode=inspect`, and `?mode=compare` are accepted and silently
+ * mapped to their current equivalents so existing bookmarks keep
+ * working.
  */
 
-export type DocMode = 'parse' | 'chunk'
+export type DocMode = 'parse' | 'chunk' | 'ingest'
 
 export const DEFAULT_MODE: DocMode = 'parse'
-export const ALL_MODES: readonly DocMode[] = ['parse', 'chunk'] as const
+export const ALL_MODES: readonly DocMode[] = ['parse', 'chunk', 'ingest'] as const
 
 const LEGACY_ALIASES: Readonly<Record<string, DocMode>> = {
-  // Pre-#264 names. `linked` mapped to the chunks-aligned preview, which
-  // is now `chunk`. `inspect` was the old Markdown/Elements/Images tab,
-  // which is now subsumed by `parse` (Docling extraction graph).
+  // Pre-#264 names.
   linked: 'chunk',
   chunks: 'chunk',
   inspect: 'parse',
+  // #225 — Compare slot replaced by Ingest; legacy deep links resolve
+  // to the new view rather than 404'ing.
+  compare: 'ingest',
 }
 
 export function isDocMode(value: unknown): value is DocMode {
-  return value === 'parse' || value === 'chunk'
+  return value === 'parse' || value === 'chunk' || value === 'ingest'
 }
 
 export function parseMode(raw: unknown): DocMode {

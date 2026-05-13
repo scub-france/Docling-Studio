@@ -176,18 +176,25 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
    * guard does not need to know about the FeatureFlag union.
    */
   /**
-   * Workspace mode-flag map consumed by `resolveMode` (#210 / #263 / #264).
+   * Workspace mode-flag map consumed by `resolveMode` (#210 / #263 / #264 / #225).
    *
-   * The keys match the current `DocMode` union (`parse`, `chunk`). The
-   * underlying backend flags keep their pre-rename names — `inspect_mode_enabled`
-   * gates the new Parse view (Docling extraction) and `linked_mode_enabled`
-   * gates the Chunk view (chunks-aligned preview). Renaming the backend
-   * env vars is a separate follow-up.
+   * The keys match the current `DocMode` union (`parse`, `chunk`,
+   * `ingest`). `inspect_mode_enabled` gates Parse, `linked_mode_enabled`
+   * gates Chunk. **Ingest is always navigable** — the tab opens
+   * regardless of whether the backend ingestion service is wired; the
+   * Ingest view itself renders an informative state when no store is
+   * configured or push is unavailable. Gating the tab itself would
+   * trap the user in a state they can't get out of.
+   *
+   * `ingestionAvailable` from `/api/health` is still exposed via the
+   * `ingestion` registry entry below — components that drive the
+   * actual push action consult that flag, not `modeFlags()`.
    */
-  function modeFlags(): { parse: boolean; chunk: boolean } {
+  function modeFlags(): { parse: boolean; chunk: boolean; ingest: boolean } {
     return {
       parse: inspectModeEnabled.value,
       chunk: linkedModeEnabled.value,
+      ingest: true,
     }
   }
 

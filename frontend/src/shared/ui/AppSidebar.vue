@@ -144,7 +144,10 @@ const items: NavItem[] = [
     to: { name: ROUTES.STORES_LIST },
     labelKey: 'nav.stores',
     icon: StoresIcon,
-    matchPrefixes: ['/index'],
+    // 0.6.1 (#225) — paths moved from /index to /ingest. Keep /index in
+    // the prefix list so the sidebar item stays active during a back-
+    // compat redirect, until all caches are warm.
+    matchPrefixes: ['/ingest', '/index'],
   },
   {
     key: 'runs',

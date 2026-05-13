@@ -220,17 +220,33 @@ describe('useFeatureFlagStore', () => {
     expect(store.isEnabled('askMode')).toBe(true)
   })
 
-  it('modeFlags() maps backend flags to current DocMode keys (#264 rename)', async () => {
+  it('modeFlags() maps backend flags to current DocMode keys (#264 / #225)', async () => {
     mockApiFetch.mockResolvedValue({
       status: 'ok',
       engine: 'local',
       inspectModeEnabled: true,
       linkedModeEnabled: false,
+      ingestionAvailable: true,
     })
     const store = useFeatureFlagStore()
     await store.load()
-    // inspect_mode_enabled gates Parse, linked_mode_enabled gates Chunk —
-    // the backend flag names are kept until a separate env-var rename.
-    expect(store.modeFlags()).toEqual({ parse: true, chunk: false })
+    // inspect_mode_enabled gates Parse, linked_mode_enabled gates Chunk.
+    // Ingest is always navigable (#225) — the view itself surfaces
+    // whether push actions are available.
+    expect(store.modeFlags()).toEqual({ parse: true, chunk: false, ingest: true })
+  })
+
+  it('modeFlags().ingest stays true even when ingestionAvailable is false (#225)', async () => {
+    mockApiFetch.mockResolvedValue({
+      status: 'ok',
+      engine: 'local',
+      inspectModeEnabled: true,
+      linkedModeEnabled: true,
+      ingestionAvailable: false,
+    })
+    const store = useFeatureFlagStore()
+    await store.load()
+    // The tab opens regardless; the empty-state inside informs the user.
+    expect(store.modeFlags().ingest).toBe(true)
   })
 })
