@@ -245,6 +245,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         analysis_repo=analysis_repo,
         chunker=_build_chunker(),
         ingestion_service=ingestion_service,
+        store_repo=store_repo,
     )
     # The analysis service still carries the chunk promoter wiring for
     # legacy callers / tests, but the analysis flow no longer invokes it

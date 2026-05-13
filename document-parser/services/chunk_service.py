@@ -39,6 +39,7 @@ if TYPE_CHECKING:
         DocumentChunker,
         DocumentRepository,
     )
+    from persistence.store_repo import SqliteStoreRepository
     from services.ingestion_service import IngestionService
 
 logger = logging.getLogger(__name__)
@@ -147,6 +148,7 @@ class ChunkService:
         analysis_repo: AnalysisRepository,
         chunker: DocumentChunker | None = None,
         ingestion_service: IngestionService | None = None,
+        store_repo: SqliteStoreRepository | None = None,
         actor: str = "user",
     ) -> None:
         self._chunks = chunk_repo
@@ -156,6 +158,11 @@ class ChunkService:
         self._analyses = analysis_repo
         self._chunker = chunker
         self._ingestion = ingestion_service
+        # Optional — used by `push_to_store` to resolve the slug coming
+        # from the API to the actual `stores.id` (the chunk_pushes FK).
+        # When None, push_to_store falls back to using the passed value
+        # verbatim (legacy callers may already pass an id).
+        self._stores = store_repo
         self._actor = actor
         # Duck-typed recorder for document versions (#267). Wired in
         # main.py to `VersionService.record_on_rechunk` so each
@@ -541,11 +548,17 @@ class ChunkService:
     async def push_to_store(self, document_id: str, store_id: str) -> dict:
         """Push the canonical chunkset to a store and record a `ChunkPush`.
 
-        Today this delegates to the globally-configured `IngestionService`
-        (single index). Per-store dispatch by slug is a follow-up issue —
-        the `store_id` argument is recorded on the `ChunkPush` row so the
-        diff endpoint can answer "what was last pushed to store X" even
-        once the dispatch lands.
+        The `store_id` argument is the value the API caller passed —
+        the frontend currently passes the **slug** (`POST /chunks/push`
+        body), but the `chunk_pushes` FK targets `stores.id`. We
+        resolve the slug to the real id when a `store_repo` is wired;
+        otherwise we assume the caller already passed an id.
+
+        Today the ingestion itself still delegates to the globally-
+        configured `IngestionService` (one bucket). Per-store dispatch
+        by `store.kind` is a follow-up issue — recording the right
+        store id on the `ChunkPush` row is the prerequisite, and lands
+        here.
         """
         await self._require_doc(document_id)
         if self._ingestion is None:
@@ -554,6 +567,23 @@ class ChunkService:
                 "OPENSEARCH_URL or NEO4J_URI on the backend",
                 http_status=503,
             )
+        # Resolve slug → store row. Refuses to push to an unknown store
+        # (catches typos before the FK insert fails with a generic
+        # IntegrityError 500).
+        resolved_store_id = store_id
+        if self._stores is not None:
+            store = await self._stores.find_by_slug(store_id)
+            if store is None:
+                # Maybe the caller already passed an id — accept that
+                # too for backwards compat with older callers.
+                store = await self._stores.find_by_id(store_id)
+            if store is None:
+                raise ChunkServiceError(
+                    f"Store not found: {store_id}",
+                    http_status=404,
+                )
+            resolved_store_id = store.id
+
         doc = await self._documents.find_by_id(document_id)
         canonical = await self._chunks.find_for_document(document_id)
         if not canonical:
@@ -574,7 +604,7 @@ class ChunkService:
         push = ChunkPush(
             id=_new_id(),
             document_id=document_id,
-            store_id=store_id,
+            store_id=resolved_store_id,
             chunkset_hash=_compute_chunkset_hash(canonical),
             chunk_ids=chunk_ids,
             pushed_at=_utcnow(),
