@@ -1,7 +1,8 @@
 import { type DocMode } from './modes'
 
 /**
- * Doc workspace mode resolution under feature flags (#210, updated #263, #264).
+ * Doc workspace mode resolution under feature flags (#210, updated #263,
+ * #264, #225).
  *
  * The router consults this when a user opens `/docs/:id?mode=<mode>`:
  *
@@ -10,10 +11,10 @@ import { type DocMode } from './modes'
  *   - If no mode is enabled, return `null` (the router redirects to
  *     the docs library with a flash message).
  *
- * Priority: `parse` first (the extraction view is the natural landing
- * for a freshly parsed doc), then `chunk`.
+ * Priority: `parse` first (extraction is the natural landing for a
+ * freshly parsed doc), then `chunk`, then `ingest`.
  */
-export const MODE_PRIORITY: readonly DocMode[] = ['parse', 'chunk'] as const
+export const MODE_PRIORITY: readonly DocMode[] = ['parse', 'chunk', 'ingest'] as const
 
 export function resolveMode(
   requested: DocMode | undefined,
