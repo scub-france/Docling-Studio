@@ -270,17 +270,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.analysis_service.set_version_recorder(app.state.version_service)
     app.state.chunk_service.set_version_recorder(app.state.version_service)
 
-    # 0.6.1 — backfill `document_versions` rows for documents whose
-    # analyses pre-date the versioning (#267). Idempotent: tagged via
-    # `migration_progress`, skipped on subsequent boots.
-    from persistence.migrations.backfill_versions import run_backfill
-
-    try:
-        await run_backfill()
-    except Exception:
-        # Non-fatal — the backfill is a best-effort, the app must still
-        # start. Operators see the stack trace and re-run later.
-        logger.exception("Document-version backfill failed (#267)")
+    # 0.6.1 (#279) — the document_version backfill ran on pre-0.6.1
+    # data and is no longer needed: the schema reset assumes a fresh
+    # SQLite file and no historical rows to materialize.
 
     logger.info("Docling Studio backend ready (engine=%s)", settings.conversion_engine)
     try:
