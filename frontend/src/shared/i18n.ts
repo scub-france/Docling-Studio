@@ -31,6 +31,7 @@ const messages: Messages = {
     'breadcrumb.studio': 'Studio',
     'breadcrumb.mode.parse': 'Parse',
     'breadcrumb.mode.chunk': 'Chunk',
+    'breadcrumb.mode.ingest': 'Ingest',
 
     // Feature flags (0.6.0 — #210)
     'flags.allModesDisabled':
@@ -396,13 +397,13 @@ const messages: Messages = {
     'ask.noAnalysis': 'Aucune analyse disponible',
     'ask.noAnalysisSub': 'Analysez ce document dans le Studio avant de poser une question.',
 
-    // Doc workspace (#216, #218 \u2014 switcher refactored in #263, modes renamed in #264)
+    // Doc workspace (#216, #218 \u2014 switcher refactored in #263, modes renamed
+    // in #264, Compare slot replaced by Ingest in #225)
     'workspace.tabs.parse': 'Parse',
     'workspace.tabs.chunk': 'Chunk',
-    'workspace.tabs.compare': 'Compare',
+    'workspace.tabs.ingest': 'Ingest',
     'workspace.backToLibrary': 'Retour \u00e0 la biblioth\u00e8que',
     'workspace.modeDisabled': 'Mode d\u00e9sactiv\u00e9 pour ce d\u00e9ploiement',
-    'workspace.compareSoon': 'Compare \u2014 disponible en 0.9.0',
 
     // Parse view (#264) \u2014 Docling extraction graph
     'parse.layers': 'LAYERS',
@@ -443,6 +444,29 @@ const messages: Messages = {
     'chunk.panel.generate': 'Générer les chunks',
     'chunk.panel.edited': 'modifi\u00e9',
     'chunk.noAnalysis': "Aucune analyse \u2014 lancez d'abord un parse.",
+
+    // Ingest view (#225) \u2014 per-store push state + actions
+    'ingest.title': 'Ingest',
+    'ingest.noStores': 'Aucun store configur\u00e9. Cr\u00e9ez-en un dans la section Stores.',
+    'ingest.noAnalysis': "Aucune analyse \u2014 lancez d'abord un parse pour pouvoir ing\u00e9rer.",
+    'ingest.colStore': 'Store',
+    'ingest.colKind': 'Type',
+    'ingest.colLastPush': 'Dernier push',
+    'ingest.colState': '\u00c9tat',
+    'ingest.colActions': 'Actions',
+    'ingest.stateNotPushed': 'Jamais ing\u00e9r\u00e9',
+    'ingest.stateUpToDate': '\u00c0 jour',
+    'ingest.stateStale': 'Obsol\u00e8te',
+    'ingest.stateFailed': '\u00c9chec',
+    'ingest.pushBtn': 'Ing\u00e9rer',
+    'ingest.pushBtn.running': 'Ingest en cours\u2026',
+    'ingest.pushAll': 'Ing\u00e9rer dans tous les stores obsol\u00e8tes',
+    'ingest.diffShow': 'Voir le diff',
+    'ingest.diffHide': 'Masquer le diff',
+    'ingest.diffAdded': '+ ajout\u00e9s : {n}',
+    'ingest.diffModified': '~ modifi\u00e9s : {n}',
+    'ingest.diffRemoved': '\u2212 retir\u00e9s : {n}',
+    'ingest.diffUnchanged': '= inchang\u00e9s : {n}',
 
     // Strategy popover (#268) \u2014 inline rechunk options
     'strategy.title': 'Strat\u00e9gie de chunking',
@@ -609,6 +633,7 @@ const messages: Messages = {
     'breadcrumb.studio': 'Studio',
     'breadcrumb.mode.parse': 'Parse',
     'breadcrumb.mode.chunk': 'Chunk',
+    'breadcrumb.mode.ingest': 'Ingest',
 
     // Feature flags (0.6.0 — #210)
     'flags.allModesDisabled':
@@ -960,13 +985,13 @@ const messages: Messages = {
     'ask.noAnalysis': 'No analysis available',
     'ask.noAnalysisSub': 'Analyze this document in Studio before asking a question.',
 
-    // Doc workspace (#216, #218 — switcher refactored in #263, modes renamed in #264)
+    // Doc workspace (#216, #218 — switcher refactored in #263, modes renamed
+    // in #264, Compare slot replaced by Ingest in #225)
     'workspace.tabs.parse': 'Parse',
     'workspace.tabs.chunk': 'Chunk',
-    'workspace.tabs.compare': 'Compare',
+    'workspace.tabs.ingest': 'Ingest',
     'workspace.backToLibrary': 'Back to library',
     'workspace.modeDisabled': 'Mode disabled for this deployment',
-    'workspace.compareSoon': 'Compare — coming in 0.9.0',
 
     // Parse view (#264) — Docling extraction graph
     'parse.layers': 'LAYERS',
@@ -1006,6 +1031,29 @@ const messages: Messages = {
     'chunk.panel.generate': 'Generate chunks',
     'chunk.panel.edited': 'edited',
     'chunk.noAnalysis': 'No analysis yet — run a parse first.',
+
+    // Ingest view (#225) — per-store push state + actions
+    'ingest.title': 'Ingest',
+    'ingest.noStores': 'No store configured yet. Create one from the Stores section.',
+    'ingest.noAnalysis': 'No analysis yet — run a parse before ingesting.',
+    'ingest.colStore': 'Store',
+    'ingest.colKind': 'Kind',
+    'ingest.colLastPush': 'Last push',
+    'ingest.colState': 'State',
+    'ingest.colActions': 'Actions',
+    'ingest.stateNotPushed': 'Never ingested',
+    'ingest.stateUpToDate': 'Up-to-date',
+    'ingest.stateStale': 'Stale',
+    'ingest.stateFailed': 'Failed',
+    'ingest.pushBtn': 'Ingest',
+    'ingest.pushBtn.running': 'Ingesting…',
+    'ingest.pushAll': 'Ingest into every stale store',
+    'ingest.diffShow': 'Show diff',
+    'ingest.diffHide': 'Hide diff',
+    'ingest.diffAdded': '+ added: {n}',
+    'ingest.diffModified': '~ modified: {n}',
+    'ingest.diffRemoved': '− removed: {n}',
+    'ingest.diffUnchanged': '= unchanged: {n}',
 
     // Strategy popover (#268) — inline rechunk options
     'strategy.title': 'Chunking strategy',

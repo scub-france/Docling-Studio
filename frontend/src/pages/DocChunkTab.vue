@@ -40,7 +40,6 @@
         </div>
       </div>
       <aside class="chunk-aside">
-        <StaleStoresStrip v-if="storeLinks?.length" :doc-id="docId" :store-links="storeLinks" />
         <ChunksPanel
           :doc-id="docId"
           :current-page="currentPage"
@@ -61,7 +60,11 @@
  * Composes:
  *   - LAYERS bar (chip filters + Show labels)
  *   - Page preview with bbox overlay + paginator
- *   - StaleStoresStrip (#224)
+ *
+ * Note: the `StaleStoresStrip` previously rendered above the chunks
+ * panel (#224) moved to the Ingest view in #225 — push state lives
+ * on the dedicated Ingest tab now.
+ *
  *   - Page-scoped chunks panel (read-mostly)
  *
  * Owns the cross-linking state between bbox hover/click and chunk
@@ -76,7 +79,6 @@ import { chunkForElement, elementRefsForChunk } from '../features/document/linke
 import LayersBar from '../features/document/ui/LayersBar.vue'
 import PagePreviewWithOverlay from '../features/document/ui/PagePreviewWithOverlay.vue'
 import ChunksPanel from '../features/chunks/ui/ChunksPanel.vue'
-import StaleStoresStrip from '../features/chunks/ui/StaleStoresStrip.vue'
 import { useI18n } from '../shared/i18n'
 
 const props = defineProps<{

@@ -106,6 +106,13 @@
             :available-stores="doc.stores ?? []"
             :store-links="doc.storeLinks"
           />
+          <DocIngestTab
+            v-else-if="activeMode === 'ingest'"
+            :key="id"
+            :doc-id="id"
+            :store-links="doc.storeLinks"
+            @pushed="loadDoc"
+          />
         </Suspense>
       </div>
     </template>
@@ -132,6 +139,7 @@ import DocWorkspaceHeader from '../features/document/ui/DocWorkspaceHeader.vue'
 import HistoryDrawer from '../features/document/ui/HistoryDrawer.vue'
 import DocParseTab from './DocParseTab.vue'
 import DocChunkTab from './DocChunkTab.vue'
+import DocIngestTab from './DocIngestTab.vue'
 
 const props = defineProps<{ id: string; mode: DocMode }>()
 
@@ -204,16 +212,15 @@ const docError = ref<string | null>(null)
 
 const activeMode = ref<DocMode>(props.mode)
 
-// Switcher entries. Compare is intentionally disabled — the view ships
-// in 0.9.0; the button is kept visible so users can see the roadmap.
+// Switcher entries (#225 — Compare slot dropped, Ingest added in its place).
 interface ViewEntry {
-  key: DocMode | 'compare'
+  key: DocMode
   disabled: boolean
 }
 const VIEWS: readonly ViewEntry[] = [
   { key: 'parse', disabled: false },
   { key: 'chunk', disabled: false },
-  { key: 'compare', disabled: true },
+  { key: 'ingest', disabled: false },
 ]
 
 const crumbs = computed<Crumb[]>(() => [
@@ -227,19 +234,18 @@ const crumbs = computed<Crumb[]>(() => [
 ])
 useCrumbs(crumbs)
 
-function isModeEnabled(key: DocMode | 'compare'): boolean {
-  if (key === 'compare') return false
+function isModeEnabled(key: DocMode): boolean {
   return flagStore.modeFlags()[key]
 }
 
 function viewTooltip(view: ViewEntry): string | undefined {
-  if (view.disabled) return t('workspace.compareSoon')
+  if (view.disabled) return t('workspace.modeDisabled')
   if (!isModeEnabled(view.key)) return t('workspace.modeDisabled')
   return undefined
 }
 
 function onViewClick(view: ViewEntry): void {
-  if (view.disabled || view.key === 'compare') return
+  if (view.disabled) return
   switchMode(view.key)
 }
 
