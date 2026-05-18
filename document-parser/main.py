@@ -201,9 +201,44 @@ def _build_document_service(
 # ---------------------------------------------------------------------------
 
 
+async def _check_store_secret_key() -> None:
+    """Refuse to boot if sealed credentials exist but no key is set.
+
+    0.6.1 (#279) — store passwords are sealed with a Fernet key from
+    `STORE_SECRET_KEY`. Sealed values are unreadable without the key,
+    so any boot that has them and no key would surface as a hard
+    "wrong password" the moment a push tries to use a store. Better
+    to fail fast at boot than wait for the first user action.
+
+    Stores with NULL `connection_password_sealed` (e.g. the seeded
+    `default` row) don't require the key — booting without the key
+    is fine for a fresh install or a Neo4j-only stack that has not
+    yet set per-store passwords.
+    """
+    from persistence.database import get_connection
+
+    async with get_connection() as db:
+        cursor = await db.execute(
+            "SELECT COUNT(*) AS n FROM stores WHERE connection_password_sealed IS NOT NULL"
+        )
+        row = await cursor.fetchone()
+    sealed_count = row["n"] if row else 0
+    if sealed_count == 0:
+        return
+    if not settings.store_secret_key:
+        raise RuntimeError(
+            f"STORE_SECRET_KEY is required: {sealed_count} store row(s) hold "
+            "encrypted credentials and cannot be opened without the key. "
+            "Set STORE_SECRET_KEY in the backend environment before "
+            "booting, or null the connection_password_sealed columns "
+            "manually if the seal is lost."
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await init_db()
+    await _check_store_secret_key()
     document_repo, analysis_repo = _build_repos()
     # Exposed on app.state so routers that need direct repo access (e.g. the
     # reasoning-graph endpoint, which reads `document_json` from SQLite to
