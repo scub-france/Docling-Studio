@@ -32,7 +32,18 @@
     </div>
 
     <section v-else class="ingest-history" data-e2e="ingest-history">
-      <h3 class="ingest-history-title">{{ t('ingest.historyTitle') }}</h3>
+      <header class="ingest-history-header">
+        <h3 class="ingest-history-title">{{ t('ingest.historyTitle') }}</h3>
+        <span class="ingest-history-total">
+          {{ t('ingest.historyCount', { n: total }) }}
+        </span>
+      </header>
+      <div class="ingest-history-headers" aria-hidden="true">
+        <span class="ingest-col ingest-col-when">{{ t('ingest.colWhen') }}</span>
+        <span class="ingest-col ingest-col-store">{{ t('ingest.colTarget') }}</span>
+        <span class="ingest-col ingest-col-count">{{ t('ingest.colChunks') }}</span>
+        <span class="ingest-col ingest-col-hash">{{ t('ingest.colVersion') }}</span>
+      </div>
       <ul class="ingest-history-list">
         <li
           v-for="entry in history"
@@ -40,24 +51,26 @@
           class="ingest-history-row"
           :data-e2e="`ingest-history-row-${entry.id}`"
         >
-          <div class="ingest-history-when">
-            {{ entry.pushedAt ? formatRelativeTime(entry.pushedAt) : '—' }}
+          <div class="ingest-col ingest-col-when ingest-history-when">
+            <span
+              class="ingest-history-when-rel"
+              :title="entry.pushedAt ? formatAbsolute(entry.pushedAt) : ''"
+            >
+              {{ entry.pushedAt ? formatRelativeTime(entry.pushedAt) : '—' }}
+            </span>
           </div>
-          <div class="ingest-history-target">
-            <span class="ingest-history-arrow">→</span>
+          <div class="ingest-col ingest-col-store ingest-history-target">
             <span class="ingest-history-store">{{ entry.displayName }}</span>
             <span v-if="entry.storeKind" class="ingest-history-kind">{{ entry.storeKind }}</span>
             <span v-if="entry.storeDeleted" class="ingest-history-tag">
               {{ t('ingest.storeDeleted') }}
             </span>
           </div>
-          <div class="ingest-history-meta">
-            <span class="ingest-history-count">
-              {{ t('ingest.chunkCount', { n: entry.chunkCount }) }}
-            </span>
-            <span class="ingest-history-hash" :title="entry.chunksetHash">
-              {{ entry.chunksetHash.slice(0, 8) }}
-            </span>
+          <div class="ingest-col ingest-col-count ingest-history-count">
+            {{ entry.chunkCount }}
+          </div>
+          <div class="ingest-col ingest-col-hash ingest-history-hash">
+            <code :title="entry.chunksetHash">{{ entry.chunksetHash.slice(0, 8) }}</code>
           </div>
         </li>
       </ul>
@@ -109,7 +122,7 @@ import { RouterLink } from 'vue-router'
 import type { DocStoreLink } from '../shared/types'
 import { fetchChunkPushes, type ChunkPushEntry } from '../features/chunks/api'
 import { fetchStores, type StoreInfo } from '../features/store/api'
-import { formatRelativeTime } from '../shared/format'
+import { formatAbsolute, formatRelativeTime } from '../shared/format'
 import { useI18n } from '../shared/i18n'
 import { ROUTES } from '../shared/routing/names'
 import IngestLaunchDialog from './IngestLaunchDialog.vue'
@@ -277,14 +290,64 @@ onMounted(load)
   overflow-y: auto;
 }
 
+.ingest-history-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
 .ingest-history-title {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-  margin: 0 0 8px 0;
+  margin: 0;
   font-family: 'IBM Plex Mono', monospace;
+}
+
+.ingest-history-total {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.ingest-history-headers,
+.ingest-history-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 80px 100px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+}
+
+.ingest-history-headers {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.ingest-col {
+  font-size: 11px;
+}
+
+/* Column header labels. */
+.ingest-history-headers .ingest-col {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ingest-col-count {
+  text-align: right;
+}
+
+.ingest-col-hash {
+  text-align: left;
 }
 
 .ingest-history-list {
@@ -296,13 +359,13 @@ onMounted(load)
 }
 
 .ingest-history-row {
-  display: grid;
-  grid-template-columns: 110px 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 8px;
   border-bottom: 1px solid var(--border);
   font-size: 12px;
+  transition: background var(--transition);
+}
+
+.ingest-history-row:last-child {
+  border-bottom: none;
 }
 
 .ingest-history-row:hover {
@@ -311,23 +374,25 @@ onMounted(load)
 
 .ingest-history-when {
   color: var(--text-muted);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
+}
+
+.ingest-history-when-rel {
+  cursor: help;
 }
 
 .ingest-history-target {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.ingest-history-arrow {
-  color: var(--text-muted);
+  min-width: 0;
 }
 
 .ingest-history-store {
   font-weight: 500;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ingest-history-kind {
@@ -336,6 +401,10 @@ onMounted(load)
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  padding: 1px 5px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 .ingest-history-tag {
@@ -347,18 +416,23 @@ onMounted(load)
   border-radius: 3px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
 
-.ingest-history-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-muted);
+.ingest-history-count {
+  color: var(--text-secondary);
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
+  text-align: right;
 }
 
-.ingest-history-hash {
+.ingest-history-hash code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  padding: 1px 5px;
+  border-radius: 3px;
   cursor: help;
 }
 

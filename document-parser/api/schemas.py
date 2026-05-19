@@ -57,6 +57,23 @@ class HealthResponse(_CamelModel):
     ask_mode_enabled: bool = True
 
 
+class DocStoreLinkResponse(_CamelModel):
+    """Per-store ingestion link surfaced on a document (#283 fix).
+
+    The frontend has shipped a `Document.storeLinks` type since #224
+    but the backend was never actually populating it — only the
+    audit log (`chunk_pushes`) was. The Ingest tab redesign uncovered
+    this gap (modal showed NotPushed even when history listed pushes).
+    The `store` field carries the store slug (stable identity used
+    by the frontend's `link.store` lookup); `state` mirrors the
+    `DocumentStoreLinkState` enum values.
+    """
+
+    store: str
+    state: str
+    pushed_at: str | None = None
+
+
 class DocumentResponse(_CamelModel):
     id: str
     filename: str
@@ -70,6 +87,10 @@ class DocumentResponse(_CamelModel):
     # backwards compat and currently still maps to `DOCUMENT_STATUS_UPLOADED`.
     lifecycle_state: str = "Uploaded"
     lifecycle_state_at: str | datetime | None = None
+    # 0.6.1 (#283) — per-store ingestion state. Always present on
+    # `GET /api/documents/{id}`; the list endpoint omits it to keep
+    # the listing payload light (callers that need it can drill in).
+    store_links: list[DocStoreLinkResponse] | None = None
 
 
 class AnalysisResponse(_CamelModel):
