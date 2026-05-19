@@ -263,11 +263,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     link_repo = SqliteDocumentStoreLinkRepository()
     app.state.store_repo = store_repo
     app.state.document_store_link_repo = link_repo
-    app.state.store_service = StoreService(
-        store_repo=store_repo,
-        link_repo=link_repo,
-        document_repo=document_repo,
-    )
     ingestion_service = _build_ingestion_service(neo4j_driver=app.state.neo4j)
     app.state.ingestion_service = ingestion_service
     if ingestion_service is not None:
@@ -292,6 +287,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         env_opensearch_url=settings.opensearch_url,
     )
     app.state.backend_resolver = backend_resolver
+    app.state.store_service = StoreService(
+        store_repo=store_repo,
+        link_repo=link_repo,
+        document_repo=document_repo,
+        backend_resolver=backend_resolver,
+    )
 
     # Doc-centric chunks (#256). Wires the canonical chunkset CRUD on top
     # of the chunk / chunk_edit / chunk_push repos introduced by #205.

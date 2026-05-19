@@ -258,7 +258,13 @@ class StoreInfoResponse(_CamelModel):
 
 
 class StoreResponse(_CamelModel):
-    """Detailed read model for `GET /api/stores/{slug}`."""
+    """Detailed read model for `GET /api/stores/{slug}`.
+
+    Connection identity (#279) is exposed via `connectionUri` /
+    `connectionUsername`. The password is **never** serialised — the
+    response carries a `hasConnectionPassword` boolean indicator so
+    the UI can show "password set" without ever seeing the value.
+    """
 
     id: str
     name: str
@@ -267,20 +273,39 @@ class StoreResponse(_CamelModel):
     embedder: str
     is_default: bool
     config: dict
+    connection_uri: str | None = None
+    connection_username: str | None = None
+    has_connection_password: bool = False
     created_at: str | datetime
 
 
 class StoreCreateRequest(_CamelModel):
+    """Create a store (#251) + optional connection identity (#279).
+
+    `connectionPassword` is write-only — it never appears on a
+    response. Empty string is treated as "no password" (= NULL on
+    the column).
+    """
+
     name: str
     slug: str
     kind: str
     embedder: str
     config: dict = Field(default_factory=dict)
     is_default: bool = False
+    connection_uri: str | None = None
+    connection_username: str | None = None
+    connection_password: str | None = None
 
 
 class StoreUpdateRequest(_CamelModel):
-    """Partial update — every field is optional. Use `slug` to rename."""
+    """Partial update — every field is optional. Use `slug` to rename.
+
+    For `connectionPassword` (#279):
+      - `None` (field absent) → leave the existing seal untouched
+      - empty string `""` → clear the password (NULL the column)
+      - non-empty string → seal the new value
+    """
 
     name: str | None = None
     slug: str | None = None
@@ -288,6 +313,16 @@ class StoreUpdateRequest(_CamelModel):
     embedder: str | None = None
     config: dict | None = None
     is_default: bool | None = None
+    connection_uri: str | None = None
+    connection_username: str | None = None
+    connection_password: str | None = None
+
+
+class StoreTestConnectionResponse(_CamelModel):
+    """Result of `POST /api/stores/{slug}/test-connection` (#279)."""
+
+    ok: bool
+    error_message: str | None = None
 
 
 class StoreDocEntryResponse(_CamelModel):
