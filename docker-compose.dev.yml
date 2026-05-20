@@ -23,7 +23,11 @@ services:
       - neo4j_data:/data
       - neo4j_logs:/logs
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u $${NEO4J_USER:-neo4j} -p $${NEO4J_PASSWORD:-changeme} 'RETURN 1' || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "cypher-shell -u $${NEO4J_USER:-neo4j} -p $${NEO4J_PASSWORD:-changeme} 'RETURN 1' || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -41,7 +45,11 @@ services:
     volumes:
       - opensearch_data:/usr/share/opensearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sf http://localhost:9200/_cluster/health || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -100,7 +108,8 @@ services:
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: ${NEO4J_USER:-neo4j}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-changeme}
-    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command:
+      ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
       opensearch:
         condition: service_healthy
@@ -124,6 +133,7 @@ services:
       - frontend_node_modules:/app/node_modules
     environment:
       VITE_APP_VERSION: dev
+      VITE_API_PROXY_TARGET: http://document-parser:8000
     command: ["sh", "-c", "npm install && npm run dev -- --host"]
     depends_on:
       - document-parser
