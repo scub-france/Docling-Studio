@@ -249,4 +249,35 @@ describe('useFeatureFlagStore', () => {
     // The tab opens regardless; the empty-state inside informs the user.
     expect(store.modeFlags().ingest).toBe(true)
   })
+
+  // load() is now called from two places — main.ts (eager warm-up) and
+  // the router beforeEach guard. They must share one in-flight HTTP call
+  // and a fully-loaded store must short-circuit subsequent load() calls
+  // entirely. Without the dedupe each first navigation would race a
+  // second /api/health fetch.
+  it('dedupes concurrent load() calls — single in-flight /api/health', async () => {
+    let resolveHealth: (value: unknown) => void = () => {}
+    mockApiFetch.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveHealth = resolve
+        }),
+    )
+    const store = useFeatureFlagStore()
+    const p1 = store.load()
+    const p2 = store.load()
+    expect(mockApiFetch).toHaveBeenCalledTimes(1)
+    resolveHealth({ status: 'ok', engine: 'local' })
+    await Promise.all([p1, p2])
+    expect(store.loaded).toBe(true)
+  })
+
+  it('returns immediately without re-fetching once loaded', async () => {
+    mockApiFetch.mockResolvedValue({ status: 'ok', engine: 'local' })
+    const store = useFeatureFlagStore()
+    await store.load()
+    expect(mockApiFetch).toHaveBeenCalledTimes(1)
+    await store.load()
+    expect(mockApiFetch).toHaveBeenCalledTimes(1)
+  })
 })

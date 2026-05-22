@@ -141,33 +141,46 @@ export const useFeatureFlagStore = defineStore('feature-flags', () => {
     return def.isEnabled(context.value)
   }
 
-  async function load(): Promise<void> {
-    try {
-      const data = await apiFetch<HealthResponse>('/api/health')
-      engine.value = data.engine
-      deploymentMode.value = data.deploymentMode ?? 'self-hosted'
-      maxPageCount.value = data.maxPageCount ?? 0
-      maxFileSizeMb.value = data.maxFileSizeMb ?? 0
-      ingestionAvailable.value = data.ingestionAvailable ?? false
-      reasoningAvailable.value = data.reasoningAvailable ?? false
-      // 0.6.1 — surface flags. Backward compat: missing studio → false
-      // (production target), missing rag pipeline → true (legacy behaviour).
-      studioModeEnabled.value = data.studioModeEnabled ?? false
-      ragPipelineEnabled.value = data.ragPipelineEnabled ?? true
-      // Sub-flags: fall back to true so an older backend keeps every mode
-      // visible.
-      inspectModeEnabled.value = data.inspectModeEnabled ?? true
-      linkedModeEnabled.value = data.linkedModeEnabled ?? true
-      askModeEnabled.value = data.askModeEnabled ?? true
-      appMaxFileSizeMb.value = maxFileSizeMb.value
-      appMaxPageCount.value = maxPageCount.value
-      if (data.version) appVersion.value = data.version
-      loaded.value = true
-      error.value = null
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to load feature flags'
-      loaded.value = true
-    }
+  // Single in-flight promise so concurrent callers (main.ts boot kick-off
+  // + the router beforeEach guard's await) share one HTTP request instead
+  // of racing duplicate `/api/health` calls. Cleared on settle so a future
+  // explicit reload can re-fetch.
+  let loadPromise: Promise<void> | null = null
+
+  function load(): Promise<void> {
+    if (loaded.value) return Promise.resolve()
+    if (loadPromise) return loadPromise
+    loadPromise = (async () => {
+      try {
+        const data = await apiFetch<HealthResponse>('/api/health')
+        engine.value = data.engine
+        deploymentMode.value = data.deploymentMode ?? 'self-hosted'
+        maxPageCount.value = data.maxPageCount ?? 0
+        maxFileSizeMb.value = data.maxFileSizeMb ?? 0
+        ingestionAvailable.value = data.ingestionAvailable ?? false
+        reasoningAvailable.value = data.reasoningAvailable ?? false
+        // 0.6.1 — surface flags. Backward compat: missing studio → false
+        // (production target), missing rag pipeline → true (legacy behaviour).
+        studioModeEnabled.value = data.studioModeEnabled ?? false
+        ragPipelineEnabled.value = data.ragPipelineEnabled ?? true
+        // Sub-flags: fall back to true so an older backend keeps every mode
+        // visible.
+        inspectModeEnabled.value = data.inspectModeEnabled ?? true
+        linkedModeEnabled.value = data.linkedModeEnabled ?? true
+        askModeEnabled.value = data.askModeEnabled ?? true
+        appMaxFileSizeMb.value = maxFileSizeMb.value
+        appMaxPageCount.value = maxPageCount.value
+        if (data.version) appVersion.value = data.version
+        loaded.value = true
+        error.value = null
+      } catch (e) {
+        error.value = e instanceof Error ? e.message : 'Failed to load feature flags'
+        loaded.value = true
+      } finally {
+        loadPromise = null
+      }
+    })()
+    return loadPromise
   }
 
   /**
