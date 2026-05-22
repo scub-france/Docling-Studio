@@ -9,3 +9,15 @@ vulnerabilities:
       Pulled transitively by libgl1 (required by OpenCV/RapidOCR). Tracked in #189
       with follow-up to drop libgl1 via opencv-python-headless.
     expired_at: 2026-06-30
+  - id: CVE-2026-7598
+    # libssh2 1.11.1-1 (Debian 13 trixie). Pulled transitively by git/libcurl
+    # in the python:3.12-slim base image. Not invoked from application code —
+    # backend has no SSH client surface (no ssh://, no SCP/SFTP). The integer
+    # overflow only fires on attacker-controlled username/password passed to
+    # libssh2_userauth_*; that call site does not exist in our paths.
+    statement: >-
+      libssh2 integer overflow via username/password arguments (no upstream fix
+      yet, no Debian 13 backport). Pulled transitively into the python:3.12-slim
+      base image. Not reachable from the backend (no SSH client code path).
+      Re-evaluate when Debian publishes a backport or when we move off slim.
+    expired_at: 2026-08-31
