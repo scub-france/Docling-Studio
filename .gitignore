@@ -54,6 +54,5 @@ e2e/**/target/
 .github/ISSUE_TEMPLATE/issue.md
 docs/claude-code-commands.md
 docs/design/TEMPLATE.md
-document-parser/tests/test_local_converter.py
 docs/git-workflow/autonomy-mode.md
 
