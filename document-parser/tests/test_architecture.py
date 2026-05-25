@@ -19,7 +19,13 @@ import ast
 from pathlib import Path
 
 import pytest
-from pytestarch import Rule, get_evaluable_architecture
+
+pytestarch = pytest.importorskip(
+    "pytestarch",
+    reason="pytestarch not installed — `pip install -r requirements-test.txt` to enforce layer rules",
+)
+Rule = pytestarch.Rule
+get_evaluable_architecture = pytestarch.get_evaluable_architecture
 
 # ---------------------------------------------------------------------------
 # pytestarch evaluable (project root = document-parser/)
