@@ -18,12 +18,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
+          COMMITS_JSON: ${{ toJSON(github.event.commits) }}
         run: |
-          # Collect all commit messages from the push event
-          commits='${{ toJSON(github.event.commits) }}'
-
           # Extract issue numbers from Closes/Fixes patterns (case-insensitive)
-          issues=$(echo "$commits" \
+          issues=$(printf '%s' "$COMMITS_JSON" \
             | grep -ioE '(closes|fixes|close|fix|resolved|resolves)\s+#[0-9]+' \
             | grep -oE '[0-9]+' \
             | sort -u)
