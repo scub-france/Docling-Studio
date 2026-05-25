@@ -4,6 +4,80 @@ All notable changes to Docling Studio will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.1] - 2026-05-25
+
+### Added
+
+- **Per-document workspace** (#263, #264, #265, #266, #267, #268): `DocWorkspacePage` shell with a Parse / Chunk / Inspect / Compare tab switcher replaces the legacy `/studio` single-page editor. Parse view (#264) introduces LAYERS filters, focus mode, tree color-coding and centered scroll; Properties panel (#265) plus inline chunk edit; Strategy popover (#268) for inline rechunk from the Chunk view; dedicated "Generate chunks" button decouples chunk creation from the analysis run.
+- **Version history** (#267): paired `(analysis, chunks)` version snapshots with a History drawer for switching the active analysis. Race on new-analysis creation closed and pre-existing data backfilled.
+- **Chunk service + routes** (#256, #269): backend `ChunkService` exposing 9 DDD-granular routes under `/api/documents/{id}/chunks/*`. Every existing `/api/*` route classified against the no-UX-shaped-routes rule (`docs/design/269-backend-ddd-audit.md`).
+- **Ingest tab redesign** (#225, #283, #285): workspace Ingest view with CTA + history-driven shell, push-history endpoint `GET /api/documents/{id}/chunks/pushes`, pending-push badge on the launch CTA, hierarchical doc tree with per-tab CTAs and ingest-targets popover.
+- **Store connection credentials** (#279): per-store backend dispatch through a resolver + pool layer, Neo4j driver pool keyed by `(uri, user)`, OpenSearch client pool with basic-auth, Neo4j as a connectable store backend. Store form gets a connection sub-form + test-connection button; `/api/stores/*` exposes connection fields and a test-connection endpoint.
+- **Sealing-at-rest for store passwords** (#279): new `FernetBox` adapter (`infra/secrets/fernet_box.py`) sealing store credentials before persistence; `STORE_SECRET_KEY` env var required as soon as any store row holds a sealed value (boot fails otherwise — see `main.py:_check_store_secret_key`).
+- **Master surface flags** (#257): `STUDIO_MODE_ENABLED` and `RAG_PIPELINE_ENABLED` env vars gate the legacy Studio mode and the reasoning pipeline respectively (default off in production; e2e suite opts in via `STUDIO_MODE_ENABLED=true` for `@critical` tests).
+- **Karate UI e2e suite** (#256, #266): regression coverage for Doc tab chunk mode and rechunk flow, scaffold under `e2e/`.
+
+### Changed
+
+- **Push-chunks wire vocabulary**: `POST /api/documents/{id}/chunks/push` response field `jobId` renamed to `pushId`; corresponding i18n keys `chunks.pushedJob`, `chunks.stale.jobDispatched`, `docs.jobDispatched` renamed to `chunks.pushDispatched`, `chunks.stale.pushDispatched`, `docs.pushDispatched` and rephrased from "Job lance/dispatched" to "Push enregistre/recorded" — aligns the wire on the `ChunkPush` domain aggregate (#audit-02).
+- **Backend DDD audit** (#269): the no-UX-shaped-routes rule is now documented in `document-parser/CLAUDE.md` and codified in `docs/design/269-backend-ddd-audit.md`. Every `/api/*` route classified as either a single domain op or a named atomicity exception.
+- **Workspace navigation polish** (`0c98645`): per-tab CTAs, hierarchical doc tree, ingest-targets popover.
+- **Backend uploads non-blocking** (#audit-12): `DocumentService.upload` and `ServeConverter.convert` offload their sync disk I/O + poppler subprocess to worker threads (`asyncio.to_thread`), mirroring the 0.5.0 pattern applied to `/preview`.
+- **Architecture test makes pytestarch optional at collect-time** (#audit-09): `tests/test_architecture.py` now uses `pytest.importorskip` so the file collects cleanly even without test deps installed; CI installs `requirements-test.txt` and runs the rules normally.
+
+### Fixed
+
+- **Re-chunk preserves chunker `doc_items`** (#266): bbox ↔ chunk linking no longer breaks after a rechunk; structure tree reloads on active-analysis change.
+- **Document-store-links upsert on push** (#225): per-store state was never updated — `chunk_pushes` now FK-resolves store slug → id first.
+- **Ingest view refresh after push** (#225): stale count aligned with the push that just landed.
+- **Neo4j Document node merged in `chunk_writer`** (#225): silent-fail after a graph wipe.
+- **Ingestion availability decoupled from OpenSearch** (#199): Neo4j-only ingest no longer requires OpenSearch to be reachable.
+- **Cross-doc bbox leak in analyses list** (`fa2c7d7`): list endpoint filters by `documentId`.
+- **Frontend feature-flag race** (`5df009a`, `825e7d7`): flags load before mount; router guard awaits the load; idempotent.
+- **Docker dev proxy** (`c43aced`, `f56ead5`): Vite dev frontend correctly targets the backend.
+- **Push-chunks duplicate dropped** (#256, `b4ad874`): `pushDocumentToStore` removed; rechunk return shape aligned.
+- **Backend test collection unblocked** (#audit-09): dead `test_local_converter.py` deleted (the SUT `_encode_picture_b64` was removed); was hidden behind `.gitignore` rather than fixed.
+- **CI auto-close hardened** (#audit-10): commits payload moved into the `env:` block of the workflow to avoid shell interpolation of commit messages with quotes/backticks.
+- **Frontend package version bumped to 0.6.1** (#audit-11): was stuck at 0.5.0.
+
+### Security
+
+- **CVE-2026-7598 (libssh2)**: ignored — not reachable from any code path in the image and no Debian backport available (`858c3a9`).
+- **`STORE_SECRET_KEY` plumbed end-to-end** (#audit-08): `.env.example`, `docker-compose.yml`, `docker-compose.dev.yml` now document the variable with the key-generation one-liner and ship it with no default — boot fails if sealed rows exist without a key. Closes the "operator seals with an ephemeral key" foot-gun.
+
+### BREAKING CHANGES
+
+- **`POST /api/documents/{id}/chunks/push` response field**: `jobId` → `pushId`. Frontend consumers must update.
+- **Surface flags default off in production**: `STUDIO_MODE_ENABLED` and `RAG_PIPELINE_ENABLED` were implicitly on before 0.6.1. Operators relying on the legacy `/studio` page or the RAG pipeline must explicitly set them to `true`.
+- **`STORE_SECRET_KEY` required for sealed stores**: any 0.6.0 deployment that already created store rows with sealed passwords will fail the boot on 0.6.1 until `STORE_SECRET_KEY` is provided. Generate a Fernet key (`python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`) and pin it in the environment before upgrading. Rotating the key invalidates every existing sealed value.
+- **i18n keys renamed** (`chunks.pushedJob`, `chunks.stale.jobDispatched`, `docs.jobDispatched` → `chunks.pushDispatched`, `chunks.stale.pushDispatched`, `docs.pushDispatched`) and their placeholder `{jobId}` → `{pushId}`. Any external translation override file must be updated.
+
+## [0.6.0] - 2026-05-19
+
+### Added
+
+- **Doc-centric data model + routing** (#202, #203, #204, #205, #206, #207, #208, #209, #210, #211, #216): `Document` lifecycle state machine, per-`(document, store)` ingestion state, deterministic chunkset hash for auto-stale detection, chunks promoted to first-class entities with an audit trail. URL scheme migrated from analysis-centric (`/analysis/:id`) to document-centric (`/docs/:id/...`); reworked sidebar nav (Home / Docs / Stores / Runs / Settings); breadcrumb; feature-flag mode gating with deep-link redirect.
+- **Document Library** (#211): `/docs` page with filters, bulk actions, multi-file import, `StatusBadge`.
+- **Doc workspace tabs**: `DocInspectTab` (#240, #241) for Markdown / Elements / Images from the Docling analysis; `DocAskTab` (#242) for the reasoning trace integrated into the workspace.
+- **Stores CRUD UI + API** (#243, #244, #245, #251): `StoresListPage`, `StoreDetailPage`, `StoreForm`, `QueryPage`. Backend gets `/api/stores` router + `StoreService` orchestrator + `SqliteStoreRepository` with full CRUD; per-kind config validation; Neo4j added as a `StoreKind`. Typed API client; backend error detail surfaced through `apiFetch`.
+
+### Changed
+
+- **Vocabulary rename `index` → `ingest`** (#224, #225) across UI labels, route names and i18n keys. Stale stores strip on the workspace.
+- **Workspace shell refactor** (#216): `DocWorkspacePage` (`DocTreeRail`, `DocWorkspaceHeader`, editable chunks editor) replaces the legacy single-page studio for doc-centric flows.
+- **Doc state reset on navigation** (`53d28c2`): bbox / analysis state leak between docs fixed.
+- **SQLite schema bootstrap clean-slate** (#279, `db145ca`): drop the incremental migration machinery and rewrite `_SCHEMA` from scratch — fresh installs only from 0.6.x onward.
+
+### Fixed
+
+- **CI**: install `pytestarch` in `docling-compat` workflow (`c3d4b11`); nginx template moved outside `sites-enabled` to avoid raw-load (`2807cc3`).
+
+### BREAKING CHANGES
+
+- **URL scheme migration**: paths under `/analysis/:id` are gone; the workspace lives under `/docs/:id/...`. The legacy `/studio` page remains accessible only when `STUDIO_MODE_ENABLED=true` (and only until 0.7.0 ships its rewrite).
+- **Vocabulary `index` → `ingest`**: any external tooling parsing the public UI / API surface for the `index` keyword must update.
+- **No auto-migration from 0.5.x**: the SQLite schema is bootstrapped fresh from `_SCHEMA`. Upgrading from a 0.5.x database requires either (a) re-importing your documents into a fresh DB, or (b) hand-rolling the catch-up DDL — there is no migration path shipped.
+
 ## [0.5.1] - 2026-04-30
 
 ### Fixed
