@@ -27,4 +27,14 @@ const moduleCode = jsonSchemaToZod(resolvedSchema, {
   zodVersion: 4,
 })
 
-await writeFile(outputPath, `${moduleCode}\n`)
+const header = [
+  '/**',
+  ' * GENERATED FILE - DO NOT EDIT.',
+  ' *',
+  ' * Source: frontend/src/features/document/docling/docling-document.schema.json',
+  ' * Regenerate with: cd frontend && npm run generate:docling-model',
+  ' */',
+  '',
+].join('\n')
+
+await writeFile(outputPath, `${header}${moduleCode}\n`)

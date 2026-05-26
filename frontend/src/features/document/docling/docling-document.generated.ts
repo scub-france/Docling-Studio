@@ -1,3 +1,9 @@
+/**
+ * GENERATED FILE - DO NOT EDIT.
+ *
+ * Source: frontend/src/features/document/docling/docling-document.schema.json
+ * Regenerate with: cd frontend && npm run generate:docling-model
+ */
 import { z } from 'zod'
 
 export const doclingDocument = z
