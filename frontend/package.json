@@ -13,7 +13,10 @@
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
     "format": "prettier --write src/",
-    "format:check": "prettier --check src/"
+    "format:check": "prettier --check src/",
+    "generate:docling-schema": "../document-parser/.venv/bin/python ../document-parser/scripts/export_docling_document_schema.py",
+    "generate:docling-zod": "node ./scripts/generate-docling-zod.mjs && prettier --write src/features/document/docling/docling-document.generated.ts",
+    "generate:docling-model": "npm run generate:docling-schema && npm run generate:docling-zod"
   },
   "dependencies": {
     "cytoscape": "^3.30.0",
@@ -23,9 +26,11 @@
     "marked": "^17.0.4",
     "pinia": "^2.3.0",
     "vue": "^3.4.0",
-    "vue-router": "^4.6.4"
+    "vue-router": "^4.6.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@apidevtools/json-schema-ref-parser": "^14.2.1",
     "@eslint/js": "^9.0.0",
     "@types/cytoscape": "^3.21.4",
     "@types/cytoscape-dagre": "^2.3.3",
@@ -34,6 +39,7 @@
     "@vitest/mocker": "^4.1.2",
     "eslint": "^9.0.0",
     "eslint-plugin-vue": "^9.32.0",
+    "json-schema-to-zod": "^2.8.1",
     "prettier": "^3.4.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.1",

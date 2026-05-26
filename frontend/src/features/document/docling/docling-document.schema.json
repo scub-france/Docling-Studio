@@ -1,0 +1,4396 @@
+{
+  "$defs": {
+    "BaseMeta": {
+      "additionalProperties": true,
+      "description": "Base class for metadata.",
+      "properties": {
+        "entities": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntitiesMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "language": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LanguageMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SummaryMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "BaseMeta",
+      "type": "object"
+    },
+    "BoundingBox": {
+      "description": "BoundingBox.",
+      "properties": {
+        "b": {
+          "title": "B",
+          "type": "number"
+        },
+        "coord_origin": {
+          "$ref": "#/$defs/CoordOrigin",
+          "default": "TOPLEFT"
+        },
+        "l": {
+          "title": "L",
+          "type": "number"
+        },
+        "r": {
+          "title": "R",
+          "type": "number"
+        },
+        "t": {
+          "title": "T",
+          "type": "number"
+        }
+      },
+      "required": [
+        "l",
+        "t",
+        "r",
+        "b"
+      ],
+      "title": "BoundingBox",
+      "type": "object"
+    },
+    "ChartBar": {
+      "description": "Represents a bar in a bar chart.\n\nAttributes:\n    label (str): The label for the bar.\n    values (float): The value associated with the bar.",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "values": {
+          "title": "Values",
+          "type": "number"
+        }
+      },
+      "required": [
+        "label",
+        "values"
+      ],
+      "title": "ChartBar",
+      "type": "object"
+    },
+    "ChartLine": {
+      "description": "Represents a line in a line chart.\n\nAttributes:\n    label (str): The label for the line.\n    values (list[tuple[float, float]]): A list of (x, y) coordinate pairs\n        representing the line's data points.",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "label",
+        "values"
+      ],
+      "title": "ChartLine",
+      "type": "object"
+    },
+    "ChartPoint": {
+      "description": "Represents a point in a scatter chart.\n\nAttributes:\n    value (Tuple[float, float]): A (x, y) coordinate pair representing a point in a\n        chart.",
+      "properties": {
+        "value": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Value",
+          "type": "array"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "ChartPoint",
+      "type": "object"
+    },
+    "ChartSlice": {
+      "description": "Represents a slice in a pie chart.\n\nAttributes:\n    label (str): The label for the slice.\n    value (float): The value represented by the slice.",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "label",
+        "value"
+      ],
+      "title": "ChartSlice",
+      "type": "object"
+    },
+    "ChartStackedBar": {
+      "description": "Represents a stacked bar in a stacked bar chart.\n\nAttributes:\n    label (list[str]): The labels for the stacked bars. Multiple values are stored\n        in cases where the chart is \"double stacked,\" meaning bars are stacked both\n        horizontally and vertically.\n    values (list[tuple[str, int]]): A list of values representing different segments\n        of the stacked bar along with their label.",
+      "properties": {
+        "label": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Label",
+          "type": "array"
+        },
+        "values": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "label",
+        "values"
+      ],
+      "title": "ChartStackedBar",
+      "type": "object"
+    },
+    "CodeItem": {
+      "additionalProperties": false,
+      "description": "CodeItem.",
+      "properties": {
+        "captions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Captions",
+          "type": "array"
+        },
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "code_language": {
+          "$ref": "#/$defs/CodeLanguageLabel",
+          "default": "unknown"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "footnotes": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "formatting": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Formatting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hyperlink": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hyperlink"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "label": {
+          "const": "code",
+          "default": "code",
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatingMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "orig": {
+          "title": "Orig",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "references": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "References",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "self_ref",
+        "orig",
+        "text"
+      ],
+      "title": "CodeItem",
+      "type": "object"
+    },
+    "CodeLanguageLabel": {
+      "description": "CodeLanguageLabel.",
+      "enum": [
+        "Ada",
+        "Awk",
+        "Bash",
+        "bc",
+        "C",
+        "C#",
+        "C++",
+        "CMake",
+        "COBOL",
+        "CSS",
+        "Ceylon",
+        "Clojure",
+        "Crystal",
+        "Cuda",
+        "Cython",
+        "D",
+        "Dart",
+        "dc",
+        "Dockerfile",
+        "DocLang",
+        "Elixir",
+        "Erlang",
+        "FORTRAN",
+        "Forth",
+        "Go",
+        "HTML",
+        "Haskell",
+        "Haxe",
+        "Java",
+        "JavaScript",
+        "JSON",
+        "Julia",
+        "Kotlin",
+        "Latex",
+        "Lisp",
+        "Lua",
+        "Matlab",
+        "MoonScript",
+        "Nim",
+        "OCaml",
+        "ObjectiveC",
+        "Octave",
+        "PHP",
+        "Pascal",
+        "Perl",
+        "Prolog",
+        "Python",
+        "Racket",
+        "Ruby",
+        "Rust",
+        "SML",
+        "SQL",
+        "Scala",
+        "Scheme",
+        "Swift",
+        "Tikz",
+        "TypeScript",
+        "unknown",
+        "VisualBasic",
+        "XML",
+        "YAML"
+      ],
+      "title": "CodeLanguageLabel",
+      "type": "string"
+    },
+    "CodeMetaField": {
+      "additionalProperties": true,
+      "description": "Code representation for the respective item.",
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The confidence of the prediction.",
+          "examples": [
+            0.9,
+            0.42
+          ],
+          "title": "Confidence"
+        },
+        "created_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The origin of the prediction.",
+          "examples": [
+            "ibm-granite/granite-docling-258M"
+          ],
+          "title": "Created By"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CodeLanguageLabel"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "CodeMetaField",
+      "type": "object"
+    },
+    "ContentLayer": {
+      "description": "ContentLayer.",
+      "enum": [
+        "body",
+        "furniture",
+        "background",
+        "invisible",
+        "notes"
+      ],
+      "title": "ContentLayer",
+      "type": "string"
+    },
+    "CoordOrigin": {
+      "description": "CoordOrigin.",
+      "enum": [
+        "TOPLEFT",
+        "BOTTOMLEFT"
+      ],
+      "title": "CoordOrigin",
+      "type": "string"
+    },
+    "DescriptionAnnotation": {
+      "description": "DescriptionAnnotation.",
+      "properties": {
+        "kind": {
+          "const": "description",
+          "default": "description",
+          "title": "Kind",
+          "type": "string"
+        },
+        "provenance": {
+          "title": "Provenance",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "provenance"
+      ],
+      "title": "DescriptionAnnotation",
+      "type": "object"
+    },
+    "DescriptionMetaField": {
+      "additionalProperties": true,
+      "description": "Description metadata field.",
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The confidence of the prediction.",
+          "examples": [
+            0.9,
+            0.42
+          ],
+          "title": "Confidence"
+        },
+        "created_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The origin of the prediction.",
+          "examples": [
+            "ibm-granite/granite-docling-258M"
+          ],
+          "title": "Created By"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "DescriptionMetaField",
+      "type": "object"
+    },
+    "DocumentOrigin": {
+      "description": "FileSource.",
+      "properties": {
+        "binary_hash": {
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "title": "Binary Hash",
+          "type": "integer"
+        },
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "mimetype": {
+          "title": "Mimetype",
+          "type": "string"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uri"
+        }
+      },
+      "required": [
+        "mimetype",
+        "binary_hash",
+        "filename"
+      ],
+      "title": "DocumentOrigin",
+      "type": "object"
+    },
+    "EntitiesMetaField": {
+      "additionalProperties": true,
+      "description": "Container for extracted entity mentions.",
+      "properties": {
+        "mentions": {
+          "items": {
+            "$ref": "#/$defs/EntityMention"
+          },
+          "minItems": 1,
+          "title": "Mentions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "mentions"
+      ],
+      "title": "EntitiesMetaField",
+      "type": "object"
+    },
+    "EntityMention": {
+      "additionalProperties": true,
+      "description": "Entity mention extracted from text.",
+      "properties": {
+        "charspan": {
+          "anyOf": [
+            {
+              "description": "Character span (0-indexed)",
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Character span (0-indexed) of the entity mention in the source text.",
+          "title": "Charspan"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The confidence of the prediction.",
+          "examples": [
+            0.9,
+            0.42
+          ],
+          "title": "Confidence"
+        },
+        "created_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The origin of the prediction.",
+          "examples": [
+            "ibm-granite/granite-docling-258M"
+          ],
+          "title": "Created By"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Entity type or category.",
+          "title": "Label"
+        },
+        "orig": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact source text extracted from the original charspan, analogous to TextItem.orig. This may differ from 'text' when the mention has been normalized.",
+          "title": "Orig"
+        },
+        "text": {
+          "description": "Normalized text of the entity mention.",
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "EntityMention",
+      "type": "object"
+    },
+    "FieldHeadingItem": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "formatting": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Formatting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hyperlink": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hyperlink"
+        },
+        "label": {
+          "const": "field_heading",
+          "default": "field_heading",
+          "title": "Label",
+          "type": "string"
+        },
+        "level": {
+          "default": 1,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Level",
+          "type": "integer"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "orig": {
+          "title": "Orig",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "self_ref",
+        "orig",
+        "text"
+      ],
+      "title": "FieldHeadingItem",
+      "type": "object"
+    },
+    "FieldItem": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "label": {
+          "const": "field_item",
+          "default": "field_item",
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        }
+      },
+      "required": [
+        "self_ref"
+      ],
+      "title": "FieldItem",
+      "type": "object"
+    },
+    "FieldRegionItem": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "label": {
+          "const": "field_region",
+          "default": "field_region",
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        }
+      },
+      "required": [
+        "self_ref"
+      ],
+      "title": "FieldRegionItem",
+      "type": "object"
+    },
+    "FieldValueItem": {
+      "additionalProperties": false,
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "formatting": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Formatting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hyperlink": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hyperlink"
+        },
+        "kind": {
+          "default": "read_only",
+          "enum": [
+            "read_only",
+            "fillable"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "const": "field_value",
+          "default": "field_value",
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "orig": {
+          "title": "Orig",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "self_ref",
+        "orig",
+        "text"
+      ],
+      "title": "FieldValueItem",
+      "type": "object"
+    },
+    "FineRef": {
+      "description": "Fine-granular reference item that can capture span range info.",
+      "properties": {
+        "$ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "$Ref",
+          "type": "string"
+        },
+        "range": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Range"
+        }
+      },
+      "required": [
+        "$ref"
+      ],
+      "title": "FineRef",
+      "type": "object"
+    },
+    "FloatingMeta": {
+      "additionalProperties": true,
+      "description": "Metadata model for floating.",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DescriptionMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "entities": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntitiesMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "language": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LanguageMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SummaryMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "FloatingMeta",
+      "type": "object"
+    },
+    "FormItem": {
+      "additionalProperties": false,
+      "description": "FormItem.",
+      "properties": {
+        "captions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Captions",
+          "type": "array"
+        },
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "footnotes": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "graph": {
+          "$ref": "#/$defs/GraphData"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "label": {
+          "const": "form",
+          "default": "form",
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatingMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "references": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "References",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        }
+      },
+      "required": [
+        "self_ref",
+        "graph"
+      ],
+      "title": "FormItem",
+      "type": "object"
+    },
+    "Formatting": {
+      "description": "Formatting.",
+      "properties": {
+        "bold": {
+          "default": false,
+          "title": "Bold",
+          "type": "boolean"
+        },
+        "italic": {
+          "default": false,
+          "title": "Italic",
+          "type": "boolean"
+        },
+        "script": {
+          "$ref": "#/$defs/Script",
+          "default": "baseline"
+        },
+        "strikethrough": {
+          "default": false,
+          "title": "Strikethrough",
+          "type": "boolean"
+        },
+        "underline": {
+          "default": false,
+          "title": "Underline",
+          "type": "boolean"
+        }
+      },
+      "title": "Formatting",
+      "type": "object"
+    },
+    "FormulaItem": {
+      "additionalProperties": false,
+      "description": "FormulaItem.",
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "formatting": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Formatting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hyperlink": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hyperlink"
+        },
+        "label": {
+          "const": "formula",
+          "default": "formula",
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "orig": {
+          "title": "Orig",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "self_ref",
+        "orig",
+        "text"
+      ],
+      "title": "FormulaItem",
+      "type": "object"
+    },
+    "GraphCell": {
+      "description": "GraphCell.",
+      "properties": {
+        "cell_id": {
+          "title": "Cell Id",
+          "type": "integer"
+        },
+        "item_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "label": {
+          "$ref": "#/$defs/GraphCellLabel"
+        },
+        "orig": {
+          "title": "Orig",
+          "type": "string"
+        },
+        "prov": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProvenanceItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "cell_id",
+        "text",
+        "orig"
+      ],
+      "title": "GraphCell",
+      "type": "object"
+    },
+    "GraphCellLabel": {
+      "description": "GraphCellLabel.",
+      "enum": [
+        "unspecified",
+        "key",
+        "value",
+        "checkbox"
+      ],
+      "title": "GraphCellLabel",
+      "type": "string"
+    },
+    "GraphData": {
+      "description": "GraphData.",
+      "properties": {
+        "cells": {
+          "items": {
+            "$ref": "#/$defs/GraphCell"
+          },
+          "title": "Cells",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/GraphLink"
+          },
+          "title": "Links",
+          "type": "array"
+        }
+      },
+      "title": "GraphData",
+      "type": "object"
+    },
+    "GraphLink": {
+      "description": "GraphLink.",
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/GraphLinkLabel"
+        },
+        "source_cell_id": {
+          "title": "Source Cell Id",
+          "type": "integer"
+        },
+        "target_cell_id": {
+          "title": "Target Cell Id",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "label",
+        "source_cell_id",
+        "target_cell_id"
+      ],
+      "title": "GraphLink",
+      "type": "object"
+    },
+    "GraphLinkLabel": {
+      "description": "GraphLinkLabel.",
+      "enum": [
+        "unspecified",
+        "to_value",
+        "to_key",
+        "to_parent",
+        "to_child"
+      ],
+      "title": "GraphLinkLabel",
+      "type": "string"
+    },
+    "GroupItem": {
+      "additionalProperties": false,
+      "description": "GroupItem.",
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "label": {
+          "$ref": "#/$defs/GroupLabel",
+          "default": "unspecified"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "default": "group",
+          "title": "Name",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "self_ref"
+      ],
+      "title": "GroupItem",
+      "type": "object"
+    },
+    "GroupLabel": {
+      "description": "GroupLabel.",
+      "enum": [
+        "unspecified",
+        "list",
+        "ordered_list",
+        "chapter",
+        "section",
+        "sheet",
+        "slide",
+        "form_area",
+        "key_value_area",
+        "comment_section",
+        "inline",
+        "picture_area"
+      ],
+      "title": "GroupLabel",
+      "type": "string"
+    },
+    "HumanLanguageLabel": {
+      "description": "Two-letter human language primary subtags using BCP-47 values.",
+      "enum": [
+        "aa",
+        "ab",
+        "ae",
+        "af",
+        "ak",
+        "am",
+        "an",
+        "ar",
+        "as",
+        "av",
+        "ay",
+        "az",
+        "ba",
+        "be",
+        "bg",
+        "bh",
+        "bi",
+        "bm",
+        "bn",
+        "bo",
+        "br",
+        "bs",
+        "ca",
+        "ce",
+        "ch",
+        "co",
+        "cr",
+        "cs",
+        "cu",
+        "cv",
+        "cy",
+        "da",
+        "de",
+        "dv",
+        "dz",
+        "ee",
+        "el",
+        "en",
+        "eo",
+        "es",
+        "et",
+        "eu",
+        "fa",
+        "ff",
+        "fi",
+        "fj",
+        "fo",
+        "fr",
+        "fy",
+        "ga",
+        "gd",
+        "gl",
+        "gn",
+        "gu",
+        "gv",
+        "ha",
+        "he",
+        "hi",
+        "ho",
+        "hr",
+        "ht",
+        "hu",
+        "hy",
+        "hz",
+        "ia",
+        "id",
+        "ie",
+        "ig",
+        "ii",
+        "ik",
+        "io",
+        "is",
+        "it",
+        "iu",
+        "ja",
+        "jv",
+        "ka",
+        "kg",
+        "ki",
+        "kj",
+        "kk",
+        "kl",
+        "km",
+        "kn",
+        "ko",
+        "kr",
+        "ks",
+        "ku",
+        "kv",
+        "kw",
+        "ky",
+        "la",
+        "lb",
+        "lg",
+        "li",
+        "ln",
+        "lo",
+        "lt",
+        "lu",
+        "lv",
+        "mg",
+        "mh",
+        "mi",
+        "mk",
+        "ml",
+        "mn",
+        "mr",
+        "ms",
+        "mt",
+        "my",
+        "na",
+        "nb",
+        "nd",
+        "ne",
+        "ng",
+        "nl",
+        "nn",
+        "no",
+        "nr",
+        "nv",
+        "ny",
+        "oc",
+        "oj",
+        "om",
+        "or",
+        "os",
+        "pa",
+        "pi",
+        "pl",
+        "ps",
+        "pt",
+        "qu",
+        "rm",
+        "rn",
+        "ro",
+        "ru",
+        "rw",
+        "sa",
+        "sc",
+        "sd",
+        "se",
+        "sg",
+        "sh",
+        "si",
+        "sk",
+        "sl",
+        "sm",
+        "sn",
+        "so",
+        "sq",
+        "sr",
+        "ss",
+        "st",
+        "su",
+        "sv",
+        "sw",
+        "ta",
+        "te",
+        "tg",
+        "th",
+        "ti",
+        "tk",
+        "tl",
+        "tn",
+        "to",
+        "tr",
+        "ts",
+        "tt",
+        "tw",
+        "ty",
+        "ug",
+        "uk",
+        "ur",
+        "uz",
+        "ve",
+        "vi",
+        "vo",
+        "wa",
+        "wo",
+        "xh",
+        "yi",
+        "yo",
+        "za",
+        "zh",
+        "zu"
+      ],
+      "title": "HumanLanguageLabel",
+      "type": "string"
+    },
+    "ImageRef": {
+      "description": "ImageRef.",
+      "properties": {
+        "dpi": {
+          "title": "Dpi",
+          "type": "integer"
+        },
+        "mimetype": {
+          "title": "Mimetype",
+          "type": "string"
+        },
+        "size": {
+          "$ref": "#/$defs/Size"
+        },
+        "uri": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            }
+          ],
+          "title": "Uri"
+        }
+      },
+      "required": [
+        "mimetype",
+        "dpi",
+        "size",
+        "uri"
+      ],
+      "title": "ImageRef",
+      "type": "object"
+    },
+    "InlineGroup": {
+      "additionalProperties": false,
+      "description": "InlineGroup.",
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "label": {
+          "const": "inline",
+          "default": "inline",
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "default": "group",
+          "title": "Name",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "self_ref"
+      ],
+      "title": "InlineGroup",
+      "type": "object"
+    },
+    "KeyValueItem": {
+      "additionalProperties": false,
+      "description": "KeyValueItem.",
+      "properties": {
+        "captions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Captions",
+          "type": "array"
+        },
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "footnotes": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "graph": {
+          "$ref": "#/$defs/GraphData"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "label": {
+          "const": "key_value_region",
+          "default": "key_value_region",
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatingMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "references": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "References",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        }
+      },
+      "required": [
+        "self_ref",
+        "graph"
+      ],
+      "title": "KeyValueItem",
+      "type": "object"
+    },
+    "LanguageMetaField": {
+      "additionalProperties": true,
+      "description": "Detected human language.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/HumanLanguageLabel"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The confidence of the prediction.",
+          "examples": [
+            0.9,
+            0.42
+          ],
+          "title": "Confidence"
+        },
+        "created_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The origin of the prediction.",
+          "examples": [
+            "ibm-granite/granite-docling-258M"
+          ],
+          "title": "Created By"
+        }
+      },
+      "required": [
+        "code"
+      ],
+      "title": "LanguageMetaField",
+      "type": "object"
+    },
+    "ListGroup": {
+      "additionalProperties": false,
+      "description": "ListGroup.",
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "label": {
+          "const": "list",
+          "default": "list",
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "default": "group",
+          "title": "Name",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "self_ref"
+      ],
+      "title": "ListGroup",
+      "type": "object"
+    },
+    "ListItem": {
+      "additionalProperties": false,
+      "description": "SectionItem.",
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "enumerated": {
+          "default": false,
+          "title": "Enumerated",
+          "type": "boolean"
+        },
+        "formatting": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Formatting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hyperlink": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hyperlink"
+        },
+        "label": {
+          "const": "list_item",
+          "default": "list_item",
+          "title": "Label",
+          "type": "string"
+        },
+        "marker": {
+          "default": "-",
+          "title": "Marker",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "orig": {
+          "title": "Orig",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "self_ref",
+        "orig",
+        "text"
+      ],
+      "title": "ListItem",
+      "type": "object"
+    },
+    "MiscAnnotation": {
+      "description": "MiscAnnotation.",
+      "properties": {
+        "content": {
+          "additionalProperties": true,
+          "title": "Content",
+          "type": "object"
+        },
+        "kind": {
+          "const": "misc",
+          "default": "misc",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "title": "MiscAnnotation",
+      "type": "object"
+    },
+    "MoleculeMetaField": {
+      "additionalProperties": true,
+      "description": "Molecule metadata field.",
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The confidence of the prediction.",
+          "examples": [
+            0.9,
+            0.42
+          ],
+          "title": "Confidence"
+        },
+        "created_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The origin of the prediction.",
+          "examples": [
+            "ibm-granite/granite-docling-258M"
+          ],
+          "title": "Created By"
+        },
+        "smi": {
+          "description": "The SMILES representation of the molecule.",
+          "title": "Smi",
+          "type": "string"
+        }
+      },
+      "required": [
+        "smi"
+      ],
+      "title": "MoleculeMetaField",
+      "type": "object"
+    },
+    "PageItem": {
+      "description": "PageItem.",
+      "properties": {
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "page_no": {
+          "title": "Page No",
+          "type": "integer"
+        },
+        "size": {
+          "$ref": "#/$defs/Size"
+        }
+      },
+      "required": [
+        "size",
+        "page_no"
+      ],
+      "title": "PageItem",
+      "type": "object"
+    },
+    "PictureBarChartData": {
+      "description": "Represents data of a bar chart.\n\nAttributes:\n    kind (Literal[\"bar_chart_data\"]): The type of the chart.\n    x_axis_label (str): The label for the x-axis.\n    y_axis_label (str): The label for the y-axis.\n    bars (list[ChartBar]): A list of bars in the chart.",
+      "properties": {
+        "bars": {
+          "items": {
+            "$ref": "#/$defs/ChartBar"
+          },
+          "title": "Bars",
+          "type": "array"
+        },
+        "kind": {
+          "const": "bar_chart_data",
+          "default": "bar_chart_data",
+          "title": "Kind",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "x_axis_label": {
+          "title": "X Axis Label",
+          "type": "string"
+        },
+        "y_axis_label": {
+          "title": "Y Axis Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "x_axis_label",
+        "y_axis_label",
+        "bars"
+      ],
+      "title": "PictureBarChartData",
+      "type": "object"
+    },
+    "PictureClassificationClass": {
+      "description": "PictureClassificationData.",
+      "properties": {
+        "class_name": {
+          "title": "Class Name",
+          "type": "string"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "class_name",
+        "confidence"
+      ],
+      "title": "PictureClassificationClass",
+      "type": "object"
+    },
+    "PictureClassificationData": {
+      "description": "PictureClassificationData.",
+      "properties": {
+        "kind": {
+          "const": "classification",
+          "default": "classification",
+          "title": "Kind",
+          "type": "string"
+        },
+        "predicted_classes": {
+          "items": {
+            "$ref": "#/$defs/PictureClassificationClass"
+          },
+          "title": "Predicted Classes",
+          "type": "array"
+        },
+        "provenance": {
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provenance",
+        "predicted_classes"
+      ],
+      "title": "PictureClassificationData",
+      "type": "object"
+    },
+    "PictureClassificationMetaField": {
+      "additionalProperties": true,
+      "description": "Picture classification metadata field.",
+      "properties": {
+        "predictions": {
+          "items": {
+            "$ref": "#/$defs/PictureClassificationPrediction"
+          },
+          "minItems": 1,
+          "title": "Predictions",
+          "type": "array"
+        }
+      },
+      "title": "PictureClassificationMetaField",
+      "type": "object"
+    },
+    "PictureClassificationPrediction": {
+      "additionalProperties": true,
+      "description": "Picture classification instance.",
+      "properties": {
+        "class_name": {
+          "title": "Class Name",
+          "type": "string"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The confidence of the prediction.",
+          "examples": [
+            0.9,
+            0.42
+          ],
+          "title": "Confidence"
+        },
+        "created_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The origin of the prediction.",
+          "examples": [
+            "ibm-granite/granite-docling-258M"
+          ],
+          "title": "Created By"
+        }
+      },
+      "required": [
+        "class_name"
+      ],
+      "title": "PictureClassificationPrediction",
+      "type": "object"
+    },
+    "PictureItem": {
+      "additionalProperties": false,
+      "description": "PictureItem.",
+      "properties": {
+        "annotations": {
+          "default": [],
+          "deprecated": true,
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "bar_chart_data": "#/$defs/PictureBarChartData",
+                "classification": "#/$defs/PictureClassificationData",
+                "description": "#/$defs/DescriptionAnnotation",
+                "line_chart_data": "#/$defs/PictureLineChartData",
+                "misc": "#/$defs/MiscAnnotation",
+                "molecule_data": "#/$defs/PictureMoleculeData",
+                "pie_chart_data": "#/$defs/PicturePieChartData",
+                "scatter_chart_data": "#/$defs/PictureScatterChartData",
+                "stacked_bar_chart_data": "#/$defs/PictureStackedBarChartData",
+                "tabular_chart_data": "#/$defs/PictureTabularChartData"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/DescriptionAnnotation"
+              },
+              {
+                "$ref": "#/$defs/MiscAnnotation"
+              },
+              {
+                "$ref": "#/$defs/PictureClassificationData"
+              },
+              {
+                "$ref": "#/$defs/PictureMoleculeData"
+              },
+              {
+                "$ref": "#/$defs/PictureTabularChartData"
+              },
+              {
+                "$ref": "#/$defs/PictureLineChartData"
+              },
+              {
+                "$ref": "#/$defs/PictureBarChartData"
+              },
+              {
+                "$ref": "#/$defs/PictureStackedBarChartData"
+              },
+              {
+                "$ref": "#/$defs/PicturePieChartData"
+              },
+              {
+                "$ref": "#/$defs/PictureScatterChartData"
+              }
+            ]
+          },
+          "title": "Annotations",
+          "type": "array"
+        },
+        "captions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Captions",
+          "type": "array"
+        },
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "footnotes": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "label": {
+          "default": "picture",
+          "enum": [
+            "picture",
+            "chart"
+          ],
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PictureMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "references": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "References",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        }
+      },
+      "required": [
+        "self_ref"
+      ],
+      "title": "PictureItem",
+      "type": "object"
+    },
+    "PictureLineChartData": {
+      "description": "Represents data of a line chart.\n\nAttributes:\n    kind (Literal[\"line_chart_data\"]): The type of the chart.\n    x_axis_label (str): The label for the x-axis.\n    y_axis_label (str): The label for the y-axis.\n    lines (list[ChartLine]): A list of lines in the chart.",
+      "properties": {
+        "kind": {
+          "const": "line_chart_data",
+          "default": "line_chart_data",
+          "title": "Kind",
+          "type": "string"
+        },
+        "lines": {
+          "items": {
+            "$ref": "#/$defs/ChartLine"
+          },
+          "title": "Lines",
+          "type": "array"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "x_axis_label": {
+          "title": "X Axis Label",
+          "type": "string"
+        },
+        "y_axis_label": {
+          "title": "Y Axis Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "x_axis_label",
+        "y_axis_label",
+        "lines"
+      ],
+      "title": "PictureLineChartData",
+      "type": "object"
+    },
+    "PictureMeta": {
+      "additionalProperties": true,
+      "description": "Metadata model for pictures.",
+      "properties": {
+        "classification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PictureClassificationMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CodeMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "description": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DescriptionMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "entities": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntitiesMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "language": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LanguageMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "molecule": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MoleculeMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SummaryMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tabular_chart": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TabularChartMetaField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "PictureMeta",
+      "type": "object"
+    },
+    "PictureMoleculeData": {
+      "description": "PictureMoleculeData.",
+      "properties": {
+        "class_name": {
+          "title": "Class Name",
+          "type": "string"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "number"
+        },
+        "kind": {
+          "const": "molecule_data",
+          "default": "molecule_data",
+          "title": "Kind",
+          "type": "string"
+        },
+        "provenance": {
+          "title": "Provenance",
+          "type": "string"
+        },
+        "segmentation": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Segmentation",
+          "type": "array"
+        },
+        "smi": {
+          "title": "Smi",
+          "type": "string"
+        }
+      },
+      "required": [
+        "smi",
+        "confidence",
+        "class_name",
+        "segmentation",
+        "provenance"
+      ],
+      "title": "PictureMoleculeData",
+      "type": "object"
+    },
+    "PicturePieChartData": {
+      "description": "Represents data of a pie chart.\n\nAttributes:\n    kind (Literal[\"pie_chart_data\"]): The type of the chart.\n    slices (list[ChartSlice]): A list of slices in the pie chart.",
+      "properties": {
+        "kind": {
+          "const": "pie_chart_data",
+          "default": "pie_chart_data",
+          "title": "Kind",
+          "type": "string"
+        },
+        "slices": {
+          "items": {
+            "$ref": "#/$defs/ChartSlice"
+          },
+          "title": "Slices",
+          "type": "array"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "slices"
+      ],
+      "title": "PicturePieChartData",
+      "type": "object"
+    },
+    "PictureScatterChartData": {
+      "description": "Represents data of a scatter chart.\n\nAttributes:\n    kind (Literal[\"scatter_chart_data\"]): The type of the chart.\n    x_axis_label (str): The label for the x-axis.\n    y_axis_label (str): The label for the y-axis.\n    points (list[ChartPoint]): A list of points in the scatter chart.",
+      "properties": {
+        "kind": {
+          "const": "scatter_chart_data",
+          "default": "scatter_chart_data",
+          "title": "Kind",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/ChartPoint"
+          },
+          "title": "Points",
+          "type": "array"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "x_axis_label": {
+          "title": "X Axis Label",
+          "type": "string"
+        },
+        "y_axis_label": {
+          "title": "Y Axis Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "x_axis_label",
+        "y_axis_label",
+        "points"
+      ],
+      "title": "PictureScatterChartData",
+      "type": "object"
+    },
+    "PictureStackedBarChartData": {
+      "description": "Represents data of a stacked bar chart.\n\nAttributes:\n    kind (Literal[\"stacked_bar_chart_data\"]): The type of the chart.\n    x_axis_label (str): The label for the x-axis.\n    y_axis_label (str): The label for the y-axis.\n    stacked_bars (list[ChartStackedBar]): A list of stacked bars in the chart.",
+      "properties": {
+        "kind": {
+          "const": "stacked_bar_chart_data",
+          "default": "stacked_bar_chart_data",
+          "title": "Kind",
+          "type": "string"
+        },
+        "stacked_bars": {
+          "items": {
+            "$ref": "#/$defs/ChartStackedBar"
+          },
+          "title": "Stacked Bars",
+          "type": "array"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "x_axis_label": {
+          "title": "X Axis Label",
+          "type": "string"
+        },
+        "y_axis_label": {
+          "title": "Y Axis Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "x_axis_label",
+        "y_axis_label",
+        "stacked_bars"
+      ],
+      "title": "PictureStackedBarChartData",
+      "type": "object"
+    },
+    "PictureTabularChartData": {
+      "description": "Base class for picture chart data.\n\nAttributes:\n    title (str): The title of the chart.\n    chart_data (TableData): Chart data in the table format.",
+      "properties": {
+        "chart_data": {
+          "$ref": "#/$defs/TableData"
+        },
+        "kind": {
+          "const": "tabular_chart_data",
+          "default": "tabular_chart_data",
+          "title": "Kind",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "chart_data"
+      ],
+      "title": "PictureTabularChartData",
+      "type": "object"
+    },
+    "ProvenanceItem": {
+      "description": "Provenance information for elements extracted from a textual document.\n\nA `ProvenanceItem` object acts as a lightweight pointer back into the original\ndocument for an extracted element. It applies to documents with an explicity\nor implicit layout, such as PDF, HTML, docx, or pptx.",
+      "properties": {
+        "bbox": {
+          "$ref": "#/$defs/BoundingBox",
+          "description": "Bounding box"
+        },
+        "charspan": {
+          "description": "Character span (0-indexed)",
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Charspan",
+          "type": "array"
+        },
+        "page_no": {
+          "description": "Page number",
+          "title": "Page No",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "page_no",
+        "bbox",
+        "charspan"
+      ],
+      "title": "ProvenanceItem",
+      "type": "object"
+    },
+    "RefItem": {
+      "description": "RefItem.",
+      "properties": {
+        "$ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "$Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "$ref"
+      ],
+      "title": "RefItem",
+      "type": "object"
+    },
+    "RichTableCell": {
+      "description": "RichTableCell.",
+      "properties": {
+        "bbox": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoundingBox"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "col_span": {
+          "default": 1,
+          "title": "Col Span",
+          "type": "integer"
+        },
+        "column_header": {
+          "default": false,
+          "title": "Column Header",
+          "type": "boolean"
+        },
+        "end_col_offset_idx": {
+          "title": "End Col Offset Idx",
+          "type": "integer"
+        },
+        "end_row_offset_idx": {
+          "title": "End Row Offset Idx",
+          "type": "integer"
+        },
+        "fillable": {
+          "default": false,
+          "title": "Fillable",
+          "type": "boolean"
+        },
+        "ref": {
+          "$ref": "#/$defs/RefItem"
+        },
+        "row_header": {
+          "default": false,
+          "title": "Row Header",
+          "type": "boolean"
+        },
+        "row_section": {
+          "default": false,
+          "title": "Row Section",
+          "type": "boolean"
+        },
+        "row_span": {
+          "default": 1,
+          "title": "Row Span",
+          "type": "integer"
+        },
+        "start_col_offset_idx": {
+          "title": "Start Col Offset Idx",
+          "type": "integer"
+        },
+        "start_row_offset_idx": {
+          "title": "Start Row Offset Idx",
+          "type": "integer"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_row_offset_idx",
+        "end_row_offset_idx",
+        "start_col_offset_idx",
+        "end_col_offset_idx",
+        "text",
+        "ref"
+      ],
+      "title": "RichTableCell",
+      "type": "object"
+    },
+    "Script": {
+      "description": "Text script position.",
+      "enum": [
+        "baseline",
+        "sub",
+        "super"
+      ],
+      "title": "Script",
+      "type": "string"
+    },
+    "SectionHeaderItem": {
+      "additionalProperties": false,
+      "description": "SectionItem.",
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "formatting": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Formatting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hyperlink": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hyperlink"
+        },
+        "label": {
+          "const": "section_header",
+          "default": "section_header",
+          "title": "Label",
+          "type": "string"
+        },
+        "level": {
+          "default": 1,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Level",
+          "type": "integer"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "orig": {
+          "title": "Orig",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "self_ref",
+        "orig",
+        "text"
+      ],
+      "title": "SectionHeaderItem",
+      "type": "object"
+    },
+    "Size": {
+      "description": "Size.",
+      "properties": {
+        "height": {
+          "default": 0.0,
+          "title": "Height",
+          "type": "number"
+        },
+        "width": {
+          "default": 0.0,
+          "title": "Width",
+          "type": "number"
+        }
+      },
+      "title": "Size",
+      "type": "object"
+    },
+    "SummaryMetaField": {
+      "additionalProperties": true,
+      "description": "Summary data.",
+      "properties": {
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The confidence of the prediction.",
+          "examples": [
+            0.9,
+            0.42
+          ],
+          "title": "Confidence"
+        },
+        "created_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The origin of the prediction.",
+          "examples": [
+            "ibm-granite/granite-docling-258M"
+          ],
+          "title": "Created By"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "SummaryMetaField",
+      "type": "object"
+    },
+    "TableCell": {
+      "description": "TableCell.",
+      "properties": {
+        "bbox": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoundingBox"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "col_span": {
+          "default": 1,
+          "title": "Col Span",
+          "type": "integer"
+        },
+        "column_header": {
+          "default": false,
+          "title": "Column Header",
+          "type": "boolean"
+        },
+        "end_col_offset_idx": {
+          "title": "End Col Offset Idx",
+          "type": "integer"
+        },
+        "end_row_offset_idx": {
+          "title": "End Row Offset Idx",
+          "type": "integer"
+        },
+        "fillable": {
+          "default": false,
+          "title": "Fillable",
+          "type": "boolean"
+        },
+        "row_header": {
+          "default": false,
+          "title": "Row Header",
+          "type": "boolean"
+        },
+        "row_section": {
+          "default": false,
+          "title": "Row Section",
+          "type": "boolean"
+        },
+        "row_span": {
+          "default": 1,
+          "title": "Row Span",
+          "type": "integer"
+        },
+        "start_col_offset_idx": {
+          "title": "Start Col Offset Idx",
+          "type": "integer"
+        },
+        "start_row_offset_idx": {
+          "title": "Start Row Offset Idx",
+          "type": "integer"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_row_offset_idx",
+        "end_row_offset_idx",
+        "start_col_offset_idx",
+        "end_col_offset_idx",
+        "text"
+      ],
+      "title": "TableCell",
+      "type": "object"
+    },
+    "TableData": {
+      "description": "BaseTableData.",
+      "properties": {
+        "num_cols": {
+          "default": 0,
+          "title": "Num Cols",
+          "type": "integer"
+        },
+        "num_rows": {
+          "default": 0,
+          "title": "Num Rows",
+          "type": "integer"
+        },
+        "table_cells": {
+          "default": [],
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RichTableCell"
+              },
+              {
+                "$ref": "#/$defs/TableCell"
+              }
+            ]
+          },
+          "title": "Table Cells",
+          "type": "array"
+        }
+      },
+      "title": "TableData",
+      "type": "object"
+    },
+    "TableItem": {
+      "additionalProperties": false,
+      "description": "TableItem.",
+      "properties": {
+        "annotations": {
+          "default": [],
+          "deprecated": true,
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "description": "#/$defs/DescriptionAnnotation",
+                "misc": "#/$defs/MiscAnnotation"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/DescriptionAnnotation"
+              },
+              {
+                "$ref": "#/$defs/MiscAnnotation"
+              }
+            ]
+          },
+          "title": "Annotations",
+          "type": "array"
+        },
+        "captions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Captions",
+          "type": "array"
+        },
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "data": {
+          "$ref": "#/$defs/TableData"
+        },
+        "footnotes": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Footnotes",
+          "type": "array"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "label": {
+          "default": "table",
+          "enum": [
+            "document_index",
+            "table"
+          ],
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloatingMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "references": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "References",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        }
+      },
+      "required": [
+        "self_ref",
+        "data"
+      ],
+      "title": "TableItem",
+      "type": "object"
+    },
+    "TabularChartMetaField": {
+      "additionalProperties": true,
+      "description": "Tabular chart metadata field.",
+      "properties": {
+        "chart_data": {
+          "$ref": "#/$defs/TableData"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The confidence of the prediction.",
+          "examples": [
+            0.9,
+            0.42
+          ],
+          "title": "Confidence"
+        },
+        "created_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The origin of the prediction.",
+          "examples": [
+            "ibm-granite/granite-docling-258M"
+          ],
+          "title": "Created By"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        }
+      },
+      "required": [
+        "chart_data"
+      ],
+      "title": "TabularChartMetaField",
+      "type": "object"
+    },
+    "TextItem": {
+      "additionalProperties": false,
+      "description": "TextItem.",
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "formatting": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Formatting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hyperlink": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hyperlink"
+        },
+        "label": {
+          "enum": [
+            "caption",
+            "checkbox_selected",
+            "checkbox_unselected",
+            "footnote",
+            "page_footer",
+            "page_header",
+            "paragraph",
+            "reference",
+            "text",
+            "empty_value",
+            "field_key",
+            "field_hint",
+            "marker",
+            "handwritten_text"
+          ],
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "orig": {
+          "title": "Orig",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "self_ref",
+        "label",
+        "orig",
+        "text"
+      ],
+      "title": "TextItem",
+      "type": "object"
+    },
+    "TitleItem": {
+      "additionalProperties": false,
+      "description": "TitleItem.",
+      "properties": {
+        "children": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RefItem"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "comments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FineRef"
+          },
+          "title": "Comments",
+          "type": "array"
+        },
+        "content_layer": {
+          "$ref": "#/$defs/ContentLayer",
+          "default": "body"
+        },
+        "formatting": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Formatting"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "hyperlink": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hyperlink"
+        },
+        "label": {
+          "const": "title",
+          "default": "title",
+          "title": "Label",
+          "type": "string"
+        },
+        "meta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseMeta"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "orig": {
+          "title": "Orig",
+          "type": "string"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RefItem"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "prov": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProvenanceItem"
+          },
+          "title": "Prov",
+          "type": "array"
+        },
+        "self_ref": {
+          "pattern": "^#(?:/([\\w-]+)(?:/(\\d+))?)?$",
+          "title": "Self Ref",
+          "type": "string"
+        },
+        "source": {
+          "default": [],
+          "description": "The provenance of this document item. Currently, it is only used for media track provenance.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "track": "#/$defs/TrackSource"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TrackSource"
+              }
+            ]
+          },
+          "title": "Source",
+          "type": "array"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "self_ref",
+        "orig",
+        "text"
+      ],
+      "title": "TitleItem",
+      "type": "object"
+    },
+    "TrackSource": {
+      "description": "Source metadata for a cue extracted from a media track.\n\nA `TrackSource` instance identifies a cue in a media track (audio, video, subtitles, screen-recording captions,\netc.). A *cue* here refers to any discrete segment that was pulled out of the original asset, e.g., a subtitle\nblock, an audio clip, or a timed marker in a screen-recording.",
+      "properties": {
+        "end_time": {
+          "description": "End time offset of the track cue in seconds",
+          "examples": [
+            12.0,
+            8.2,
+            5370.1
+          ],
+          "title": "End Time",
+          "type": "number"
+        },
+        "identifier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "An identifier of the cue",
+          "examples": [
+            "test",
+            "123",
+            "b72d946"
+          ],
+          "title": "Identifier"
+        },
+        "kind": {
+          "const": "track",
+          "default": "track",
+          "description": "Identifies this type of source.",
+          "title": "Kind",
+          "type": "string"
+        },
+        "start_time": {
+          "description": "Start time offset of the track cue in seconds",
+          "examples": [
+            11.0,
+            6.5,
+            5370.0
+          ],
+          "title": "Start Time",
+          "type": "number"
+        },
+        "voice": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The name of the voice in this track (the speaker)",
+          "examples": [
+            "John",
+            "Mary",
+            "Speaker 1"
+          ],
+          "title": "Voice"
+        }
+      },
+      "required": [
+        "start_time",
+        "end_time"
+      ],
+      "title": "TrackSource",
+      "type": "object"
+    }
+  },
+  "description": "DoclingDocument.",
+  "properties": {
+    "body": {
+      "$ref": "#/$defs/GroupItem",
+      "default": {
+        "children": [],
+        "content_layer": "body",
+        "label": "unspecified",
+        "meta": null,
+        "name": "_root_",
+        "parent": null,
+        "self_ref": "#/body"
+      }
+    },
+    "field_items": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/FieldItem"
+      },
+      "title": "Field Items",
+      "type": "array"
+    },
+    "field_regions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/FieldRegionItem"
+      },
+      "title": "Field Regions",
+      "type": "array"
+    },
+    "form_items": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/FormItem"
+      },
+      "title": "Form Items",
+      "type": "array"
+    },
+    "furniture": {
+      "$ref": "#/$defs/GroupItem",
+      "default": {
+        "children": [],
+        "content_layer": "furniture",
+        "label": "unspecified",
+        "meta": null,
+        "name": "_root_",
+        "parent": null,
+        "self_ref": "#/furniture"
+      },
+      "deprecated": true
+    },
+    "groups": {
+      "default": [],
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ListGroup"
+          },
+          {
+            "$ref": "#/$defs/InlineGroup"
+          },
+          {
+            "$ref": "#/$defs/GroupItem"
+          }
+        ]
+      },
+      "title": "Groups",
+      "type": "array"
+    },
+    "key_value_items": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/KeyValueItem"
+      },
+      "title": "Key Value Items",
+      "type": "array"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "origin": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DocumentOrigin"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "pages": {
+      "additionalProperties": {
+        "$ref": "#/$defs/PageItem"
+      },
+      "default": {},
+      "title": "Pages",
+      "type": "object"
+    },
+    "pictures": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PictureItem"
+      },
+      "title": "Pictures",
+      "type": "array"
+    },
+    "schema_name": {
+      "const": "DoclingDocument",
+      "default": "DoclingDocument",
+      "title": "Schema Name",
+      "type": "string"
+    },
+    "tables": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/TableItem"
+      },
+      "title": "Tables",
+      "type": "array"
+    },
+    "texts": {
+      "default": [],
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/TitleItem"
+          },
+          {
+            "$ref": "#/$defs/SectionHeaderItem"
+          },
+          {
+            "$ref": "#/$defs/ListItem"
+          },
+          {
+            "$ref": "#/$defs/CodeItem"
+          },
+          {
+            "$ref": "#/$defs/FormulaItem"
+          },
+          {
+            "$ref": "#/$defs/FieldHeadingItem"
+          },
+          {
+            "$ref": "#/$defs/FieldValueItem"
+          },
+          {
+            "$ref": "#/$defs/TextItem"
+          }
+        ]
+      },
+      "title": "Texts",
+      "type": "array"
+    },
+    "version": {
+      "default": "1.10.0",
+      "pattern": "^(?<major>0|[1-9]\\d*)\\.(?<minor>0|[1-9]\\d*)\\.(?<patch>0|[1-9]\\d*)(?:-(?<prerelease>(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "title": "DoclingDocument",
+  "type": "object"
+}
