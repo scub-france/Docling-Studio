@@ -1,0 +1,124 @@
+{
+  "schema_name": "DoclingDocument",
+  "version": "1.10.0",
+  "name": "Sample Document",
+  "origin": {
+    "mimetype": "application/pdf",
+    "filename": "sample.pdf",
+    "binary_hash": 1
+  },
+  "furniture": {
+    "self_ref": "#/furniture",
+    "children": [],
+    "content_layer": "furniture",
+    "name": "_root_",
+    "label": "unspecified"
+  },
+  "body": {
+    "self_ref": "#/body",
+    "children": [
+      { "$ref": "#/texts/0" },
+      { "$ref": "#/texts/1" },
+      { "$ref": "#/groups/0" },
+      { "$ref": "#/texts/4" }
+    ],
+    "content_layer": "body",
+    "name": "_root_",
+    "label": "unspecified"
+  },
+  "groups": [
+    {
+      "self_ref": "#/groups/0",
+      "parent": { "$ref": "#/body" },
+      "children": [
+        { "$ref": "#/texts/2" },
+        { "$ref": "#/texts/3" }
+      ],
+      "content_layer": "body",
+      "name": "section-1",
+      "label": "section"
+    }
+  ],
+  "texts": [
+    {
+      "self_ref": "#/texts/0",
+      "parent": { "$ref": "#/body" },
+      "children": [],
+      "content_layer": "furniture",
+      "label": "page_header",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": { "l": 10, "t": 10, "r": 100, "b": 24, "coord_origin": "TOPLEFT" },
+          "charspan": [0, 13]
+        }
+      ],
+      "orig": "Sample Header",
+      "text": "Sample Header"
+    },
+    {
+      "self_ref": "#/texts/1",
+      "parent": { "$ref": "#/body" },
+      "children": [],
+      "content_layer": "body",
+      "label": "section_header",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": { "l": 10, "t": 40, "r": 130, "b": 58, "coord_origin": "TOPLEFT" },
+          "charspan": [0, 12]
+        }
+      ],
+      "orig": "Introduction",
+      "text": "Introduction"
+    },
+    {
+      "self_ref": "#/texts/2",
+      "parent": { "$ref": "#/groups/0" },
+      "children": [],
+      "content_layer": "body",
+      "label": "paragraph",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": { "l": 10, "t": 80, "r": 220, "b": 102, "coord_origin": "TOPLEFT" },
+          "charspan": [0, 17]
+        }
+      ],
+      "orig": "First paragraph.",
+      "text": "First paragraph."
+    },
+    {
+      "self_ref": "#/texts/3",
+      "parent": { "$ref": "#/groups/0" },
+      "children": [],
+      "content_layer": "body",
+      "label": "paragraph",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": { "l": 10, "t": 110, "r": 250, "b": 132, "coord_origin": "TOPLEFT" },
+          "charspan": [0, 18]
+        }
+      ],
+      "orig": "Second paragraph.",
+      "text": "Second paragraph."
+    },
+    {
+      "self_ref": "#/texts/4",
+      "parent": { "$ref": "#/body" },
+      "children": [],
+      "content_layer": "body",
+      "label": "paragraph",
+      "prov": [
+        {
+          "page_no": 1,
+          "bbox": { "l": 10, "t": 150, "r": 260, "b": 172, "coord_origin": "TOPLEFT" },
+          "charspan": [0, 16]
+        }
+      ],
+      "orig": "Closing summary.",
+      "text": "Closing summary."
+    }
+  ]
+}

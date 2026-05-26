@@ -1,120 +1,159 @@
 import { describe, expect, it } from 'vitest'
 
-import type { DoclingDocument } from './docling-document.generated'
+import sampleDoclingDocument from './__fixtures__/sample-docling-document.json'
 import {
+  buildDoclingIndex,
+  createDoclingGroup,
+  deleteDoclingItem,
+  type DoclingDocument,
   DoclingEditError,
   editDoclingText,
   getDoclingItem,
+  insertDoclingText,
   mergeAdjacentDoclingTexts,
+  moveDoclingItem,
   parseDoclingDocument,
-  reparentDoclingItem,
+  splitDoclingText,
 } from './editing'
+import { DoclingDraftSession } from './session'
 
 function makeDocument(): DoclingDocument {
-  return parseDoclingDocument({
-    name: 'Editable',
-    body: {
-      self_ref: '#/body',
-      parent: null,
-      children: [{ $ref: '#/texts/0' }, { $ref: '#/texts/1' }, { $ref: '#/groups/0' }],
-      content_layer: 'body',
-      name: '_root_',
-      label: 'unspecified',
-      meta: null,
-    },
-    groups: [
-      {
-        self_ref: '#/groups/0',
-        parent: { $ref: '#/body' },
-        children: [{ $ref: '#/texts/2' }],
-        content_layer: 'body',
-        name: 'group',
-        label: 'section',
-      },
-    ],
-    texts: [
-      makeText('#/texts/0', '#/body', 'alpha', { l: 0, t: 0, r: 10, b: 10 }),
-      makeText('#/texts/1', '#/body', 'beta', { l: 10, t: 0, r: 20, b: 10 }),
-      makeText('#/texts/2', '#/groups/0', 'inside', { l: 20, t: 0, r: 30, b: 10 }),
-    ],
+  return parseDoclingDocument(sampleDoclingDocument)
+}
+
+describe('docling editing core', () => {
+  it('builds an index over a realistic fixture', () => {
+    const doc = makeDocument()
+    const index = buildDoclingIndex(doc)
+
+    expect(index.itemsByRef.has('#/body')).toBe(true)
+    expect(index.itemsByRef.has('#/groups/0')).toBe(true)
+    expect(index.textRefs.has('#/texts/4')).toBe(true)
+    expect(index.childrenByParentRef.get('#/groups/0')?.map((item) => item.$ref)).toEqual([
+      '#/texts/2',
+      '#/texts/3',
+    ])
   })
-}
 
-function makeText(
-  selfRef: string,
-  parentRef: string,
-  text: string,
-  bbox: { l: number; t: number; r: number; b: number },
-) {
-  return {
-    self_ref: selfRef,
-    parent: { $ref: parentRef },
-    children: [],
-    content_layer: 'body',
-    label: 'paragraph',
-    prov: [
-      {
-        page_no: 1,
-        bbox: { ...bbox, coord_origin: 'TOPLEFT' },
-        charspan: [0, text.length],
-      },
-    ],
-    orig: text,
-    text,
-  }
-}
-
-describe('docling editing helpers', () => {
   it('edits text immutably and updates charspan', () => {
     const doc = makeDocument()
 
-    const edited = editDoclingText(doc, '#/texts/0', 'alpha updated')
+    const edited = editDoclingText(doc, '#/texts/2', 'First paragraph updated.')
 
-    expect(edited.texts[0].text).toBe('alpha updated')
-    expect(edited.texts[0].orig).toBe('alpha updated')
-    expect(edited.texts[0].prov?.[0]?.charspan).toEqual([0, 13])
-    expect(doc.texts[0].text).toBe('alpha')
+    expect(edited.texts[2].text).toBe('First paragraph updated.')
+    expect(edited.texts[2].orig).toBe('First paragraph updated.')
+    expect(edited.texts[2].prov?.[0]?.charspan).toEqual([0, 24])
+    expect(doc.texts[2].text).toBe('First paragraph.')
   })
 
-  it('reparents an item into a group and updates child lists', () => {
+  it('splits a text node and renormalizes refs', () => {
     const doc = makeDocument()
 
-    const moved = reparentDoclingItem(doc, '#/texts/1', '#/groups/0')
-    const text = getDoclingItem(moved, '#/texts/1')
+    const split = splitDoclingText(doc, '#/texts/2', 5)
 
-    expect(text?.parent?.$ref).toBe('#/groups/0')
-    expect(moved.body.children.map((item) => item.$ref)).toEqual(['#/texts/0', '#/groups/0'])
-    expect(moved.groups[0].children.map((item) => item.$ref)).toEqual(['#/texts/2', '#/texts/1'])
+    expect(split.texts).toHaveLength(6)
+    expect(split.texts[2].text).toBe('First')
+    expect(split.texts[3].text).toBe(' paragraph.')
+    expect(split.groups[0].children.map((item) => item.$ref)).toEqual(['#/texts/2', '#/texts/3', '#/texts/4'])
+    expect(split.texts[4].self_ref).toBe('#/texts/4')
+    expect(split.body.children.at(-1)?.$ref).toBe('#/texts/5')
   })
 
-  it('supports reparenting an item back to the body', () => {
-    const doc = makeDocument()
+  it('merges adjacent text nodes and renormalizes trailing refs away', () => {
+    const doc = splitDoclingText(makeDocument(), '#/texts/2', 5)
 
-    const moved = reparentDoclingItem(doc, '#/texts/2', '#/body')
-    const text = getDoclingItem(moved, '#/texts/2')
+    const merged = mergeAdjacentDoclingTexts(doc, '#/texts/2', '#/texts/3')
 
-    expect(text?.parent?.$ref).toBe('#/body')
-    expect(moved.groups[0].children).toEqual([])
-    expect(moved.body.children.at(-1)?.$ref).toBe('#/texts/2')
+    expect(merged.texts).toHaveLength(5)
+    expect(merged.texts[2].text).toBe('First paragraph.')
+    expect(merged.groups[0].children.map((item) => item.$ref)).toEqual(['#/texts/2', '#/texts/3'])
+    expect(merged.texts[3].text).toBe('Second paragraph.')
   })
 
-  it('merges adjacent body text items and removes the trailing ref', () => {
+  it('moves an item into a group at a precise position', () => {
     const doc = makeDocument()
 
-    const merged = mergeAdjacentDoclingTexts(doc, '#/texts/0', '#/texts/1')
+    const moved = moveDoclingItem(doc, '#/texts/4', '#/groups/0', 1)
+    const movedText = getDoclingItem(moved, '#/texts/4')
 
-    expect(merged.texts).toHaveLength(2)
-    expect(merged.texts[0].text).toBe('alpha beta')
-    expect(merged.texts[0].orig).toBe('alpha beta')
-    expect(merged.texts[0].prov?.[0]?.charspan).toEqual([0, 10])
-    expect(merged.body.children.map((item) => item.$ref)).toEqual(['#/texts/0', '#/groups/0'])
+    expect(movedText?.parent?.$ref).toBe('#/groups/0')
+    expect(moved.groups[0].children.map((item) => item.$ref)).toEqual([
+      '#/texts/2',
+      '#/texts/4',
+      '#/texts/3',
+    ])
+    expect(moved.body.children.map((item) => item.$ref)).toEqual([
+      '#/texts/0',
+      '#/texts/1',
+      '#/groups/0',
+    ])
   })
 
-  it('rejects non-adjacent merges', () => {
+  it('creates a group, inserts text into it, and keeps the document valid', () => {
     const doc = makeDocument()
 
-    expect(() => mergeAdjacentDoclingTexts(doc, '#/texts/0', '#/texts/2')).toThrow(
-      DoclingEditError,
-    )
+    const withGroup = createDoclingGroup(doc, {
+      parentRef: '#/body',
+      index: 1,
+      name: 'notes',
+      label: 'inline',
+    })
+    const inserted = insertDoclingText(withGroup, {
+      parentRef: '#/groups/1',
+      text: 'Inserted note',
+      label: 'paragraph',
+    })
+
+    expect(inserted.groups).toHaveLength(2)
+    expect(inserted.groups[1].self_ref).toBe('#/groups/1')
+    expect(inserted.groups[1].children.map((item) => item.$ref)).toEqual(['#/texts/5'])
+    expect(inserted.texts[5].text).toBe('Inserted note')
+    expect(inserted.body.children[1]?.$ref).toBe('#/groups/1')
+  })
+
+  it('deletes a group recursively and renormalizes surviving refs', () => {
+    const doc = makeDocument()
+
+    const deleted = deleteDoclingItem(doc, '#/groups/0')
+
+    expect(deleted.groups).toHaveLength(0)
+    expect(deleted.texts).toHaveLength(3)
+    expect(deleted.texts.map((item) => item.self_ref)).toEqual(['#/texts/0', '#/texts/1', '#/texts/2'])
+    expect(deleted.body.children.map((item) => item.$ref)).toEqual(['#/texts/0', '#/texts/1', '#/texts/2'])
+  })
+
+  it('rejects invalid structures during parse', () => {
+    const broken = structuredClone(sampleDoclingDocument)
+    broken.groups[0].children.push({ $ref: '#/texts/999' })
+
+    expect(() => parseDoclingDocument(broken)).toThrow(DoclingEditError)
+  })
+
+  it('tracks undo/redo/reset/checkpoint in the draft session', () => {
+    const session = new DoclingDraftSession(sampleDoclingDocument)
+
+    session.apply({ type: 'edit-text', itemRef: '#/texts/2', text: 'Edited paragraph.' })
+    session.apply({ type: 'split-text', itemRef: '#/texts/2', offset: 6 })
+
+    expect(session.hasChanges).toBe(true)
+    expect(session.canUndo).toBe(true)
+    expect(session.document.texts).toHaveLength(6)
+
+    session.undo()
+    expect(session.document.texts).toHaveLength(5)
+
+    session.redo()
+    expect(session.document.texts).toHaveLength(6)
+
+    session.checkpoint()
+    expect(session.hasChanges).toBe(false)
+    expect(session.canUndo).toBe(false)
+
+    session.apply({ type: 'delete-item', itemRef: '#/groups/0' })
+    expect(session.hasChanges).toBe(true)
+
+    session.reset()
+    expect(session.hasChanges).toBe(false)
+    expect(session.document.groups).toHaveLength(1)
   })
 })
