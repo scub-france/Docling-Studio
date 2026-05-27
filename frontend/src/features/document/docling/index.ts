@@ -18,6 +18,7 @@ export {
   stringifyDoclingDocument,
   validateDoclingDocument,
 } from './editing'
+export { projectDoclingPages, projectDoclingTree } from './projection'
 export type {
   DoclingContentLayer,
   DoclingCreateGroupOptions,

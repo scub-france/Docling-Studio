@@ -38,6 +38,7 @@ def _to_response(job) -> AnalysisResponse:
         content_html=job.content_html,
         pages_json=job.pages_json,
         chunks_json=job.chunks_json,
+        document_json=job.document_json,
         has_document_json=job.document_json is not None,
         error_message=job.error_message,
         progress_current=job.progress_current,

@@ -65,6 +65,7 @@ export interface Analysis {
   contentHtml: string | null
   pagesJson: string | null
   chunksJson: string | null
+  documentJson: string | null
   hasDocumentJson: boolean
   errorMessage: string | null
   progressCurrent: number | null

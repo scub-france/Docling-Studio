@@ -65,6 +65,7 @@ class TestAnalysisResponse:
         assert "documentId" in data
         assert "contentMarkdown" in data
         assert "pagesJson" in data
+        assert "documentJson" in data
         assert "errorMessage" in data
         assert "startedAt" in data
         assert "completedAt" in data

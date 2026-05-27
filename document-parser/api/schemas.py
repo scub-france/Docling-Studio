@@ -102,6 +102,7 @@ class AnalysisResponse(_CamelModel):
     content_html: str | None = None
     pages_json: str | None = None
     chunks_json: str | None = None
+    document_json: str | None = None
     has_document_json: bool = False
     error_message: str | None = None
     progress_current: int | None = None

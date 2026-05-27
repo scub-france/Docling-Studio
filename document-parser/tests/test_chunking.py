@@ -273,6 +273,7 @@ class TestCreateAnalysisWithChunking:
         assert resp.status_code == 200
         data = resp.json()
         assert data["hasDocumentJson"] is True
+        assert data["documentJson"] == '{"name": "doc"}'
         assert data["chunksJson"] is not None
         chunks = json.loads(data["chunksJson"])
         assert len(chunks) == 1

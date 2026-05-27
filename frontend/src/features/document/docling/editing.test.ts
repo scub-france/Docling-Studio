@@ -130,6 +130,15 @@ describe('docling editing core', () => {
     expect(() => parseDoclingDocument(broken)).toThrow(DoclingEditError)
   })
 
+  it('accepts oversized binary_hash metadata by clamping it into JS-safe range', () => {
+    const largeHashDoc = structuredClone(sampleDoclingDocument)
+    largeHashDoc.origin.binary_hash = 18446744073709552000
+
+    const parsed = parseDoclingDocument(largeHashDoc)
+
+    expect(parsed.origin.binary_hash).toBe(Number.MAX_SAFE_INTEGER)
+  })
+
   it('tracks undo/redo/reset/checkpoint in the draft session', () => {
     const session = new DoclingDraftSession(sampleDoclingDocument)
 

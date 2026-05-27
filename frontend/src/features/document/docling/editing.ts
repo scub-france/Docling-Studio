@@ -103,7 +103,7 @@ export class DoclingEditError extends Error {
 
 /** Parse the raw JSON and enforce additional structural invariants. */
 export function parseDoclingDocument(value: unknown): DoclingDocument {
-  const parsed = doclingDocument.parse(value)
+  const parsed = doclingDocument.parse(sanitizeDoclingInput(value))
   cacheDoclingIndex(parsed, computeDoclingIndex(parsed))
   return parsed
 }
@@ -115,7 +115,7 @@ export function validateDoclingDocument(doc: DoclingDocument): DoclingDocument {
 
 /** Deep clone a document and re-validate the clone. */
 export function cloneDoclingDocument(doc: DoclingDocument): DoclingDocument {
-  const clone = structuredClone(doc)
+  const clone = clonePlain(doc)
   return hasNonCanonicalRefs(clone) ? validateDraftDoclingDocument(clone) : parseDoclingDocument(clone)
 }
 
@@ -186,7 +186,7 @@ function computeDoclingIndex(doc: DoclingDocument): DoclingIndex {
   registerRoot('furniture', doc.furniture as DoclingNode)
 
   for (const key of ITEM_COLLECTION_KEYS) {
-    registerCollection(key, doc[key] as DoclingNode[])
+    registerCollection(key, getCollection(doc, key))
   }
 
   const parentByChildRef = new Map<string, string>()
@@ -442,7 +442,7 @@ export function splitDoclingText(
     label: item.label,
     contentLayer: (item as { content_layer?: DoclingContentLayer }).content_layer ?? 'body',
     orig: trailingOrig,
-    prov: structuredClone(item.prov ?? []).map((provenance) => ({
+    prov: clonePlain(item.prov ?? []).map((provenance) => ({
       ...provenance,
       charspan: [0, trailingText.length],
     })),
@@ -471,7 +471,7 @@ export function insertDoclingText(
     label: options.label ?? 'text',
     contentLayer: options.contentLayer ?? 'body',
     orig: options.orig ?? options.text,
-    prov: structuredClone(options.prov ?? []),
+    prov: clonePlain(options.prov ?? []),
   })
 
   next.texts.push(text)
@@ -654,33 +654,15 @@ function assertAdjacentTextSiblings(
 
 function mergeProvenance(leading: DoclingTextItem, trailing: DoclingTextItem): void {
   const leadingProv = leading.prov ?? []
-  if (leadingProv.length === 0) {
-    return
-  }
-
-  for (const provenance of leadingProv) {
-    provenance.charspan = [0, leading.text.length]
-  }
-
   const trailingProv = trailing.prov ?? []
-  if (trailingProv.length === 0) {
-    return
+  if (leadingProv.length === 0) {
+    leading.prov = clonePlain(trailingProv)
+  } else if (trailingProv.length > 0) {
+    leadingProv.push(...clonePlain(trailingProv))
   }
 
-  const leadBox = leadingProv[0]?.bbox
-  const trailBox = trailingProv[0]?.bbox
-  if (leadBox && trailBox) {
-    leadingProv[0].bbox = {
-      l: Math.min(leadBox.l, trailBox.l),
-      t: Math.min(leadBox.t, trailBox.t),
-      r: Math.max(leadBox.r, trailBox.r),
-      b: Math.max(leadBox.b, trailBox.b),
-      coord_origin: leadBox.coord_origin,
-    }
-  }
-
-  if (trailingProv.length > 1) {
-    leadingProv.push(...structuredClone(trailingProv.slice(1)))
+  for (const provenance of leading.prov ?? []) {
+    provenance.charspan = [0, leading.text.length]
   }
 }
 
@@ -688,7 +670,7 @@ function normalizeDoclingReferences(doc: DoclingDocument): void {
   const refMap = new Map<string, string>()
 
   for (const key of ITEM_COLLECTION_KEYS) {
-    const collection = doc[key] as DoclingNode[]
+    const collection = getCollection(doc, key)
     collection.forEach((item, index) => {
       const nextRef = `#/${key}/${index}`
       refMap.set(item.self_ref, nextRef)
@@ -699,7 +681,7 @@ function normalizeDoclingReferences(doc: DoclingDocument): void {
   const allNodes = [
     doc.body as DoclingNode,
     doc.furniture as DoclingNode,
-    ...ITEM_COLLECTION_KEYS.flatMap((key) => doc[key] as DoclingNode[]),
+    ...ITEM_COLLECTION_KEYS.flatMap((key) => getCollection(doc, key)),
   ]
 
   for (const node of allNodes) {
@@ -740,7 +722,7 @@ function hasNonCanonicalRefs(doc: DoclingDocument): boolean {
   const nodes = [doc.body as DoclingNode, doc.furniture as DoclingNode]
 
   for (const key of ITEM_COLLECTION_KEYS) {
-    for (const item of doc[key] as DoclingNode[]) {
+    for (const item of getCollection(doc, key)) {
       refs.push(item.self_ref)
       nodes.push(item)
     }
@@ -756,6 +738,39 @@ function hasNonCanonicalRefs(doc: DoclingDocument): boolean {
   }
 
   return refs.some((ref) => !CANONICAL_REF_PATTERN.test(ref))
+}
+
+function clonePlain<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
+function sanitizeDoclingInput(value: unknown): unknown {
+  if (!value || typeof value !== 'object') {
+    return value
+  }
+
+  const clone = clonePlain(value)
+  if (!clone || typeof clone !== 'object') {
+    return clone
+  }
+
+  const origin = (clone as { origin?: { binary_hash?: unknown } }).origin
+  if (origin && typeof origin.binary_hash === 'number' && !Number.isSafeInteger(origin.binary_hash)) {
+    origin.binary_hash = clampSafeInteger(origin.binary_hash)
+  }
+
+  return clone
+}
+
+function clampSafeInteger(value: number): number {
+  if (!Number.isFinite(value)) {
+    return Number.MAX_SAFE_INTEGER
+  }
+  return Math.min(Math.max(Math.trunc(value), 0), Number.MAX_SAFE_INTEGER)
+}
+
+function getCollection(doc: DoclingDocument, key: ItemCollectionKey): DoclingNode[] {
+  return ((doc[key] as DoclingNode[] | undefined) ?? []) as DoclingNode[]
 }
 
 function collectDescendantRefs(doc: DoclingDocument, ref: string): Set<string> {

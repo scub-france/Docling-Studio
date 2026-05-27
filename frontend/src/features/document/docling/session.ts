@@ -518,7 +518,7 @@ function snapshotTextItem(doc: DoclingDocument, ref: string): DoclingTextItem {
   if (!item || !('text' in item)) {
     throw new DoclingEditError(`Item ${ref} is not a text item`)
   }
-  return structuredClone(item as DoclingTextItem)
+  return clonePlain(item as DoclingTextItem)
 }
 
 function restoreTextSnapshot(doc: DoclingDocument, snapshot: DoclingTextItem): DoclingDocument {
@@ -527,7 +527,7 @@ function restoreTextSnapshot(doc: DoclingDocument, snapshot: DoclingTextItem): D
   if (!item || !('text' in item)) {
     throw new DoclingEditError(`Cannot restore missing text item ${snapshot.self_ref}`)
   }
-  Object.assign(item, structuredClone(snapshot))
+  Object.assign(item, clonePlain(snapshot))
   return parseDoclingDocument(next)
 }
 
@@ -580,7 +580,7 @@ function insertCollectionItem(
 ): DoclingDocument {
   const next = cloneDoclingDocument(doc)
   const collection = next[key] as DoclingNode[]
-  collection.splice(Math.min(index, collection.length), 0, structuredClone(item))
+  collection.splice(Math.min(index, collection.length), 0, clonePlain(item))
   return parseDoclingDocument(next)
 }
 
@@ -622,7 +622,7 @@ function captureSubtreeSnapshot(doc: DoclingDocument, rootRef: string): SubtreeS
       return {
         collectionKey: entry.key,
         collectionIndex: entry.index,
-        item: structuredClone(index.itemsByRef.get(ref)?.item as DoclingNode),
+        item: clonePlain(index.itemsByRef.get(ref)?.item as DoclingNode),
       } satisfies ItemSnapshot
     })
     .filter((value): value is ItemSnapshot => value !== null)
@@ -647,7 +647,7 @@ function restoreSubtreeSnapshot(doc: DoclingDocument, snapshot: SubtreeSnapshot)
     const collection = next[key] as DoclingNode[]
     let offset = 0
     for (const entry of entries) {
-      collection.splice(Math.min(entry.collectionIndex + offset, collection.length), 0, structuredClone(entry.item))
+      collection.splice(Math.min(entry.collectionIndex + offset, collection.length), 0, clonePlain(entry.item))
       offset += 1
     }
   }
@@ -659,4 +659,8 @@ function restoreSubtreeSnapshot(doc: DoclingDocument, snapshot: SubtreeSnapshot)
 
 function isCommand(value: DoclingEditOperation | DoclingCommand): value is DoclingCommand {
   return 'apply' in value && 'undo' in value
+}
+
+function clonePlain<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
 }
