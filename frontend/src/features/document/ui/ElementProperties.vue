@@ -30,16 +30,21 @@
       <!-- Bounding box -->
       <section class="props-section">
         <h3 class="props-section-title">{{ t('properties.bbox') }}</h3>
-        <dl class="props-list">
-          <dt>x</dt>
-          <dd class="mono">{{ bboxPct.x }}%</dd>
-          <dt>y</dt>
-          <dd class="mono">{{ bboxPct.y }}%</dd>
-          <dt>{{ t('properties.width') }}</dt>
-          <dd class="mono">{{ bboxPct.w }}%</dd>
-          <dt>{{ t('properties.height') }}</dt>
-          <dd class="mono">{{ bboxPct.h }}%</dd>
-        </dl>
+        <div v-for="(box, index) in bboxEntries" :key="`${box.pageNumber}-${index}`" class="props-bbox-entry">
+          <p v-if="bboxEntries.length > 1" class="props-bbox-title">
+            {{ t('properties.page') }} {{ box.pageNumber }}
+          </p>
+          <dl class="props-list">
+            <dt>x</dt>
+            <dd class="mono">{{ box.pct.x }}%</dd>
+            <dt>y</dt>
+            <dd class="mono">{{ box.pct.y }}%</dd>
+            <dt>{{ t('properties.width') }}</dt>
+            <dd class="mono">{{ box.pct.w }}%</dd>
+            <dt>{{ t('properties.height') }}</dt>
+            <dd class="mono">{{ box.pct.h }}%</dd>
+          </dl>
+        </div>
       </section>
 
       <!-- Extracted text -->
@@ -48,6 +53,20 @@
         <p class="props-text" data-e2e="properties-extracted-text">
           {{ element.content || t('properties.noText') }}
         </p>
+        <button
+          v-if="canMergeText"
+          type="button"
+          class="props-edit-btn"
+          :disabled="saving || mergingText || editing"
+          data-e2e="properties-merge-text-btn"
+          @mouseenter="emit('mergePreviewStart')"
+          @mouseleave="emit('mergePreviewEnd')"
+          @focus="emit('mergePreviewStart')"
+          @blur="emit('mergePreviewEnd')"
+          @click="emit('mergeText')"
+        >
+          {{ mergingText ? t('properties.mergingText') : t('properties.mergeWithNextText') }}
+        </button>
       </section>
 
       <!-- Linked chunk -->
@@ -121,16 +140,29 @@ import { colorFor } from '../elementColors'
 
 const props = defineProps<{
   element: PageElement | null
+  elementBoxes?: ReadonlyArray<{
+    pageNumber: number
+    pageWidth: number
+    pageHeight: number
+    element: PageElement
+  }>
   pageWidth: number
   pageHeight: number
   pageNumber: number
   linkedChunk: DocChunk | null
   saving?: boolean
+  canMergeText?: boolean
+  mergingText?: boolean
 }>()
 
 const emit = defineEmits<{
   saveChunk: [chunkId: string, text: string]
+  mergeText: []
+  mergePreviewStart: []
+  mergePreviewEnd: []
 }>()
+
+const canMergeText = computed(() => props.canMergeText ?? false)
 
 const { t } = useI18n()
 
@@ -144,9 +176,23 @@ const typeStyle = computed(() => {
   return { background: c + '22', color: c }
 })
 
-const bboxPct = computed(() => {
-  if (!props.element) return { x: '0.0', y: '0.0', w: '0.0', h: '0.0' }
-  return bboxToPercent(props.element.bbox, props.pageWidth, props.pageHeight)
+const bboxEntries = computed(() => {
+  const boxes = props.elementBoxes ?? []
+  if (boxes.length > 0) {
+    return boxes.map((box) => ({
+      pageNumber: box.pageNumber,
+      pct: bboxToPercent(box.element.bbox, box.pageWidth, box.pageHeight),
+    }))
+  }
+  if (!props.element) {
+    return [{ pageNumber: props.pageNumber, pct: { x: '0.0', y: '0.0', w: '0.0', h: '0.0' } }]
+  }
+  return [
+    {
+      pageNumber: props.pageNumber,
+      pct: bboxToPercent(props.element.bbox, props.pageWidth, props.pageHeight),
+    },
+  ]
 })
 
 function startEdit(): void {
@@ -293,6 +339,7 @@ watch(
   white-space: pre-wrap;
   word-break: break-word;
 }
+
 
 .props-linked-chunk {
   display: flex;

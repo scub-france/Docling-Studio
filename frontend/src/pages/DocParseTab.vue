@@ -20,6 +20,18 @@
         </button>
       </template>
     </LayersBar>
+    <div v-if="documentStore.workspaceDraftDirty || documentStore.workspaceError" class="parse-banner">
+      <p class="parse-banner-text">{{ bannerMessage }}</p>
+      <button
+        v-if="documentStore.workspaceDraftDirty"
+        type="button"
+        class="parse-banner-btn"
+        data-e2e="parse-discard-local-draft"
+        @click="onDiscardLocalDraft"
+      >
+        {{ t('parse.discardLocalDraft') }}
+      </button>
+    </div>
     <div class="parse-body">
       <aside class="parse-structure">
         <header class="parse-structure-header">
@@ -60,13 +72,13 @@
         <DocTreeRail
           :key="treeRemountKey"
           :nodes="filteredNodes"
-          :loading="treeLoading"
-          :error="treeError"
+          :loading="documentStore.workspaceLoading"
+          :error="documentStore.workspaceError ? null : treeError"
           :selected="selectedNodeRef"
           :highlight="selectedNodeRef"
           :default-open="treeDefaultOpen"
           @select="onTreeSelect"
-          @reload="loadTree"
+          @reload="reloadDerivedTree"
         />
       </aside>
       <div class="parse-stage">
@@ -91,12 +103,18 @@
       </div>
       <ElementProperties
         :element="selectedElement"
+        :element-boxes="selectedElementBoxes"
         :page-width="currentPageWidth"
         :page-height="currentPageHeight"
         :page-number="currentPage"
         :linked-chunk="linkedChunk"
         :saving="chunksStore.saving"
+        :can-merge-text="Boolean(mergeCandidateRef)"
+        :merging-text="mergingText"
         @save-chunk="onSaveChunk"
+        @merge-preview-start="onMergePreviewStart"
+        @merge-preview-end="onMergePreviewEnd"
+        @merge-text="onMergeText"
       />
     </div>
   </div>
@@ -118,7 +136,6 @@ import { computed, onMounted, ref, watch } from 'vue'
 import type { DocChunk, DocTreeNode, PageElement } from '../shared/types'
 import { useAnalysisStore } from '../features/analysis/store'
 import { useChunksStore } from '../features/chunks/store'
-import { fetchDocumentTree } from '../features/document/api'
 import { useDocumentStore } from '../features/document/store'
 import { chunkForElement } from '../features/document/linkedView'
 import DocTreeRail from '../features/document/ui/DocTreeRail.vue'
@@ -155,11 +172,11 @@ function onCollapseAll(): void {
   treeRemountKey.value++
 }
 
-const tree = ref<DocTreeNode[]>([])
-const treeLoading = ref(false)
 const treeError = ref<string | null>(null)
 const filter = ref('')
 const selectedNodeRef = ref<string | null>(null)
+const mergingText = ref(false)
+const previewedMergeRef = ref<string | null>(null)
 
 const currentPageData = computed(() => {
   return documentStore.workspacePages.find((p) => p.page_number === currentPage.value) ?? null
@@ -170,21 +187,37 @@ const currentPageWidth = computed(() => currentPageData.value?.width ?? 0)
 const currentPageHeight = computed(() => currentPageData.value?.height ?? 0)
 
 const selectedElement = computed<PageElement | null>(() => {
-  if (!selectedNodeRef.value) return null
-  // Search every page — selectedNodeRef may point to an element on a
-  // different page than the one currently rendered (the click also
-  // triggers a page change, but until that lands the panel still wants
-  // to show the element's data).
+  return selectedElementBoxes.value[0]?.element ?? null
+})
+
+const selectedElementBoxes = computed<
+  Array<{ pageNumber: number; pageWidth: number; pageHeight: number; element: PageElement }>
+>(() => {
+  if (!selectedNodeRef.value) return []
+  const matches: Array<{ pageNumber: number; pageWidth: number; pageHeight: number; element: PageElement }> = []
   for (const page of documentStore.workspacePages) {
-    const el = page.elements.find((e) => e.self_ref === selectedNodeRef.value)
-    if (el) return el
+    for (const element of page.elements) {
+      if (element.self_ref === selectedNodeRef.value) {
+        matches.push({
+          pageNumber: page.page_number,
+          pageWidth: page.width,
+          pageHeight: page.height,
+          element,
+        })
+      }
+    }
   }
-  return null
+  return matches
 })
 
 const linkedChunk = computed<DocChunk | null>(() => {
   if (!selectedElement.value) return null
   return chunkForElement(selectedElement.value, currentPage.value, chunksStore.chunks)
+})
+
+const mergeCandidateRef = computed<string | null>(() => {
+  if (!selectedNodeRef.value || !selectedElement.value?.self_ref) return null
+  return documentStore.getNextMergeableWorkspaceText(selectedNodeRef.value)
 })
 
 const nodeCount = computed(() => countNodes(tree.value))
@@ -195,21 +228,34 @@ const filteredNodes = computed<DocTreeNode[]>(() => {
   return filterTree(tree.value, needle)
 })
 
-const highlightedRefs = computed<ReadonlySet<string>>(() => {
-  if (!selectedNodeRef.value) return new Set()
-  return new Set([selectedNodeRef.value])
+const tree = computed<DocTreeNode[]>(() => {
+  if (documentStore.workspaceTree.length > 0) {
+    treeError.value = null
+    return documentStore.workspaceTree
+  }
+  if (documentStore.workspaceLatestAnalysis?.documentJson) {
+    treeError.value = 'Failed to derive document tree from documentJson'
+  }
+  return []
 })
 
-async function loadTree(): Promise<void> {
-  treeLoading.value = true
-  treeError.value = null
-  try {
-    tree.value = await fetchDocumentTree(props.docId)
-  } catch (e) {
-    treeError.value = (e as Error).message || 'Failed to load tree'
-  } finally {
-    treeLoading.value = false
+const highlightedRefs = computed<ReadonlySet<string>>(() => {
+  const refs = new Set<string>()
+  if (selectedNodeRef.value) refs.add(selectedNodeRef.value)
+  if (previewedMergeRef.value) refs.add(previewedMergeRef.value)
+  return refs
+})
+
+const bannerMessage = computed<string>(() => {
+  const error = documentStore.workspaceError
+  if (!error) {
+    return t('parse.localDraftDirty')
   }
+  return error.startsWith('parse.') ? t(error) : error
+})
+
+function reloadDerivedTree(): void {
+  treeError.value = null
 }
 
 function onTreeSelect(ref: string): void {
@@ -232,11 +278,41 @@ async function onSaveChunk(chunkId: string, text: string): Promise<void> {
   await chunksStore.updateText(props.docId, chunkId, text)
 }
 
+async function onMergeText(): Promise<void> {
+  const leadingRef = selectedNodeRef.value
+  const trailingRef = mergeCandidateRef.value
+  if (!leadingRef || !trailingRef) return
+
+  mergingText.value = true
+  try {
+    const { mergedText } = documentStore.mergeWorkspaceTexts(leadingRef, trailingRef)
+    selectedNodeRef.value = leadingRef
+    previewedMergeRef.value = null
+  } catch (e) {
+    treeError.value = (e as Error).message || 'Failed to merge text'
+  } finally {
+    mergingText.value = false
+  }
+}
+
+function onMergePreviewStart(): void {
+  previewedMergeRef.value = mergeCandidateRef.value
+}
+
+function onMergePreviewEnd(): void {
+  previewedMergeRef.value = null
+}
+
+async function onDiscardLocalDraft(): Promise<void> {
+  if (!documentStore.discardWorkspaceDraft()) return
+  selectedNodeRef.value = null
+  previewedMergeRef.value = null
+}
+
 onMounted(async () => {
   await Promise.all([
     documentStore.loadWorkspace(props.docId),
     chunksStore.load(props.docId),
-    loadTree(),
   ])
   const first = documentStore.workspacePages[0]?.page_number
   if (first) currentPage.value = first
@@ -246,24 +322,21 @@ watch(
   () => props.docId,
   async (id) => {
     selectedNodeRef.value = null
+    previewedMergeRef.value = null
     filter.value = ''
-    await Promise.all([documentStore.loadWorkspace(id), chunksStore.load(id), loadTree()])
+    await Promise.all([documentStore.loadWorkspace(id), chunksStore.load(id)])
     const first = documentStore.workspacePages[0]?.page_number
     if (first) currentPage.value = first
   },
 )
 
-// Refetch the tree when the active analysis changes (#266 / #267).
-// Triggered after an in-place analysis completes or after the user
-// restores a different version from the History drawer — the tree
-// is built server-side from the active analysis's `document_json`,
-// so it has to be reloaded.
 watch(
   () => documentStore.workspaceActiveAnalysis?.id,
   (newId, oldId) => {
     if (newId && newId !== oldId) {
       selectedNodeRef.value = null
-      loadTree()
+      previewedMergeRef.value = null
+      treeError.value = null
     }
   },
 )
@@ -300,6 +373,7 @@ function findPageOfRef(
   }
   return null
 }
+
 </script>
 
 <style scoped>
@@ -315,6 +389,36 @@ function findPageOfRef(
   grid-template-columns: 320px minmax(0, 1fr) 360px;
   flex: 1;
   min-height: 0;
+}
+
+.parse-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-surface));
+}
+
+.parse-banner-text {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.parse-banner-btn {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.parse-banner-btn:hover {
+  border-color: var(--accent);
 }
 
 .parse-structure {

@@ -4,6 +4,14 @@ import type { Analysis, Document, DocumentVersion, Page } from '../../shared/typ
 import { appMaxFileSizeMb } from '../../shared/appConfig'
 import { fetchAnalysis } from '../analysis/api'
 import { pushChunksToStore } from '../chunks/api'
+import {
+  DoclingDraftSession,
+  getDoclingItem,
+  projectDoclingPages,
+  projectDoclingTree,
+  stringifyDoclingDocument,
+} from './docling'
+import type { DoclingDocument, DoclingRef, DoclingTextItem } from './docling'
 import * as api from './api'
 
 export const useDocumentStore = defineStore('document', () => {
@@ -22,6 +30,8 @@ export const useDocumentStore = defineStore('document', () => {
   const workspaceCurrentVersionId = ref<string | null>(null)
   // Cached analysis row for the active version (analysisId resolution).
   const workspaceActiveAnalysis = ref<Analysis | null>(null)
+  const workspaceSourceAnalysis = ref<Analysis | null>(null)
+  const workspaceDraftSession = ref<DoclingDraftSession | null>(null)
   const workspaceLoading = ref(false)
   const workspaceError = ref<string | null>(null)
 
@@ -30,6 +40,8 @@ export const useDocumentStore = defineStore('document', () => {
     return workspaceVersions.value.find((v) => v.id === workspaceCurrentVersionId.value) ?? null
   })
 
+  const workspaceDraftDirty = computed<boolean>(() => workspaceDraftSession.value?.hasChanges ?? false)
+
   /** Backwards-compatible alias kept for existing consumers
    * (DocParseTab, DocChunkTab) — semantically "the analysis row that
    * powers the workspace right now". Resolved from the active version. */
@@ -37,6 +49,11 @@ export const useDocumentStore = defineStore('document', () => {
 
   /** Pages parsed lazily from the active analysis's `pagesJson`. */
   const workspacePages = computed<Page[]>(() => {
+    const draftDoc = workspaceDraftSession.value?.document
+    if (draftDoc) {
+      return projectDoclingPages(draftDoc)
+    }
+
     const raw = workspaceActiveAnalysis.value?.pagesJson
     if (!raw) return []
     try {
@@ -45,6 +62,53 @@ export const useDocumentStore = defineStore('document', () => {
       return []
     }
   })
+
+  const workspaceTree = computed(() => {
+    const draftDoc = workspaceDraftSession.value?.document
+    if (draftDoc) {
+      return projectDoclingTree(draftDoc)
+    }
+
+    const raw = workspaceActiveAnalysis.value?.documentJson
+    if (!raw) return []
+    try {
+      return projectDoclingTree(JSON.parse(raw) as DoclingDocument)
+    } catch {
+      return []
+    }
+  })
+
+  function createWorkspaceDraftSession(analysis: Analysis | null): DoclingDraftSession | null {
+    if (!analysis?.documentJson) {
+      return null
+    }
+
+    return new DoclingDraftSession(JSON.parse(analysis.documentJson) as DoclingDocument)
+  }
+
+  function syncWorkspaceAnalysis(analysis: Analysis | null, options: { replaceSource?: boolean } = {}): void {
+    if (options.replaceSource ?? true) {
+      workspaceSourceAnalysis.value = analysis
+    }
+    workspaceDraftSession.value = null
+    workspaceActiveAnalysis.value = analysis
+    if (!analysis?.documentJson) {
+      return
+    }
+
+    try {
+      workspaceDraftSession.value = createWorkspaceDraftSession(analysis)
+    } catch (e) {
+      workspaceError.value =
+        (e as Error).message || 'Failed to initialize local document editing for this analysis'
+    }
+  }
+
+  function guardWorkspaceDraftReplacement(): boolean {
+    if (!workspaceDraftDirty.value) return true
+    workspaceError.value = 'parse.localDraftBlocked'
+    return false
+  }
 
   function clearError(): void {
     error.value = null
@@ -127,7 +191,8 @@ export const useDocumentStore = defineStore('document', () => {
     workspaceDoc.value = null
     workspaceVersions.value = []
     workspaceCurrentVersionId.value = null
-    workspaceActiveAnalysis.value = null
+    workspaceSourceAnalysis.value = null
+    syncWorkspaceAnalysis(null)
     try {
       const [doc, versions] = await Promise.all([
         api.fetchDocument(docId),
@@ -138,7 +203,7 @@ export const useDocumentStore = defineStore('document', () => {
       const latest = versions[0] ?? null
       workspaceCurrentVersionId.value = latest?.id ?? null
       if (latest?.analysisId) {
-        workspaceActiveAnalysis.value = await fetchAnalysis(latest.analysisId)
+        syncWorkspaceAnalysis(await fetchAnalysis(latest.analysisId))
       }
     } catch (e) {
       workspaceError.value = (e as Error).message || 'Failed to load workspace'
@@ -159,9 +224,12 @@ export const useDocumentStore = defineStore('document', () => {
       workspaceVersions.value = versions
       const latest = versions[0] ?? null
       if (latest) {
+        if (!guardWorkspaceDraftReplacement()) {
+          return
+        }
         workspaceCurrentVersionId.value = latest.id
         if (latest.analysisId) {
-          workspaceActiveAnalysis.value = await fetchAnalysis(latest.analysisId)
+          syncWorkspaceAnalysis(await fetchAnalysis(latest.analysisId))
         }
       }
     } catch (e) {
@@ -181,12 +249,11 @@ export const useDocumentStore = defineStore('document', () => {
     if (!docId) return false
     const version = workspaceVersions.value.find((v) => v.id === versionId)
     if (!version) return false
+    if (!guardWorkspaceDraftReplacement()) return false
     try {
       await api.restoreDocumentVersion(docId, versionId)
       workspaceCurrentVersionId.value = versionId
-      workspaceActiveAnalysis.value = version.analysisId
-        ? await fetchAnalysis(version.analysisId)
-        : null
+      syncWorkspaceAnalysis(version.analysisId ? await fetchAnalysis(version.analysisId) : null)
       return true
     } catch (e) {
       workspaceError.value = (e as Error).message || 'Failed to restore version'
@@ -205,6 +272,66 @@ export const useDocumentStore = defineStore('document', () => {
     }
   }
 
+  function getNextMergeableWorkspaceText(ref: string): string | null {
+    const session = workspaceDraftSession.value
+    if (!session) return null
+
+    const item = getDoclingItem(session.document, ref)
+    if (!item || !("text" in item)) return null
+
+    const parentRef = item.parent?.$ref ?? '#/body'
+    const siblings = getParentChildren(session.document, parentRef)
+    const index = siblings.findIndex((child) => child.$ref === ref)
+    if (index === -1) return null
+    const nextRef = siblings[index + 1]?.$ref
+    if (!nextRef) return null
+    const nextItem = getDoclingItem(session.document, nextRef)
+    return nextItem && "text" in nextItem ? nextRef : null
+  }
+
+  function mergeWorkspaceTexts(
+    leadingRef: string,
+    trailingRef: string,
+  ): { leadingRef: string; trailingRef: string; mergedText: string } {
+    const analysis = workspaceActiveAnalysis.value
+    const session = workspaceDraftSession.value
+    if (!analysis || !session) {
+      throw new Error('No editable workspace analysis is loaded')
+    }
+
+    session.apply({ type: 'merge-texts', leadingRef, trailingRef })
+    const mergedItem = getDoclingItem(session.document, leadingRef)
+    if (!mergedItem || !("text" in mergedItem)) {
+      throw new Error(`Merged text item not found: ${leadingRef}`)
+    }
+
+    const mergedText = (mergedItem as DoclingTextItem).text
+    const nextAnalysis: Analysis = {
+      ...analysis,
+      documentJson: stringifyDoclingDocument(session.document),
+      pagesJson: JSON.stringify(projectDoclingPages(session.document)),
+    }
+    workspaceActiveAnalysis.value = nextAnalysis
+
+    return { leadingRef, trailingRef, mergedText }
+  }
+
+  function discardWorkspaceDraft(): boolean {
+    const analysis = workspaceSourceAnalysis.value
+    if (!analysis) return false
+
+    workspaceError.value = null
+    syncWorkspaceAnalysis(analysis, { replaceSource: false })
+    return true
+  }
+
+  function getParentChildren(doc: DoclingDocument, parentRef: string): DoclingRef[] {
+    if (parentRef === '#/body') return doc.body.children
+    if (parentRef === '#/furniture') return doc.furniture.children
+    const parent = getDoclingItem(doc, parentRef)
+    return parent?.children ?? []
+  }
+
   return {
     documents,
     selectedId,
@@ -216,8 +343,12 @@ export const useDocumentStore = defineStore('document', () => {
     workspaceCurrentVersionId,
     workspaceCurrentVersion,
     workspaceActiveAnalysis,
+    workspaceSourceAnalysis,
+    workspaceDraftSession,
     workspaceLatestAnalysis,
+    workspaceDraftDirty,
     workspacePages,
+    workspaceTree,
     workspaceLoading,
     workspaceError,
     clearError,
@@ -225,6 +356,9 @@ export const useDocumentStore = defineStore('document', () => {
     loadWorkspace,
     reloadWorkspaceVersions,
     setWorkspaceVersion,
+    getNextMergeableWorkspaceText,
+    mergeWorkspaceTexts,
+    discardWorkspaceDraft,
     upload,
     remove,
     select,

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useDocumentStore } from './store'
+import sampleDoclingDocument from './docling/__fixtures__/sample-docling-document.json'
 
 vi.mock('./api', () => ({
   fetchDocument: vi.fn(),
@@ -209,6 +210,7 @@ describe('useDocumentStore', () => {
     contentHtml: null,
     pagesJson: '[]',
     chunksJson: null,
+    documentJson: JSON.stringify(sampleDoclingDocument),
     hasDocumentJson: true,
     errorMessage: null,
     progressCurrent: null,
@@ -257,7 +259,7 @@ describe('useDocumentStore', () => {
     expect(store.workspaceLoading).toBe(false)
   })
 
-  it('workspacePages parses pages_json lazily, empty on parse error', async () => {
+  it('workspacePages prefers deriving pages from documentJson when a draft session exists', async () => {
     api.fetchDocument.mockResolvedValue({ id: 'd1', filename: 'a.pdf' })
     api.fetchDocumentVersions.mockResolvedValue([mkVersion()])
     analysisApi.fetchAnalysis.mockResolvedValue(
@@ -269,6 +271,59 @@ describe('useDocumentStore', () => {
     await store.loadWorkspace('d1')
     expect(store.workspacePages).toHaveLength(1)
     expect(store.workspacePages[0].page_number).toBe(1)
+    expect(store.workspacePages[0].elements).toHaveLength(5)
+  })
+
+  it('workspaceTree derives the parse tree from documentJson', async () => {
+    api.fetchDocument.mockResolvedValue({ id: 'd1', filename: 'a.pdf' })
+    api.fetchDocumentVersions.mockResolvedValue([mkVersion()])
+    analysisApi.fetchAnalysis.mockResolvedValue(mkAnalysis())
+
+    const store = useDocumentStore()
+    await store.loadWorkspace('d1')
+
+    expect(store.workspaceTree.map((node) => node.ref)).toEqual([
+      '#/texts/0',
+      '#/texts/1',
+    ])
+    expect(store.workspaceTree[1]?.children.map((node) => node.ref)).toEqual(['#/groups/0', '#/texts/4'])
+    expect(store.workspaceTree[1]?.children[0]?.children).toEqual([])
+  })
+
+  it('loadWorkspace() keeps the analysis loaded when documentJson is malformed', async () => {
+    api.fetchDocument.mockResolvedValue({ id: 'd1', filename: 'a.pdf' })
+    api.fetchDocumentVersions.mockResolvedValue([mkVersion()])
+    analysisApi.fetchAnalysis.mockResolvedValue(
+      mkAnalysis({
+        documentJson: '{bad json}',
+      }),
+    )
+
+    const store = useDocumentStore()
+    await store.loadWorkspace('d1')
+
+    expect(store.workspaceActiveAnalysis?.id).toBe('a1')
+    expect(store.workspaceDraftSession).toBeNull()
+    expect(store.workspaceError).toBeTruthy()
+  })
+
+  it('loadWorkspace() initializes a draft session when documentJson has an oversized binary_hash', async () => {
+    const largeHashDoc = structuredClone(sampleDoclingDocument)
+    largeHashDoc.origin.binary_hash = 18446744073709552000
+
+    api.fetchDocument.mockResolvedValue({ id: 'd1', filename: 'a.pdf' })
+    api.fetchDocumentVersions.mockResolvedValue([mkVersion({ analysisId: 'a1' })])
+    analysisApi.fetchAnalysis.mockResolvedValue(
+      mkAnalysis({ documentJson: JSON.stringify(largeHashDoc), hasDocumentJson: true }),
+    )
+
+    const store = useDocumentStore()
+    await store.loadWorkspace('d1')
+
+    expect(store.workspaceActiveAnalysis?.id).toBe('a1')
+    expect(store.workspaceDraftSession).not.toBeNull()
+    expect(store.workspaceError).toBeNull()
+    expect(store.workspaceDraftSession?.document.origin.binary_hash).toBe(Number.MAX_SAFE_INTEGER)
   })
 
   // ---------------------------------------------------------------------------
@@ -307,6 +362,28 @@ describe('useDocumentStore', () => {
     const ok = await store.setWorkspaceVersion('nope')
     expect(ok).toBe(false)
     expect(store.workspaceCurrentVersionId).toBe('v1')
+  })
+
+  it('setWorkspaceVersion() refuses to replace a dirty local draft', async () => {
+    api.fetchDocument.mockResolvedValue({ id: 'd1', filename: 'a.pdf' })
+    api.fetchDocumentVersions.mockResolvedValue([
+      mkVersion({ id: 'v-new', analysisId: 'a-new' }),
+      mkVersion({ id: 'v-old', analysisId: 'a-old' }),
+    ])
+    analysisApi.fetchAnalysis.mockImplementation((id: string) => Promise.resolve(mkAnalysis({ id })))
+
+    const store = useDocumentStore()
+    await store.loadWorkspace('d1')
+    store.mergeWorkspaceTexts('#/texts/2', '#/texts/3')
+
+    const ok = await store.setWorkspaceVersion('v-old')
+
+    expect(ok).toBe(false)
+    expect(api.restoreDocumentVersion).not.toHaveBeenCalled()
+    expect(store.workspaceCurrentVersionId).toBe('v-new')
+    expect(store.workspaceActiveAnalysis?.id).toBe('a-new')
+    expect(store.workspaceDraftDirty).toBe(true)
+    expect(store.workspaceError).toBe('parse.localDraftBlocked')
   })
 
   it('loadWorkspace() is idempotent — pinned version survives a second call for the same doc', async () => {
@@ -351,5 +428,95 @@ describe('useDocumentStore', () => {
     await store.reloadWorkspaceVersions('d1')
     expect(store.workspaceCurrentVersionId).toBe('v2')
     expect(store.workspaceActiveAnalysis?.id).toBe('a2')
+  })
+
+  it('reloadWorkspaceVersions() refreshes the list without replacing a dirty local draft', async () => {
+    api.fetchDocument.mockResolvedValue({ id: 'd1', filename: 'a.pdf' })
+    api.fetchDocumentVersions.mockResolvedValueOnce([mkVersion({ id: 'v1', analysisId: 'a1' })])
+    analysisApi.fetchAnalysis.mockResolvedValue(mkAnalysis({ id: 'a1' }))
+
+    const store = useDocumentStore()
+    await store.loadWorkspace('d1')
+    store.mergeWorkspaceTexts('#/texts/2', '#/texts/3')
+
+    api.fetchDocumentVersions.mockResolvedValueOnce([
+      mkVersion({ id: 'v2', analysisId: 'a2', createdAt: '2025-03-01T00:00:00Z' }),
+      mkVersion({ id: 'v1', analysisId: 'a1' }),
+    ])
+
+    await store.reloadWorkspaceVersions('d1')
+
+    expect(store.workspaceVersions.map((version) => version.id)).toEqual(['v2', 'v1'])
+    expect(store.workspaceCurrentVersionId).toBe('v1')
+    expect(store.workspaceActiveAnalysis?.id).toBe('a1')
+    expect(store.workspaceDraftDirty).toBe(true)
+    expect(store.workspaceError).toBe('parse.localDraftBlocked')
+  })
+
+  it('discardWorkspaceDraft() restores the last server-loaded analysis snapshot', async () => {
+    api.fetchDocument.mockResolvedValue({ id: 'd1', filename: 'a.pdf' })
+    api.fetchDocumentVersions.mockResolvedValue([mkVersion({ analysisId: 'a1' })])
+    analysisApi.fetchAnalysis.mockResolvedValue(mkAnalysis())
+
+    const store = useDocumentStore()
+    await store.loadWorkspace('d1')
+    const originalDocumentJson = store.workspaceActiveAnalysis?.documentJson
+
+    store.mergeWorkspaceTexts('#/texts/2', '#/texts/3')
+    expect(store.workspaceDraftDirty).toBe(true)
+
+    const ok = store.discardWorkspaceDraft()
+
+    expect(ok).toBe(true)
+    expect(store.workspaceDraftDirty).toBe(false)
+    expect(store.workspaceActiveAnalysis?.documentJson).toBe(originalDocumentJson)
+    expect(store.workspaceError).toBeNull()
+  })
+
+  it('mergeWorkspaceTexts() updates the local active analysis documentJson and pagesJson', async () => {
+    api.fetchDocument.mockResolvedValue({ id: 'd1', filename: 'a.pdf' })
+    api.fetchDocumentVersions.mockResolvedValue([mkVersion({ analysisId: 'a1' })])
+    analysisApi.fetchAnalysis.mockResolvedValue(
+      mkAnalysis({
+        pagesJson: JSON.stringify([
+          {
+            page_number: 1,
+            width: 600,
+            height: 800,
+            elements: [
+              {
+                type: 'text',
+                bbox: [0, 0, 10, 10],
+                content: 'First paragraph.',
+                level: 0,
+                self_ref: '#/texts/2',
+              },
+              {
+                type: 'text',
+                bbox: [10, 10, 20, 20],
+                content: 'Second paragraph.',
+                level: 0,
+                self_ref: '#/texts/3',
+              },
+            ],
+          },
+        ]),
+      }),
+    )
+
+    const store = useDocumentStore()
+    await store.loadWorkspace('d1')
+
+    const result = store.mergeWorkspaceTexts('#/texts/2', '#/texts/3')
+    const mergedElements = store.workspacePages[0]?.elements.filter((element) => element.self_ref === '#/texts/2') ?? []
+
+    expect(result.mergedText).toBe('First paragraph. Second paragraph.')
+    expect(store.workspaceActiveAnalysis?.documentJson).toContain('First paragraph. Second paragraph.')
+    expect(store.workspacePages[0]?.elements).toHaveLength(5)
+    expect(mergedElements).toHaveLength(2)
+    expect(mergedElements[0]?.content).toBe('First paragraph. Second paragraph.')
+    expect(mergedElements[1]?.content).toBe('First paragraph. Second paragraph.')
+    expect(mergedElements[0]?.self_ref).toBe('#/texts/2')
+    expect(mergedElements[1]?.self_ref).toBe('#/texts/2')
   })
 })

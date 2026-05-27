@@ -222,6 +222,9 @@ const messages: Messages = {
     // + New analysis — in-place trigger (#266)
     'newAnalysis.title': 'Nouvelle analyse',
     'newAnalysis.running': 'Analyse en cours…',
+    'parse.localDraftDirty': 'Des modifications locales non enregistrées sont actives pour cette analyse.',
+    'parse.localDraftBlocked': 'Les modifications locales doivent être annulées ou enregistrées avant de changer d’analyse.',
+    'parse.discardLocalDraft': 'Annuler les modifications locales',
 
     // Chunking
     'studio.prepare': 'Préparer',
@@ -420,9 +423,12 @@ const messages: Messages = {
     'properties.width': 'largeur',
     'properties.height': 'hauteur',
     'properties.extractedText': 'Texte extrait',
+    'properties.mergeTargetPreview': 'Texte suivant à fusionner',
     'properties.noText': '\u2014 pas de texte \u2014',
     'properties.linkedChunk': 'Chunk li\u00e9',
     'properties.editChunk': '\u00c9diter le chunk',
+    'properties.mergeWithNextText': 'Fusionner avec le texte suivant',
+    'properties.mergingText': 'Fusion…',
     'properties.cancel': 'Annuler',
     'properties.save': 'Enregistrer',
     'properties.saving': 'Enregistrement\u2026',
@@ -857,6 +863,9 @@ const messages: Messages = {
     // + New analysis — in-place trigger (#266)
     'newAnalysis.title': 'New analysis',
     'newAnalysis.running': 'Analyzing…',
+    'parse.localDraftDirty': 'Unsaved local edits are active for this analysis.',
+    'parse.localDraftBlocked': 'Local document edits must be discarded or saved before switching analyses.',
+    'parse.discardLocalDraft': 'Discard local edits',
 
     'studio.prepare': 'Prepare',
     'studio.ingest': 'Ingest',
@@ -1047,9 +1056,12 @@ const messages: Messages = {
     'properties.width': 'width',
     'properties.height': 'height',
     'properties.extractedText': 'Extracted text',
+    'properties.mergeTargetPreview': 'Next text to merge',
     'properties.noText': '— no text —',
     'properties.linkedChunk': 'Linked chunk',
     'properties.editChunk': 'Edit chunk',
+    'properties.mergeWithNextText': 'Merge with next text',
+    'properties.mergingText': 'Merging…',
     'properties.cancel': 'Cancel',
     'properties.save': 'Save',
     'properties.saving': 'Saving…',
