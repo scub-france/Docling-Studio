@@ -76,6 +76,19 @@ class ChunkEditAction(StrEnum):
     SPLIT = "split"
 
 
+class DocumentEditAction(StrEnum):
+    """Mutations supported by the document edit workflow."""
+
+    UPDATE_PAGE_ELEMENT = "update_page_element"
+
+
+class DocumentEditStatus(StrEnum):
+    """Lifecycle of a persisted document edit command."""
+
+    PENDING = "pending"
+    COMMITTED = "committed"
+
+
 @dataclass(frozen=True)
 class PageElement:
     type: str

@@ -1,6 +1,15 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import type { Analysis, Document, DocumentVersion, Page } from '../../shared/types'
+import type {
+  Analysis,
+  Document,
+  DocumentEditCommand,
+  DocumentEditCommandInput,
+  DocumentEditCommitResult,
+  DocumentVersion,
+  PageElement,
+  Page,
+} from '../../shared/types'
 import { appMaxFileSizeMb } from '../../shared/appConfig'
 import { fetchAnalysis } from '../analysis/api'
 import { pushChunksToStore } from '../chunks/api'
@@ -22,6 +31,10 @@ export const useDocumentStore = defineStore('document', () => {
   const workspaceCurrentVersionId = ref<string | null>(null)
   // Cached analysis row for the active version (analysisId resolution).
   const workspaceActiveAnalysis = ref<Analysis | null>(null)
+  const workspaceDraftPages = ref<Page[] | null>(null)
+  const pendingDocumentCommands = ref<DocumentEditCommand[]>([])
+  const documentEditSaving = ref(false)
+  const documentEditCommitting = ref(false)
   const workspaceLoading = ref(false)
   const workspaceError = ref<string | null>(null)
 
@@ -36,7 +49,7 @@ export const useDocumentStore = defineStore('document', () => {
   const workspaceLatestAnalysis = computed<Analysis | null>(() => workspaceActiveAnalysis.value)
 
   /** Pages parsed lazily from the active analysis's `pagesJson`. */
-  const workspacePages = computed<Page[]>(() => {
+  const workspaceBasePages = computed<Page[]>(() => {
     const raw = workspaceActiveAnalysis.value?.pagesJson
     if (!raw) return []
     try {
@@ -45,6 +58,8 @@ export const useDocumentStore = defineStore('document', () => {
       return []
     }
   })
+
+  const workspacePages = computed<Page[]>(() => workspaceDraftPages.value ?? workspaceBasePages.value)
 
   function clearError(): void {
     error.value = null
@@ -128,6 +143,8 @@ export const useDocumentStore = defineStore('document', () => {
     workspaceVersions.value = []
     workspaceCurrentVersionId.value = null
     workspaceActiveAnalysis.value = null
+    workspaceDraftPages.value = null
+    pendingDocumentCommands.value = []
     try {
       const [doc, versions] = await Promise.all([
         api.fetchDocument(docId),
@@ -139,6 +156,7 @@ export const useDocumentStore = defineStore('document', () => {
       workspaceCurrentVersionId.value = latest?.id ?? null
       if (latest?.analysisId) {
         workspaceActiveAnalysis.value = await fetchAnalysis(latest.analysisId)
+        await hydrateDocumentEditSession(docId)
       }
     } catch (e) {
       workspaceError.value = (e as Error).message || 'Failed to load workspace'
@@ -162,6 +180,7 @@ export const useDocumentStore = defineStore('document', () => {
         workspaceCurrentVersionId.value = latest.id
         if (latest.analysisId) {
           workspaceActiveAnalysis.value = await fetchAnalysis(latest.analysisId)
+          await hydrateDocumentEditSession(docId)
         }
       }
     } catch (e) {
@@ -187,6 +206,7 @@ export const useDocumentStore = defineStore('document', () => {
       workspaceActiveAnalysis.value = version.analysisId
         ? await fetchAnalysis(version.analysisId)
         : null
+      await hydrateDocumentEditSession(docId)
       return true
     } catch (e) {
       workspaceError.value = (e as Error).message || 'Failed to restore version'
@@ -205,6 +225,76 @@ export const useDocumentStore = defineStore('document', () => {
     }
   }
 
+  async function hydrateDocumentEditSession(docId: string): Promise<void> {
+    pendingDocumentCommands.value = []
+    workspaceDraftPages.value = null
+    if (!workspaceActiveAnalysis.value?.hasDocumentJson) return
+    try {
+      const session = await api.fetchDocumentEditSession(docId)
+      pendingDocumentCommands.value = session.pendingCommands
+      workspaceDraftPages.value = session.pendingCommands.length ? session.pages : null
+    } catch (e) {
+      workspaceError.value = (e as Error).message || 'Failed to load document edit session'
+    }
+  }
+
+  async function updatePageElement(
+    docId: string,
+    targetRef: string,
+    payload: DocumentEditCommandInput['payload'],
+  ): Promise<void> {
+    const previousDraft = clonePages(workspaceDraftPages.value ?? workspaceBasePages.value)
+    workspaceDraftPages.value = updatePageElementLocally(previousDraft, targetRef, payload)
+    documentEditSaving.value = true
+    try {
+      const session = await api.applyDocumentEditCommands(docId, [
+        {
+          action: 'update_page_element',
+          targetRef,
+          payload,
+        },
+      ])
+      workspaceDraftPages.value = session.pages
+      pendingDocumentCommands.value = session.pendingCommands
+    } catch (e) {
+      workspaceDraftPages.value = pendingDocumentCommands.value.length ? previousDraft : null
+      workspaceError.value = (e as Error).message || 'Failed to update page element'
+      throw e
+    } finally {
+      documentEditSaving.value = false
+    }
+  }
+
+  async function commitPendingDocumentEdits(docId: string): Promise<DocumentEditCommitResult | null> {
+    if (!workspaceDraftPages.value) return null
+    documentEditCommitting.value = true
+    try {
+      const result = await api.commitDocumentEdits(docId, workspaceDraftPages.value)
+      workspaceDraftPages.value = result.committed ? null : result.pages
+      if (result.committed && workspaceActiveAnalysis.value) {
+        workspaceActiveAnalysis.value = await fetchAnalysis(workspaceActiveAnalysis.value.id)
+        pendingDocumentCommands.value = []
+      }
+      return result
+    } catch (e) {
+      workspaceError.value = (e as Error).message || 'Failed to commit document edits'
+      throw e
+    } finally {
+      documentEditCommitting.value = false
+    }
+  }
+
+  async function discardPendingDocumentEdits(docId: string): Promise<void> {
+    try {
+      await api.discardDocumentEdits(docId)
+      workspaceDraftPages.value = null
+      pendingDocumentCommands.value = []
+    } catch (e) {
+      workspaceError.value = (e as Error).message || 'Failed to discard document edits'
+      throw e
+    }
+  }
+
   return {
     documents,
     selectedId,
@@ -216,7 +306,12 @@ export const useDocumentStore = defineStore('document', () => {
     workspaceCurrentVersionId,
     workspaceCurrentVersion,
     workspaceActiveAnalysis,
+    workspaceDraftPages,
+    pendingDocumentCommands,
+    documentEditSaving,
+    documentEditCommitting,
     workspaceLatestAnalysis,
+    workspaceBasePages,
     workspacePages,
     workspaceLoading,
     workspaceError,
@@ -225,6 +320,10 @@ export const useDocumentStore = defineStore('document', () => {
     loadWorkspace,
     reloadWorkspaceVersions,
     setWorkspaceVersion,
+    hydrateDocumentEditSession,
+    updatePageElement,
+    commitPendingDocumentEdits,
+    discardPendingDocumentEdits,
     upload,
     remove,
     select,
@@ -232,3 +331,35 @@ export const useDocumentStore = defineStore('document', () => {
     pushToStore,
   }
 })
+
+function clonePages(pages: Page[]): Page[] {
+  return pages.map((page) => ({
+    ...page,
+    elements: page.elements.map((element) => ({ ...element })),
+  }))
+}
+
+function updatePageElementLocally(
+  pages: Page[],
+  targetRef: string,
+  payload: DocumentEditCommandInput['payload'],
+): Page[] {
+  return pages.map((page) => ({
+    ...page,
+    elements: page.elements.map((element) =>
+      element.self_ref === targetRef ? applyElementPayload(element, payload) : element,
+    ),
+  }))
+}
+
+function applyElementPayload(
+  element: PageElement,
+  payload: DocumentEditCommandInput['payload'],
+): PageElement {
+  return {
+    ...element,
+    content: payload.content ?? element.content,
+    bbox: payload.bbox ?? element.bbox,
+    type: payload.type ?? element.type,
+  }
+}

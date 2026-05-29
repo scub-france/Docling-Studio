@@ -95,7 +95,13 @@
         :page-height="currentPageHeight"
         :page-number="currentPage"
         :linked-chunk="linkedChunk"
+        :document-saving="documentStore.documentEditSaving"
+        :document-committing="documentStore.documentEditCommitting"
+        :has-pending-document-edits="documentStore.pendingDocumentCommands.length > 0"
         :saving="chunksStore.saving"
+        @save-page-element="onSavePageElement"
+        @commit-document-edits="onCommitDocumentEdits"
+        @discard-document-edits="onDiscardDocumentEdits"
         @save-chunk="onSaveChunk"
       />
     </div>
@@ -115,7 +121,7 @@
  *   - Clicking a bbox → select the matching node in the tree
  */
 import { computed, onMounted, ref, watch } from 'vue'
-import type { DocChunk, DocTreeNode, PageElement } from '../shared/types'
+import type { DocChunk, DocTreeNode, ElementType, PageElement } from '../shared/types'
 import { useAnalysisStore } from '../features/analysis/store'
 import { useChunksStore } from '../features/chunks/store'
 import { fetchDocumentTree } from '../features/document/api'
@@ -230,6 +236,24 @@ function onClickElement(el: PageElement): void {
 
 async function onSaveChunk(chunkId: string, text: string): Promise<void> {
   await chunksStore.updateText(props.docId, chunkId, text)
+}
+
+async function onSavePageElement(
+  targetRef: string,
+  payload: { content?: string; bbox?: [number, number, number, number]; type?: ElementType },
+): Promise<void> {
+  await documentStore.updatePageElement(props.docId, targetRef, payload)
+}
+
+async function onCommitDocumentEdits(): Promise<void> {
+  const result = await documentStore.commitPendingDocumentEdits(props.docId)
+  if (result?.committed) {
+    await loadTree()
+  }
+}
+
+async function onDiscardDocumentEdits(): Promise<void> {
+  await documentStore.discardPendingDocumentEdits(props.docId)
 }
 
 onMounted(async () => {

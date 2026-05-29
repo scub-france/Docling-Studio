@@ -13,6 +13,8 @@ from domain.value_objects import (
     ChunkBbox,
     ChunkDocItem,
     ChunkEditAction,
+    DocumentEditAction,
+    DocumentEditStatus,
     DocumentLifecycleState,
     DocumentStoreLinkState,
     StoreKind,
@@ -295,6 +297,21 @@ class ChunkPush:
     chunkset_hash: str
     chunk_ids: list[str]
     pushed_at: datetime
+
+
+@dataclass(frozen=True)
+class DocumentEdit:
+    """An immutable command row for document-level edits."""
+
+    id: str
+    document_id: str
+    analysis_id: str
+    action: DocumentEditAction
+    target_ref: str
+    payload: dict
+    actor: str
+    at: datetime
+    status: DocumentEditStatus = DocumentEditStatus.PENDING
 
 
 class DocumentVersionKind(enum.StrEnum):

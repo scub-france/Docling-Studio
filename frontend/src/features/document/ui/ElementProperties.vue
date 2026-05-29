@@ -27,27 +27,92 @@
         </dl>
       </section>
 
-      <!-- Bounding box -->
       <section class="props-section">
-        <h3 class="props-section-title">{{ t('properties.bbox') }}</h3>
-        <dl class="props-list">
-          <dt>x</dt>
-          <dd class="mono">{{ bboxPct.x }}%</dd>
-          <dt>y</dt>
-          <dd class="mono">{{ bboxPct.y }}%</dd>
-          <dt>{{ t('properties.width') }}</dt>
-          <dd class="mono">{{ bboxPct.w }}%</dd>
-          <dt>{{ t('properties.height') }}</dt>
-          <dd class="mono">{{ bboxPct.h }}%</dd>
-        </dl>
+        <h3 class="props-section-title">{{ t('properties.pageElementEdit') }}</h3>
+        <div class="props-edit" data-e2e="properties-page-element-edit">
+          <label class="props-field">
+            <span class="props-field-label">{{ t('properties.type') }}</span>
+            <select v-model="draftType" class="props-input" :disabled="documentSaving">
+              <option v-for="option in typeOptions" :key="option" :value="option">{{ option }}</option>
+            </select>
+          </label>
+
+          <label class="props-field">
+            <span class="props-field-label">{{ t('properties.extractedText') }}</span>
+            <textarea
+              v-model="draftContent"
+              class="props-edit-textarea"
+              rows="6"
+              :disabled="documentSaving"
+            />
+          </label>
+
+          <div class="props-bbox-grid">
+            <label class="props-field">
+              <span class="props-field-label">x</span>
+              <input v-model.number="draftBbox[0]" class="props-input mono" type="number" step="0.1" :disabled="documentSaving" />
+            </label>
+            <label class="props-field">
+              <span class="props-field-label">y</span>
+              <input v-model.number="draftBbox[1]" class="props-input mono" type="number" step="0.1" :disabled="documentSaving" />
+            </label>
+            <label class="props-field">
+              <span class="props-field-label">r</span>
+              <input v-model.number="draftBbox[2]" class="props-input mono" type="number" step="0.1" :disabled="documentSaving" />
+            </label>
+            <label class="props-field">
+              <span class="props-field-label">b</span>
+              <input v-model.number="draftBbox[3]" class="props-input mono" type="number" step="0.1" :disabled="documentSaving" />
+            </label>
+          </div>
+
+          <dl class="props-list">
+            <dt>x</dt>
+            <dd class="mono">{{ bboxPct.x }}%</dd>
+            <dt>y</dt>
+            <dd class="mono">{{ bboxPct.y }}%</dd>
+            <dt>{{ t('properties.width') }}</dt>
+            <dd class="mono">{{ bboxPct.w }}%</dd>
+            <dt>{{ t('properties.height') }}</dt>
+            <dd class="mono">{{ bboxPct.h }}%</dd>
+          </dl>
+
+          <div class="props-edit-actions">
+            <button class="props-btn props-btn--cancel" :disabled="documentSaving" @click="resetPageElementDraft">
+              {{ t('properties.reset') }}
+            </button>
+            <button
+              class="props-btn props-btn--primary"
+              :disabled="documentSaving || !element.self_ref || !hasPageElementChanges"
+              data-e2e="properties-save-page-element-btn"
+              @click="savePageElement"
+            >
+              {{ documentSaving ? t('properties.saving') : t('properties.save') }}
+            </button>
+          </div>
+        </div>
       </section>
 
-      <!-- Extracted text -->
-      <section class="props-section">
-        <h3 class="props-section-title">{{ t('properties.extractedText') }}</h3>
-        <p class="props-text" data-e2e="properties-extracted-text">
-          {{ element.content || t('properties.noText') }}
-        </p>
+      <section v-if="hasPendingDocumentEdits" class="props-section">
+        <h3 class="props-section-title">{{ t('properties.pendingDocumentEdits') }}</h3>
+        <div class="props-edit-actions">
+          <button
+            class="props-btn props-btn--cancel"
+            :disabled="documentCommitting"
+            data-e2e="properties-discard-document-edits-btn"
+            @click="emit('discardDocumentEdits')"
+          >
+            {{ t('properties.discardDocumentEdits') }}
+          </button>
+          <button
+            class="props-btn props-btn--primary"
+            :disabled="documentCommitting"
+            data-e2e="properties-commit-document-edits-btn"
+            @click="emit('commitDocumentEdits')"
+          >
+            {{ documentCommitting ? t('properties.committingDocumentEdits') : t('properties.commitDocumentEdits') }}
+          </button>
+        </div>
       </section>
 
       <!-- Linked chunk -->
@@ -114,7 +179,7 @@
  * issue can extend the domain + DTO when the data becomes available.
  */
 import { computed, nextTick, ref, watch } from 'vue'
-import type { DocChunk, PageElement } from '../../../shared/types'
+import type { DocChunk, ElementType, PageElement } from '../../../shared/types'
 import { useI18n } from '../../../shared/i18n'
 import { bboxToPercent } from '../bboxPercent'
 import { colorFor } from '../elementColors'
@@ -126,10 +191,19 @@ const props = defineProps<{
   pageNumber: number
   linkedChunk: DocChunk | null
   saving?: boolean
+  documentSaving?: boolean
+  documentCommitting?: boolean
+  hasPendingDocumentEdits?: boolean
 }>()
 
 const emit = defineEmits<{
   saveChunk: [chunkId: string, text: string]
+  savePageElement: [
+    targetRef: string,
+    payload: { content?: string; bbox?: [number, number, number, number]; type?: ElementType },
+  ]
+  commitDocumentEdits: []
+  discardDocumentEdits: []
 }>()
 
 const { t } = useI18n()
@@ -137,6 +211,22 @@ const { t } = useI18n()
 const editing = ref(false)
 const draftText = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const draftContent = ref('')
+const draftType = ref<ElementType>('text')
+const draftBbox = ref<[number, number, number, number]>([0, 0, 0, 0])
+
+const typeOptions: ElementType[] = [
+  'text',
+  'title',
+  'section_header',
+  'list',
+  'code',
+  'formula',
+  'caption',
+  'picture',
+  'table',
+  'floating',
+]
 
 const typeStyle = computed(() => {
   if (!props.element) return {}
@@ -161,6 +251,13 @@ function cancel(): void {
   draftText.value = ''
 }
 
+function resetPageElementDraft(): void {
+  if (!props.element) return
+  draftContent.value = props.element.content
+  draftType.value = props.element.type as ElementType
+  draftBbox.value = [...props.element.bbox] as [number, number, number, number]
+}
+
 function save(): void {
   if (!props.linkedChunk) return
   if (draftText.value === props.linkedChunk.text) {
@@ -168,6 +265,26 @@ function save(): void {
     return
   }
   emit('saveChunk', props.linkedChunk.id, draftText.value)
+}
+
+const hasPageElementChanges = computed(() => {
+  if (!props.element) return false
+  return (
+    draftContent.value !== props.element.content ||
+    draftType.value !== props.element.type ||
+    draftBbox.value.some((value, index) => value !== props.element?.bbox[index])
+  )
+})
+
+function savePageElement(): void {
+  if (!props.element?.self_ref) return
+  const payload: { content?: string; bbox?: [number, number, number, number]; type?: ElementType } = {}
+  if (draftContent.value !== props.element.content) payload.content = draftContent.value
+  if (draftType.value !== props.element.type) payload.type = draftType.value
+  if (draftBbox.value.some((value, index) => value !== props.element?.bbox[index])) {
+    payload.bbox = [...draftBbox.value] as [number, number, number, number]
+  }
+  emit('savePageElement', props.element.self_ref, payload)
 }
 
 // Exit edit mode when the parent reports the save is done (saving goes
@@ -188,7 +305,9 @@ watch(
   () => props.element?.self_ref,
   () => {
     if (editing.value) cancel()
+    resetPageElementDraft()
   },
+  { immediate: true },
 )
 </script>
 
@@ -311,6 +430,33 @@ watch(
 .props-edit {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+}
+
+.props-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.props-field-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.props-input {
+  width: 100%;
+  padding: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.props-bbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 

@@ -17,6 +17,7 @@ if TYPE_CHECKING:
         Chunk,
         ChunkEdit,
         ChunkPush,
+        DocumentEdit,
         Document,
         DocumentStoreLink,
         Store,
@@ -185,6 +186,18 @@ class ChunkPushRepository(Protocol):
     async def find_by_id(self, push_id: str) -> ChunkPush | None: ...
 
     async def find_latest(self, document_id: str, store_id: str) -> ChunkPush | None: ...
+
+
+class DocumentEditRepository(Protocol):
+    """Port for append-only document edit commands."""
+
+    async def insert(self, edit: DocumentEdit) -> None: ...
+
+    async def find_pending_for_document(self, document_id: str) -> list[DocumentEdit]: ...
+
+    async def mark_committed(self, edit_ids: list[str]) -> int: ...
+
+    async def clear_pending_for_document(self, document_id: str) -> int: ...
 
 
 class AnalysisRepository(Protocol):

@@ -111,6 +111,44 @@ class AnalysisResponse(_CamelModel):
     created_at: str | datetime
 
 
+class DocumentEditCommandResponse(_CamelModel):
+    id: str
+    analysis_id: str
+    action: str
+    target_ref: str
+    payload: dict
+    actor: str
+    at: str | datetime
+    status: str
+
+
+class DocumentEditSessionResponse(_CamelModel):
+    analysis_id: str
+    pages: list[dict] = Field(default_factory=list)
+    pending_commands: list[DocumentEditCommandResponse] = Field(default_factory=list)
+
+
+class DocumentEditCommandRequest(_CamelModel):
+    action: str
+    target_ref: str
+    payload: dict = Field(default_factory=dict)
+
+
+class ApplyDocumentEditCommandsRequest(_CamelModel):
+    commands: list[DocumentEditCommandRequest] = Field(default_factory=list)
+
+
+class CommitDocumentEditsRequest(_CamelModel):
+    frontend_pages: list[dict] = Field(default_factory=list)
+
+
+class DocumentEditCommitResponse(_CamelModel):
+    committed: bool
+    consistent: bool
+    differences: list[dict] = Field(default_factory=list)
+    pages: list[dict] = Field(default_factory=list)
+
+
 class PipelineOptionsRequest(BaseModel):
     """Docling pipeline configuration options."""
 

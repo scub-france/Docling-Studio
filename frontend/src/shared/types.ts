@@ -74,6 +74,49 @@ export interface Analysis {
   createdAt: string
 }
 
+export interface DocumentEditCommand {
+  id: string
+  analysisId: string
+  action: 'update_page_element'
+  targetRef: string
+  payload: {
+    content?: string
+    bbox?: [number, number, number, number]
+    type?: ElementType
+  }
+  actor: string
+  at: string
+  status: 'pending' | 'committed'
+}
+
+export interface DocumentEditCommandInput {
+  action: 'update_page_element'
+  targetRef: string
+  payload: {
+    content?: string
+    bbox?: [number, number, number, number]
+    type?: ElementType
+  }
+}
+
+export interface DocumentEditSession {
+  analysisId: string
+  pages: Page[]
+  pendingCommands: DocumentEditCommand[]
+}
+
+export interface DocumentEditCommitResult {
+  committed: boolean
+  consistent: boolean
+  differences: Array<{
+    ref: string
+    field: string
+    frontend: unknown
+    backend: unknown
+  }>
+  pages: Page[]
+}
+
 export interface ChunkingOptions {
   chunker_type?: 'hybrid' | 'hierarchical'
   max_tokens?: number
