@@ -198,6 +198,11 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   saveChunk: [chunkId: string, text: string]
+  previewPageElement: [
+    targetRef: string,
+    payload: { content?: string; bbox?: [number, number, number, number]; type?: ElementType },
+  ]
+  clearPageElementPreview: []
   savePageElement: [
     targetRef: string,
     payload: { content?: string; bbox?: [number, number, number, number]; type?: ElementType },
@@ -278,13 +283,24 @@ const hasPageElementChanges = computed(() => {
 
 function savePageElement(): void {
   if (!props.element?.self_ref) return
+  const payload = currentPageElementPayload()
+  if (Object.keys(payload).length === 0) return
+  emit('savePageElement', props.element.self_ref, payload)
+}
+
+function currentPageElementPayload(): {
+  content?: string
+  bbox?: [number, number, number, number]
+  type?: ElementType
+} {
   const payload: { content?: string; bbox?: [number, number, number, number]; type?: ElementType } = {}
+  if (!props.element) return payload
   if (draftContent.value !== props.element.content) payload.content = draftContent.value
   if (draftType.value !== props.element.type) payload.type = draftType.value
   if (draftBbox.value.some((value, index) => value !== props.element?.bbox[index])) {
     payload.bbox = [...draftBbox.value] as [number, number, number, number]
   }
-  emit('savePageElement', props.element.self_ref, payload)
+  return payload
 }
 
 // Exit edit mode when the parent reports the save is done (saving goes
@@ -308,6 +324,23 @@ watch(
     resetPageElementDraft()
   },
   { immediate: true },
+)
+
+watch(
+  [draftContent, draftType, draftBbox],
+  () => {
+    if (!props.element?.self_ref) {
+      emit('clearPageElementPreview')
+      return
+    }
+    const payload = currentPageElementPayload()
+    if (Object.keys(payload).length === 0) {
+      emit('clearPageElementPreview')
+      return
+    }
+    emit('previewPageElement', props.element.self_ref, payload)
+  },
+  { deep: true },
 )
 </script>
 

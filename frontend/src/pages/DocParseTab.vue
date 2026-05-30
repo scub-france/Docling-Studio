@@ -71,9 +71,9 @@
       </aside>
       <div class="parse-stage">
         <PagePreviewWithOverlay
-          v-if="documentStore.workspacePages.length"
+          v-if="displayedPages.length"
           :document-id="docId"
-          :pages="documentStore.workspacePages"
+          :pages="displayedPages"
           :current-page="currentPage"
           :hidden-types="hiddenTypes"
           :show-labels="true"
@@ -99,6 +99,8 @@
         :document-committing="documentStore.documentEditCommitting"
         :has-pending-document-edits="documentStore.pendingDocumentCommands.length > 0"
         :saving="chunksStore.saving"
+        @preview-page-element="onPreviewPageElement"
+        @clear-page-element-preview="clearPageElementPreview"
         @save-page-element="onSavePageElement"
         @commit-document-edits="onCommitDocumentEdits"
         @discard-document-edits="onDiscardDocumentEdits"
@@ -166,10 +168,31 @@ const treeLoading = ref(false)
 const treeError = ref<string | null>(null)
 const filter = ref('')
 const selectedNodeRef = ref<string | null>(null)
+const transientPageElementPreview = ref<{
+  targetRef: string
+  payload: { content?: string; bbox?: [number, number, number, number]; type?: ElementType }
+} | null>(null)
 const effectiveTree = computed<DocTreeNode[]>(() => documentStore.workspaceDraftTree ?? tree.value)
+const displayedPages = computed(() => {
+  const preview = transientPageElementPreview.value
+  if (!preview) return documentStore.workspacePages
+  return documentStore.workspacePages.map((page) => ({
+    ...page,
+    elements: page.elements.map((element) =>
+      element.self_ref === preview.targetRef
+        ? {
+            ...element,
+            content: preview.payload.content ?? element.content,
+            bbox: preview.payload.bbox ?? element.bbox,
+            type: preview.payload.type ?? element.type,
+          }
+        : element,
+    ),
+  }))
+})
 
 const currentPageData = computed(() => {
-  return documentStore.workspacePages.find((p) => p.page_number === currentPage.value) ?? null
+  return displayedPages.value.find((p) => p.page_number === currentPage.value) ?? null
 })
 
 const currentPageElements = computed<PageElement[]>(() => currentPageData.value?.elements ?? [])
@@ -219,6 +242,17 @@ async function loadTree(): Promise<void> {
   }
 }
 
+function onPreviewPageElement(
+  targetRef: string,
+  payload: { content?: string; bbox?: [number, number, number, number]; type?: ElementType },
+): void {
+  transientPageElementPreview.value = { targetRef, payload }
+}
+
+function clearPageElementPreview(): void {
+  transientPageElementPreview.value = null
+}
+
 function onTreeSelect(ref: string): void {
   selectedNodeRef.value = ref
   const pageOfRef = findPageOfRef(documentStore.workspacePages, ref)
@@ -244,10 +278,12 @@ async function onSavePageElement(
   payload: { content?: string; bbox?: [number, number, number, number]; type?: ElementType },
 ): Promise<void> {
   await documentStore.updatePageElement(props.docId, targetRef, payload)
+  clearPageElementPreview()
 }
 
 async function onCommitDocumentEdits(): Promise<void> {
   const result = await documentStore.commitPendingDocumentEdits(props.docId)
+  clearPageElementPreview()
   if (result?.committed) {
     await loadTree()
   }
@@ -255,6 +291,7 @@ async function onCommitDocumentEdits(): Promise<void> {
 
 async function onDiscardDocumentEdits(): Promise<void> {
   await documentStore.discardPendingDocumentEdits(props.docId)
+  clearPageElementPreview()
 }
 
 onMounted(async () => {
