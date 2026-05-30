@@ -173,6 +173,24 @@ CREATE TABLE IF NOT EXISTS chunk_edits (
 CREATE INDEX IF NOT EXISTS idx_chunk_edits_doc_at ON chunk_edits(document_id, at);
 CREATE INDEX IF NOT EXISTS idx_chunk_edits_chunk  ON chunk_edits(chunk_id);
 
+-- Append-only document edit commands (document_json mutations).
+CREATE TABLE IF NOT EXISTS document_edits (
+    id            TEXT PRIMARY KEY,
+    document_id   TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+    analysis_id   TEXT NOT NULL REFERENCES analysis_jobs(id) ON DELETE CASCADE,
+    action        TEXT NOT NULL
+                  CHECK (action IN ('update_page_element')),
+    target_ref    TEXT NOT NULL,
+    payload_json  TEXT NOT NULL,
+    actor         TEXT NOT NULL DEFAULT 'system',
+    at            TEXT NOT NULL,
+    status        TEXT NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending','committed'))
+);
+CREATE INDEX IF NOT EXISTS idx_document_edits_doc_at ON document_edits(document_id, at);
+CREATE INDEX IF NOT EXISTS idx_document_edits_doc_status_at
+    ON document_edits(document_id, status, at);
+
 -- Immutable push audit. Compound index covers the "last push for (doc,
 -- store)" lookup that drives the diff endpoint and the link upsert.
 CREATE TABLE IF NOT EXISTS chunk_pushes (

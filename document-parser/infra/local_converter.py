@@ -34,6 +34,7 @@ from docling_core.types.doc import (
     TextItem,
     TitleItem,
 )
+from docling_core.types.doc.labels import DocItemLabel
 
 from domain.value_objects import (
     DEFAULT_PAGE_HEIGHT,
@@ -74,6 +75,25 @@ _ELEMENT_TYPE_MAP: list[tuple[type, str]] = [
 
 
 def _get_element_type(item: DocItem) -> str:
+    label = getattr(item, "label", None)
+    if label is DocItemLabel.TITLE:
+        return "title"
+    if label is DocItemLabel.SECTION_HEADER:
+        return "section_header"
+    if label is DocItemLabel.LIST_ITEM:
+        return "list"
+    if label is DocItemLabel.FORMULA:
+        return "formula"
+    if label is DocItemLabel.CODE:
+        return "code"
+    if label is DocItemLabel.CAPTION:
+        return "caption"
+    if label in {DocItemLabel.PICTURE, DocItemLabel.CHART}:
+        return "picture"
+    if label in {DocItemLabel.TABLE, DocItemLabel.DOCUMENT_INDEX}:
+        return "table"
+    if label is DocItemLabel.TEXT:
+        return "text"
     for cls, type_name in _ELEMENT_TYPE_MAP:
         if isinstance(item, cls):
             return type_name

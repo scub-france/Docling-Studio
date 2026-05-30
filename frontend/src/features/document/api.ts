@@ -1,4 +1,12 @@
-import type { DocChunk, Document, DocTreeNode, DocumentVersion } from '../../shared/types'
+import type {
+  DocChunk,
+  Document,
+  DocumentEditCommandInput,
+  DocumentEditCommitResult,
+  DocumentEditSession,
+  DocTreeNode,
+  DocumentVersion,
+} from '../../shared/types'
 import { apiFetch } from '../../shared/api/http'
 
 export function fetchDocuments(): Promise<Document[]> {
@@ -65,4 +73,32 @@ export function restoreDocumentVersion(docId: string, versionId: string): Promis
     method: 'POST',
     body: JSON.stringify({}),
   })
+}
+
+export function fetchDocumentEditSession(docId: string): Promise<DocumentEditSession> {
+  return apiFetch<DocumentEditSession>(`/api/documents/${docId}/edits/session`)
+}
+
+export function applyDocumentEditCommands(
+  docId: string,
+  commands: DocumentEditCommandInput[],
+): Promise<DocumentEditSession> {
+  return apiFetch<DocumentEditSession>(`/api/documents/${docId}/edits/commands`, {
+    method: 'POST',
+    body: JSON.stringify({ commands }),
+  })
+}
+
+export function commitDocumentEdits(
+  docId: string,
+  frontendPages: DocumentEditSession['pages'],
+): Promise<DocumentEditCommitResult> {
+  return apiFetch<DocumentEditCommitResult>(`/api/documents/${docId}/edits/commit`, {
+    method: 'POST',
+    body: JSON.stringify({ frontendPages }),
+  })
+}
+
+export function discardDocumentEdits(docId: string): Promise<null> {
+  return apiFetch<null>(`/api/documents/${docId}/edits/session`, { method: 'DELETE' })
 }

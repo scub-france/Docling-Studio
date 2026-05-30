@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.analyses import router as analyses_router
 from api.document_chunks import router as document_chunks_router
+from api.document_edits import router as document_edits_router
 from api.documents import router as documents_router
 from api.ingestion import router as ingestion_router
 from api.schemas import HealthResponse
@@ -30,12 +31,14 @@ from persistence.analysis_repo import SqliteAnalysisRepository
 from persistence.chunk_edit_repo import SqliteChunkEditRepository, SqliteChunkPushRepository
 from persistence.chunk_repo import SqliteChunkRepository
 from persistence.database import get_connection, init_db
+from persistence.document_edit_repo import SqliteDocumentEditRepository
 from persistence.document_repo import SqliteDocumentRepository
 from persistence.document_store_link_repo import SqliteDocumentStoreLinkRepository
 from persistence.store_repo import SqliteStoreRepository
 from services.analysis_service import AnalysisConfig, AnalysisService
 from services.chunk_service import ChunkService
 from services.document_service import DocumentConfig, DocumentService
+from services.document_edit_service import DocumentEditService
 from services.ingestion_service import IngestionConfig, IngestionService
 from services.store_service import StoreService
 
@@ -314,6 +317,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     chunk_repo = SqliteChunkRepository()
     chunk_edit_repo = SqliteChunkEditRepository()
     chunk_push_repo = SqliteChunkPushRepository()
+    document_edit_repo = SqliteDocumentEditRepository()
     app.state.chunk_repo = chunk_repo
     # `DocumentTreeReader` adapter — pure stateless shim, can be a singleton.
     from infra.docling_tree import DoclingTreeReader
@@ -331,6 +335,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         store_repo=store_repo,
         link_repo=link_repo,
         backend_resolver=backend_resolver,
+    )
+    app.state.document_edit_service = DocumentEditService(
+        document_repo=document_repo,
+        analysis_repo=analysis_repo,
+        edit_repo=document_edit_repo,
     )
 
     # 0.6.1 (#audit-01) — GraphService orchestrates the two /graph endpoints
@@ -407,6 +416,7 @@ if settings.rate_limit_rpm > 0:
 
 app.include_router(documents_router)
 app.include_router(document_chunks_router)
+app.include_router(document_edits_router)
 app.include_router(analyses_router)
 app.include_router(stores_router)
 
